@@ -4,237 +4,305 @@ Functional tree realization.
 Tree consists of nodes linked by edges.
 Each node is dictionary.
 
+Data is stored in Dict member.
 Predefined node keys are:
     - type
     - name
-    - children
+
+Other data:
+    - Children
 
 Created on Tue Jan 15 16:05:25 2019
 
 @author: Rybakov
 """
 
-#---------------------------------------------------------------------------------------------------
-
-def get_type(el):
+class FTree:
     """
-    Get special "type" field value of the element.
-    
-    Arguments:
-        el -- element.
-        
-    Result:
-        Value of the field "type".
+    Functional tree.
     """
-    
-    return el["type"]
 
 #---------------------------------------------------------------------------------------------------
-
-def set_type(el, v):
-    """
-    Set special "type" field of the element.
-    
-    Arguments:
-        el -- element,
-        v -- value.
-    """
-    
-    el["type"] = v
-    
+# Constructor.
 #---------------------------------------------------------------------------------------------------
 
-def is_type(el, v):
-    """
-    Check if the element has given type.
-    
-    Arguments:
-        el -- element,
-        v -- value of the field "type".
-        
-    Result:
-        True -- if the element has given type,
-        False -- otherwise.
-    """
-    
-    return get_type(el) == v
-    
+    def __init__(self, tp, nm):
+        """
+        Constructor from type and name.
+
+        Arguments:
+            type -- type,
+            name -- name.
+        """
+
+        self.Dict = {}
+        self.SetType(tp)
+        self.SetName(nm)
+        self.EmptyChildren()
+
+#---------------------------------------------------------------------------------------------------
+# Maintenance.
 #---------------------------------------------------------------------------------------------------
 
-def get_name(el):
-    """
-    Get special "name" field value of the element.
-    
-    Arguments:
-        el -- element.
-        
-    Result:
-        Value of the field "name".
-    """
-    
-    return el["name"]
+    def __enter__(self):
+        """
+        Function for "with ... as" context.
+        """
+
+        return self
 
 #---------------------------------------------------------------------------------------------------
 
-def set_name(el, v):
-    """
-    Set special "name" field of the element.
-    
-    Arguments:
-        el -- element,
-        v -- value.
-    """
-    
-    el["name"] = v
-    
-#---------------------------------------------------------------------------------------------------
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Method for "with ... as" context.
 
-def is_name(el, v):
-    """
-    Check if the element has given name.
-    
-    Arguments:
-        el -- element,
-        v -- value of the field "name".
-        
-    Result:
-        True -- if the element has given name,
-        False -- otherwise.
-    """
-    
-    return get_name(el) == v
+        Arguments:
+            exc_type -- exception type,
+            exc_val -- exception value,
+            exc_tb -- exception traceback.
+        """
+
+        pass
 
 #---------------------------------------------------------------------------------------------------
-    
-def get_children(el):
-    """
-    Get special "children" field value of the element.
-    
-    Arguments:
-        el -- element.
-        
-    Result:
-        Value of the field "children".
-    """
-    
-    return el["children"]
+# Basic properties of elements.
+#---------------------------------------------------------------------------------------------------
+
+    def GetType(self):
+        """
+        Get special "type" field value of the element.
+
+        Result:
+            Value of the field "type".
+        """
+
+        return self.Dict["type"]
 
 #---------------------------------------------------------------------------------------------------
 
-def empty_children(el):
-    """
-    Empty children list.
-    
-    Arguments:
-        el -- element.
-    """
-    
-    el["children"] = []
+    def SetType(self, tp):
+        """
+        Set special "type" field of the element.
+
+        Arguments:
+            tp -- value.
+        """
+
+        self.Dict["type"] = tp
 
 #---------------------------------------------------------------------------------------------------
-    
-def add_child(el, c):
-    """
-    Add new child.
-    
-    Arguments:
-        el -- element,
-        c -- new child.
-    """
-    
-    get_children(el).append(c)
-    
-#---------------------------------------------------------------------------------------------------
 
-def new_element(tp, nm):
-    """
-    Create new element from type and name.
-    
-    Argumnets:
-        tp -- type,
-        nm -- name.
-    
-    Result:
-        New element.
-    """
-    
-    el = {}
-    set_type(el, tp)
-    set_name(el, nm)
-    empty_children(el)
-    
-    return el
+    def IsType(self, tp):
+        """
+        Check if the element has given type.
+
+        Arguments:
+            tp -- value of the field "type".
+
+        Result:
+            True -- if the element has given type,
+            False -- otherwise.
+        """
+
+        return self.GetType() == tp
 
 #---------------------------------------------------------------------------------------------------
-    
-def print_tree(tree, level=0):
-    """
-    Recursive print tree.
-    
-    Arguments:
-        t -- tree,
-        sh - shift of print.
-    """
-    
-    if level == 0:
-        sh_str = "# " # root
-    else:
-        sh= 4 * (level - 1)
-        sh_str = (" " * sh) + "|--->"
-    
-    # Print current element.
-    print(sh_str + get_type(tree) + " : " + get_name(tree))
-    
-    # Print all children.
-    for c in get_children(tree):
-        print_tree(c, level + 1)
-    
-#---------------------------------------------------------------------------------------------------
-        
-def find_element(tree, fun):
-    """
-    Find element in the tree.
-    
-    Arguments:
-        tree -- tree,
-        fun -- search function.
-        
-    Result:
-        Found element, if it is in th tree,
-        None, if element is not found.
-    """
-    
-    if fun(tree):
-        return tree
-    else:
-        
-        # Check all children.
-        for c in get_children(tree):
-            if find_element(c, fun) != None:
-                return c
-        
-        # Nothing is found.
-        return None
-        
-#---------------------------------------------------------------------------------------------------
-    
-def find_element_by_name(tree, nm):
-    """
-    Find element by its name.
 
-    Arguments:
-        tree -- tree,
-        nm -- name.
-    
-    Result:
-        Found element, if it is in the tree,
-        None, if element is not found.
-    """
-    
-    return find_element(tree, lambda x: is_name(x, nm))
-    
+    def GetName(self):
+        """
+        Get special "name" field value of the element.
+
+        Result:
+            Value of the field "name".
+        """
+
+        return self.Dict["name"]
+
 #---------------------------------------------------------------------------------------------------
+
+    def SetName(self, nm):
+        """
+        Set special "name" field of the element.
+
+        Arguments:
+            nm -- value.
+        """
+
+        self.Dict["name"] = nm
+
 #---------------------------------------------------------------------------------------------------
+
+    def IsName(self, nm):
+        """
+        Check if the element has given name.
+
+        Arguments:
+            nm -- value of the field "name".
+
+        Result:
+            True -- if the element has given name,
+            False -- otherwise.
+        """
+
+        return self.GetName() == nm
+
+#---------------------------------------------------------------------------------------------------
+
+    def GetChildren(self):
+        """
+        Get special "children" field value of the element.
+
+        Result:
+            Value of the field "children".
+        """
+
+        return self.Children
+
+#---------------------------------------------------------------------------------------------------
+# Elements management.
+#---------------------------------------------------------------------------------------------------
+
+    def EmptyChildren(self):
+        """
+        Empty children list.
+        """
+
+        self.Children = []
+
+#---------------------------------------------------------------------------------------------------
+
+    def AddChild(self, child):
+        """
+        Add new child.
+
+        Arguments:
+            child -- new child.
+
+        Result:
+            Added child.
+        """
+
+        self.GetChildren().append(child)
+
+        return child
+
+#---------------------------------------------------------------------------------------------------
+# Print.
+#---------------------------------------------------------------------------------------------------
+
+    def Print(self, level, is_recursive):
+        """
+        Print.
+
+        Arguments:
+            level -- tree level,
+            is_recursive -- recursive print is needed or not.
+        """
+
+        if level == 0:
+
+            # Print "#" ony in recursive mode.
+            if is_recursive:
+                sh_str = "# " # root
+            else:
+                sh_str = ""
+
+        else:
+            sh = 4 * (level - 1)
+            sh_str = (" " * sh) + "|--->"
+
+        # Print current element.
+        print(sh_str + self.GetType() + " : " + self.GetName())
+
+        # Print all children.
+        if is_recursive:
+            for c in self.GetChildren():
+                c.Print(level + 1, True)
+
+#---------------------------------------------------------------------------------------------------
+
+    def PrintOne(self):
+        """
+        Print single element.
+        """
+
+        self.Print(0, False)
+
+#---------------------------------------------------------------------------------------------------
+
+    def PrintTree(self):
+        """
+        Recursive print of tree.
+        """
+
+        self.Print(0, True)
+
+#---------------------------------------------------------------------------------------------------
+# Find elements.
+#---------------------------------------------------------------------------------------------------
+
+    def FindElement(self, fun):
+        """
+        Find element in the tree.
+
+        Arguments:
+            fun -- search function.
+
+        Result:
+            Found element, if it is in th tree,
+            None, if element is not found.
+        """
+
+        print("XXX")
+
+        if fun(self):
+            return self
+        else:
+
+            # Check all children.
+            for c in self.GetChildren():
+                if c.FindElement(fun) != None:
+                    return c
+
+            # Nothing is found.
+            return None
+
+#---------------------------------------------------------------------------------------------------
+
+    def FindElementByName(self, nm):
+        """
+        Find element by its name.
+
+        Arguments:
+            nm -- name.
+
+        Result:
+            Found element, if it is in the tree,
+            None, if element is not found.
+        """
+
+        return self.FindElement(lambda x: x.IsName(nm))
+
+#---------------------------------------------------------------------------------------------------
+
+    def FindElementByTypeName(self, tp, nm):
+        """
+        Find element by its type and name.
+
+        Arguments:
+            tp -- type,
+            nm -- name.
+
+        Result:
+            Found element, if it is in the tree,
+            None, if element is not found.
+        """
+
+        return self.FindElement(lambda x: x.IsType(tp) and x.IsName(nm))
+
+#---------------------------------------------------------------------------------------------------
+# Slices.
 #---------------------------------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------------------------------
@@ -242,22 +310,27 @@ def find_element_by_name(tree, nm):
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
+
     print("ftree tests:")
-    jscc = new_element("resources", "JSCC")
-    k100 = new_element("supercomputer", "100K")
-    p10 = new_element("supercomputer", "10P")
-    add_child(jscc, k100)
-    add_child(jscc, p10)
-    print_tree(jscc)
-    
-    print(find_element_by_name(jscc, "100K"))
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+    # Main tree.
+    jscc = FTree("resources", "JSCC")
+
+    # Adding supercomputers.
+    jscc.AddChild(FTree("supercomputer", "100K"))
+    jscc.AddChild(FTree("supercomputer", "10P"))
+
+    # 100K segments.
+    with jscc.FindElementByTypeName("supercomputer", "100K") as k100:
+        k100.AddChild(FTree("segment", "100K"))
+
+    # 10P segments.
+    with jscc.FindElementByName("10P") as p10:
+        p10.AddChild(FTree("segment", "Tornado"))
+        p10.AddChild(FTree("segment", "Petastream"))
+        p10.AddChild(FTree("segment", "Haswell"))
+        p10.AddChild(FTree("segment", "Broadwell"))
+        p10.AddChild(FTree("segment", "KNL"))
+        p10.AddChild(FTree("segment", "Skylake"))
+
+    jscc.PrintTree()
