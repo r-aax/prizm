@@ -10,6 +10,7 @@ Predefined node keys are:
     - name
 
 Other data:
+    - Parent
     - Children
 
 Created on Tue Jan 15 16:05:25 2019
@@ -38,7 +39,8 @@ class FTree:
         self.Dict = {}
         self.SetType(tp)
         self.SetName(nm)
-        self.EmptyChildren()
+        self.Children = []
+        self.Parent = None
 
 #---------------------------------------------------------------------------------------------------
 # Maintenance.
@@ -148,28 +150,36 @@ class FTree:
         return self.GetName() == nm
 
 #---------------------------------------------------------------------------------------------------
+# Properties.
+#---------------------------------------------------------------------------------------------------
 
-    def GetChildren(self):
+    def ChildrenCount(self):
         """
-        Get special "children" field value of the element.
+        Count of children.
 
         Result:
-            Value of the field "children".
+            Count of children.
         """
 
-        return self.Children
+        return self.Children.count;
+
+#---------------------------------------------------------------------------------------------------
+
+    def Level(self):
+        """
+        Node level.
+
+        Result:
+            Level.
+        """
+
+        if self.Parent == None:
+            return 0
+        else:
+            return 1 + self.Parent.Level()
 
 #---------------------------------------------------------------------------------------------------
 # Elements management.
-#---------------------------------------------------------------------------------------------------
-
-    def EmptyChildren(self):
-        """
-        Empty children list.
-        """
-
-        self.Children = []
-
 #---------------------------------------------------------------------------------------------------
 
     def AddChild(self, child):
@@ -183,7 +193,8 @@ class FTree:
             Added child.
         """
 
-        self.GetChildren().append(child)
+        self.Children.append(child)
+        child.Parent = self
 
         return child
 
@@ -217,7 +228,7 @@ class FTree:
 
         # Print all children.
         if is_recursive:
-            for c in self.GetChildren():
+            for c in self.Children:
                 c.Print(level + 1, True)
 
 #---------------------------------------------------------------------------------------------------
@@ -259,7 +270,7 @@ class FTree:
         else:
 
             # Check all children.
-            for c in self.GetChildren():
+            for c in self.Children:
                 if c.FindElement(fun) != None:
                     return c
 
@@ -280,7 +291,7 @@ class FTree:
             None, if element is not found.
         """
 
-        return self.FindElement(lambda x: x.IsName(nm))
+        return self.FindElement(lambda t: t.IsName(nm))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -297,11 +308,48 @@ class FTree:
             None, if element is not found.
         """
 
-        return self.FindElement(lambda x: x.IsType(tp) and x.IsName(nm))
+        return self.FindElement(lambda t: t.IsType(tp) and t.IsName(nm))
+
+#---------------------------------------------------------------------------------------------------
+# Main functional actions.
+#---------------------------------------------------------------------------------------------------
+
+    def FoldDepth(self, fun, acc):
+        """
+        Fold tree while depth-first search.
+
+        Arguments:
+            fun -- function,
+            acc -- accumulator.
+
+        Result:
+            Accumulator value after fold.
+        """
+
+        v = fun(self, acc)
+
+        # Now add to accumulator all children results.
+        for c in self.Children:
+            v = c.FoldDepth(fun, v)
+
+        return v
 
 #---------------------------------------------------------------------------------------------------
 # Slices.
 #---------------------------------------------------------------------------------------------------
+
+    def SliceLevel(self, level):
+        """
+        Get level slice.
+
+        Arguments:
+            level -- number of level.
+
+        Result:
+            Slice.
+        """
+
+        return self.FoldDepth(lambda t, a: a + [t] if (t.Level() == level) else a, [])
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -323,60 +371,66 @@ if __name__ == "__main__":
     earth.AddChild(FTree("continent", "Antarctica"))
 
     # Countries.
-    with earth.FindElementByTypeName("continent", "Eurasia") as c:
-        c.AddChild(FTree("country", "Russia"))
-        c.AddChild(FTree("country", "China"))
-        c.AddChild(FTree("country", "Germany"))
-    with earth.FindElementByTypeName("continent", "North America") as c:
-        c.AddChild(FTree("country", "USA"))
-        c.AddChild(FTree("country", "Canada"))
-    with earth.FindElementByTypeName("continent", "South America") as c:
-        c.AddChild(FTree("country", "Brazil"))
-        c.AddChild(FTree("country", "Argentina"))
-        c.AddChild(FTree("country", "Venezuela"))
-    with earth.FindElementByTypeName("continent", "Africa") as c:
-        c.AddChild(FTree("country", "Egypt"))
-        c.AddChild(FTree("country", "RSA"))
-        c.AddChild(FTree("country", "Nigeria"))
-    with earth.FindElementByTypeName("continent", "Australia") as c:
-        c.AddChild(FTree("country", "Australia"))
-    with earth.FindElementByTypeName("continent", "Antarctica") as c:
+    with earth.FindElementByTypeName("continent", "Eurasia") as n:
+        n.AddChild(FTree("country", "Russia"))
+        n.AddChild(FTree("country", "China"))
+        n.AddChild(FTree("country", "Germany"))
+    with earth.FindElementByTypeName("continent", "North America") as n:
+        n.AddChild(FTree("country", "USA"))
+        n.AddChild(FTree("country", "Canada"))
+    with earth.FindElementByTypeName("continent", "South America") as n:
+        n.AddChild(FTree("country", "Brazil"))
+        n.AddChild(FTree("country", "Argentina"))
+        n.AddChild(FTree("country", "Venezuela"))
+    with earth.FindElementByTypeName("continent", "Africa") as n:
+        n.AddChild(FTree("country", "Egypt"))
+        n.AddChild(FTree("country", "RSA"))
+        n.AddChild(FTree("country", "Nigeria"))
+    with earth.FindElementByTypeName("continent", "Australia") as n:
+        n.AddChild(FTree("country", "Australia"))
+    with earth.FindElementByTypeName("continent", "Antarctica") as n:
         # No countries.
         pass
 
     # Cities.
-    with earth.FindElementByTypeName("country", "Russia") as c:
-        c.AddChild(FTree("city", "Moscow"))
-        c.AddChild(FTree("city", "St. Petersburg"))
-        c.AddChild(FTree("city", "Kazan"))
-    with earth.FindElementByTypeName("country", "China") as c:
-        c.AddChild(FTree("city", "Beijing"))
-        c.AddChild(FTree("city", "Shanghai"))
-    with earth.FindElementByTypeName("country", "Germany") as c:
-        c.AddChild(FTree("city", "Berlin"))
-        c.AddChild(FTree("city", "Munich"))
-        c.AddChild(FTree("city", "Dresden"))
-    with earth.FindElementByTypeName("country", "USA") as c:
-        c.AddChild(FTree("city", "New York"))
-        c.AddChild(FTree("city", "Los Angeles"))
-        c.AddChild(FTree("city", "Chicago"))
-    with earth.FindElementByTypeName("country", "Canada") as c:
-        c.AddChild(FTree("city", "Montreal"))
-    with earth.FindElementByTypeName("country", "Brazil") as c:
-        c.AddChild(FTree("city", "Rio de Janeiro"))
-        c.AddChild(FTree("city", "San Paulo"))
-    with earth.FindElementByTypeName("country", "Argentina") as c:
-        c.AddChild(FTree("city", "Buenos Aires"))
-    with earth.FindElementByTypeName("country", "Venezuela") as c:
-        c.AddChild(FTree("city", "Caracas"))
-    with earth.FindElementByTypeName("country", "Egypt") as c:
-        c.AddChild(FTree("city", "Cairo"))
-    with earth.FindElementByTypeName("country", "RSA") as c:
-        c.AddChild(FTree("city", "Cape Town"))
-    with earth.FindElementByTypeName("country", "Nigeria") as c:
-        c.AddChild(FTree("city", "Abuja"))
-    with earth.FindElementByTypeName("country", "Australia") as c:
-        c.AddChild(FTree("city", "Sydney"))
-        c.AddChild(FTree("city", "Melbourne"))
+    with earth.FindElementByTypeName("country", "Russia") as n:
+        n.AddChild(FTree("city", "Moscow"))
+        n.AddChild(FTree("city", "St. Petersburg"))
+        n.AddChild(FTree("city", "Kazan"))
+    with earth.FindElementByTypeName("country", "China") as n:
+        n.AddChild(FTree("city", "Beijing"))
+        n.AddChild(FTree("city", "Shanghai"))
+    with earth.FindElementByTypeName("country", "Germany") as n:
+        n.AddChild(FTree("city", "Berlin"))
+        n.AddChild(FTree("city", "Munich"))
+        n.AddChild(FTree("city", "Dresden"))
+    with earth.FindElementByTypeName("country", "USA") as n:
+        n.AddChild(FTree("city", "New York"))
+        n.AddChild(FTree("city", "Los Angeles"))
+        n.AddChild(FTree("city", "Chicago"))
+    with earth.FindElementByTypeName("country", "Canada") as n:
+        n.AddChild(FTree("city", "Montreal"))
+    with earth.FindElementByTypeName("country", "Brazil") as n:
+        n.AddChild(FTree("city", "Rio de Janeiro"))
+        n.AddChild(FTree("city", "San Paulo"))
+    with earth.FindElementByTypeName("country", "Argentina") as n:
+        n.AddChild(FTree("city", "Buenos Aires"))
+    with earth.FindElementByTypeName("country", "Venezuela") as n:
+        n.AddChild(FTree("city", "Caracas"))
+    with earth.FindElementByTypeName("country", "Egypt") as n:
+        n.AddChild(FTree("city", "Cairo"))
+    with earth.FindElementByTypeName("country", "RSA") as n:
+        n.AddChild(FTree("city", "Cape Town"))
+    with earth.FindElementByTypeName("country", "Nigeria") as n:
+        n.AddChild(FTree("city", "Abuja"))
+    with earth.FindElementByTypeName("country", "Australia") as n:
+        n.AddChild(FTree("city", "Sydney"))
+        n.AddChild(FTree("city", "Melbourne"))
 
     earth.PrintTree()
+
+    # Level.
+    level2 = earth.SliceLevel(2);
+    print("level 2:")
+    for el in level2:
+        el.PrintOne()
