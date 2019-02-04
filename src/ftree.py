@@ -254,8 +254,6 @@ class FTree:
             None, if element is not found.
         """
 
-        print("XXX")
-
         if fun(self):
             return self
         else:
@@ -314,23 +312,71 @@ if __name__ == "__main__":
     print("ftree tests:")
 
     # Main tree.
-    jscc = FTree("resources", "JSCC")
+    earth = FTree("planet", "Earth")
+    
+    # Continents.
+    earth.AddChild(FTree("continent", "Eurasia"))
+    earth.AddChild(FTree("continent", "North America"))
+    earth.AddChild(FTree("continent", "South America"))
+    earth.AddChild(FTree("continent", "Africa"))
+    earth.AddChild(FTree("continent", "Australia"))
+    earth.AddChild(FTree("continent", "Antarctica"))
 
-    # Adding supercomputers.
-    jscc.AddChild(FTree("supercomputer", "100K"))
-    jscc.AddChild(FTree("supercomputer", "10P"))
+    # Countries.
+    with earth.FindElementByTypeName("continent", "Eurasia") as c:
+        c.AddChild(FTree("country", "Russia"))
+        c.AddChild(FTree("country", "China"))
+        c.AddChild(FTree("country", "Germany"))
+    with earth.FindElementByTypeName("continent", "North America") as c:
+        c.AddChild(FTree("country", "USA"))
+        c.AddChild(FTree("country", "Canada"))
+    with earth.FindElementByTypeName("continent", "South America") as c:
+        c.AddChild(FTree("country", "Brazil"))
+        c.AddChild(FTree("country", "Argentina"))
+        c.AddChild(FTree("country", "Venezuela"))
+    with earth.FindElementByTypeName("continent", "Africa") as c:
+        c.AddChild(FTree("country", "Egypt"))
+        c.AddChild(FTree("country", "RSA"))
+        c.AddChild(FTree("country", "Nigeria"))
+    with earth.FindElementByTypeName("continent", "Australia") as c:
+        c.AddChild(FTree("country", "Australia"))
+    with earth.FindElementByTypeName("continent", "Antarctica") as c:
+        # No countries.
+        pass
 
-    # 100K segments.
-    with jscc.FindElementByTypeName("supercomputer", "100K") as k100:
-        k100.AddChild(FTree("segment", "100K"))
+    # Cities.
+    with earth.FindElementByTypeName("country", "Russia") as c:
+        c.AddChild(FTree("city", "Moscow"))
+        c.AddChild(FTree("city", "St. Petersburg"))
+        c.AddChild(FTree("city", "Kazan"))
+    with earth.FindElementByTypeName("country", "China") as c:
+        c.AddChild(FTree("city", "Beijing"))
+        c.AddChild(FTree("city", "Shanghai"))
+    with earth.FindElementByTypeName("country", "Germany") as c:
+        c.AddChild(FTree("city", "Berlin"))
+        c.AddChild(FTree("city", "Munich"))
+        c.AddChild(FTree("city", "Dresden"))
+    with earth.FindElementByTypeName("country", "USA") as c:
+        c.AddChild(FTree("city", "New York"))
+        c.AddChild(FTree("city", "Los Angeles"))
+        c.AddChild(FTree("city", "Chicago"))
+    with earth.FindElementByTypeName("country", "Canada") as c:
+        c.AddChild(FTree("city", "Montreal"))
+    with earth.FindElementByTypeName("country", "Brazil") as c:
+        c.AddChild(FTree("city", "Rio de Janeiro"))
+        c.AddChild(FTree("city", "San Paulo"))
+    with earth.FindElementByTypeName("country", "Argentina") as c:
+        c.AddChild(FTree("city", "Buenos Aires"))
+    with earth.FindElementByTypeName("country", "Venezuela") as c:
+        c.AddChild(FTree("city", "Caracas"))
+    with earth.FindElementByTypeName("country", "Egypt") as c:
+        c.AddChild(FTree("city", "Cairo"))
+    with earth.FindElementByTypeName("country", "RSA") as c:
+        c.AddChild(FTree("city", "Cape Town"))
+    with earth.FindElementByTypeName("country", "Nigeria") as c:
+        c.AddChild(FTree("city", "Abuja"))
+    with earth.FindElementByTypeName("country", "Australia") as c:
+        c.AddChild(FTree("city", "Sydney"))
+        c.AddChild(FTree("city", "Melbourne"))
 
-    # 10P segments.
-    with jscc.FindElementByName("10P") as p10:
-        p10.AddChild(FTree("segment", "Tornado"))
-        p10.AddChild(FTree("segment", "Petastream"))
-        p10.AddChild(FTree("segment", "Haswell"))
-        p10.AddChild(FTree("segment", "Broadwell"))
-        p10.AddChild(FTree("segment", "KNL"))
-        p10.AddChild(FTree("segment", "Skylake"))
-
-    jscc.PrintTree()
+    earth.PrintTree()
