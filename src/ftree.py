@@ -150,6 +150,32 @@ class FTree:
         return self.GetName() == nm
 
 #---------------------------------------------------------------------------------------------------
+
+    def IsRoot(self):
+        """
+        Root check.
+
+        Result:
+            True -- if is root,
+            False -- if is not root.
+        """
+
+        return self.Parent == None
+
+#---------------------------------------------------------------------------------------------------
+
+    def IsList(self):
+        """
+        List check.
+
+        Result:
+            True -- if is list,
+            False -- if is not list.
+        """
+
+        return self.Children == []
+
+#---------------------------------------------------------------------------------------------------
 # Properties.
 #---------------------------------------------------------------------------------------------------
 
@@ -173,7 +199,7 @@ class FTree:
             Level.
         """
 
-        if self.Parent == None:
+        if self.IsRoot():
             return 0
         else:
             return 1 + self.Parent.Level()
@@ -353,6 +379,73 @@ class FTree:
         return self.FoldDepth(lambda t, a: a + [t] if (t.Level() == level) else a, [])
 
 #---------------------------------------------------------------------------------------------------
+
+    def SliceChildNum(self, n):
+        """
+        Slice on child number.
+
+        Arguments:
+            n -- child number.
+
+        Result:
+            Slice.
+        """
+
+        s = [self]
+        children_len = len(self.Children)
+
+        if (n >= -children_len) and (n < children_len):
+            s = s + self.Children[n].SliceChildNum(n)
+
+        return s
+
+#---------------------------------------------------------------------------------------------------
+
+    def SliceLeft(self):
+        """
+        Slice left path.
+
+        Return:
+            Slice.
+        """
+
+        return self.SliceChildNum(0)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SliceRight(self):
+        """
+        Slice left path.
+
+        Return:
+            Slice.
+        """
+
+        return self.SliceChildNum(-1)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SliceChildrenNumbers(self, ns):
+        """
+        Slice on children numbers.
+
+        Arguments:
+            ns -- children numbers.
+
+        Result:
+            Slice.
+        """
+
+        s = [self]
+        children_len = len(self.Children)
+
+        if (ns != []):
+            if (ns[0] >= -children_len) and (ns[0] < children_len):
+                s = s + self.Children[ns[0]].SliceChildrenNumbers(ns[1:])
+
+        return s
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
@@ -430,8 +523,6 @@ if __name__ == "__main__":
 
     earth.PrintTree()
 
-    # Level.
-    level2 = earth.SliceLevel(2);
-    print("level 2:")
-    for el in level2:
+    # Slices.
+    for el in earth.SliceChildrenNumbers([1, 0, 2]):
         el.PrintOne()
