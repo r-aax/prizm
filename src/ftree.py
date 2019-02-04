@@ -271,8 +271,9 @@ class FTree:
 
             # Check all children.
             for c in self.Children:
-                if c.FindElement(fun) != None:
-                    return c
+                f = c.FindElement(fun)
+                if f != None:
+                    return f
 
             # Nothing is found.
             return None
