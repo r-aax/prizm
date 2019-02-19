@@ -4,14 +4,13 @@ Functional tree realization.
 Tree consists of nodes linked by edges.
 Each node is dictionary.
 
-Data is stored in Dict member.
-Predefined node keys are:
-    - type
-    - name
-
-Other data:
-    - Parent
+Main data:
+    - Type
+    - Name
     - Children
+    - Parent
+
+Other data is stored in Dict member.
 
 Created on Tue Jan 15 16:05:25 2019
 
@@ -37,8 +36,8 @@ class FTree:
         """
 
         self.Dict = {}
-        self.SetType(tp)
-        self.SetName(nm)
+        self.Type = tp
+        self.Name = nm
         self.Children = []
         self.Parent = None
 
@@ -68,31 +67,7 @@ class FTree:
         pass
 
 #---------------------------------------------------------------------------------------------------
-# Basic properties of elements.
-#---------------------------------------------------------------------------------------------------
-
-    def GetType(self):
-        """
-        Get special "type" field value of the element.
-
-        Result:
-            Value of the field "type".
-        """
-
-        return self.Dict["type"]
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetType(self, tp):
-        """
-        Set special "type" field of the element.
-
-        Arguments:
-            tp -- value.
-        """
-
-        self.Dict["type"] = tp
-
+# Manipulation with basic fields of elements.
 #---------------------------------------------------------------------------------------------------
 
     def IsType(self, tp):
@@ -107,31 +82,7 @@ class FTree:
             False -- otherwise.
         """
 
-        return self.GetType() == tp
-
-#---------------------------------------------------------------------------------------------------
-
-    def GetName(self):
-        """
-        Get special "name" field value of the element.
-
-        Result:
-            Value of the field "name".
-        """
-
-        return self.Dict["name"]
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetName(self, nm):
-        """
-        Set special "name" field of the element.
-
-        Arguments:
-            nm -- value.
-        """
-
-        self.Dict["name"] = nm
+        return self.Type == tp
 
 #---------------------------------------------------------------------------------------------------
 
@@ -147,8 +98,10 @@ class FTree:
             False -- otherwise.
         """
 
-        return self.GetName() == nm
+        return self.Name == nm
 
+#---------------------------------------------------------------------------------------------------
+# Properties.
 #---------------------------------------------------------------------------------------------------
 
     def IsRoot(self):
@@ -175,8 +128,6 @@ class FTree:
 
         return self.Children == []
 
-#---------------------------------------------------------------------------------------------------
-# Properties.
 #---------------------------------------------------------------------------------------------------
 
     def ChildrenCount(self):
@@ -250,7 +201,7 @@ class FTree:
             sh_str = (" " * sh) + "|--->"
 
         # Print current element.
-        print(sh_str + self.GetType() + " : " + self.GetName())
+        print(sh_str + self.Type + " : " + self.Name)
 
         # Print all children.
         if is_recursive:
@@ -440,8 +391,9 @@ class FTree:
         children_len = len(self.Children)
 
         if (ns != []):
-            if (ns[0] >= -children_len) and (ns[0] < children_len):
-                s = s + self.Children[ns[0]].SliceChildrenNumbers(ns[1:])
+            h = ns[0]
+            if (h >= -children_len) and (h < children_len):
+                s = s + self.Children[h].SliceChildrenNumbers(ns[1:])
 
         return s
 
