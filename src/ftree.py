@@ -115,21 +115,6 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Get(self, prop):
-        """
-        Get property.
-
-        Arguments:
-            prop -- property.
-
-        Result:
-            Property value.
-        """
-
-        return self.Dict[prop];
-
-#---------------------------------------------------------------------------------------------------
-
     def Has(self, prop):
         """
         Check if tree has the property with the given name.
@@ -143,6 +128,24 @@ class FTree:
         """
 
         return prop in self.Dict
+
+#---------------------------------------------------------------------------------------------------
+
+    def Get(self, prop):
+        """
+        Get property.
+
+        Arguments:
+            prop -- property.
+
+        Result:
+            Property value.
+        """
+
+        if self.Has(prop):
+            return self.Dict[prop]
+        else:
+            return None
 
 #---------------------------------------------------------------------------------------------------
 
@@ -264,7 +267,12 @@ class FTree:
             sh_str = (" " * sh) + "|--->"
 
         # Print current element.
-        print(sh_str + self.Type + " : " + self.Name)
+        to_string_fun = self.Get("to_string_fun")
+        if to_string_fun != None:
+            own_str = to_string_fun(self)
+        else:
+            own_str = self.Type + " : " + self.Name
+        print(sh_str + own_str)
 
         # Print all children.
         if is_recursive:
@@ -353,6 +361,27 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 # Main functional actions.
+#---------------------------------------------------------------------------------------------------
+
+    def Apply(self, apply_fun, filter_fun = None):
+        """
+        Apply "apply_fun" function to all elements of the tree.
+
+        Arguments:
+            apply_fun -- apply function.
+            filter_fun -- additional filter function.
+        """
+
+        is_apply = (filter_fun == None) or filter_fun(self)
+
+        # Apply.
+        if is_apply:
+            apply_fun(self)
+            
+        # Children.
+        for ch in self.Children:
+            ch.Apply(apply_fun, filter_fun)
+
 #---------------------------------------------------------------------------------------------------
 
     def FoldDepth(self, fun, acc):

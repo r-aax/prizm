@@ -65,6 +65,10 @@ def center_jscc():
 
 if __name__ == "__main__":
     jscc = center_jscc()
+    jscc.Apply(lambda t: t.Set("to_string_fun",
+                               lambda x: x.Type + " : " + x.Name
+                                         + " (" + str(x.Get("nodes_count"))+  ")"),
+               lambda t: t.IsType("segment"))
     jscc.PrintTree()
 
 #---------------------------------------------------------------------------------------------------
