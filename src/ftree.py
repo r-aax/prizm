@@ -7,6 +7,7 @@ Each node is dictionary.
 Main data:
     - Type
     - Name
+    - Descr
     - Children
     - Parent
 
@@ -26,18 +27,20 @@ class FTree:
 # Constructor.
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self, tp, nm):
+    def __init__(self, tp, nm, descr = ""):
         """
         Constructor from type and name.
 
         Arguments:
             type -- type,
-            name -- name.
+            name -- name,
+            descr -- description.
         """
 
         self.Dict = {}
         self.Type = tp
         self.Name = nm
+        self.Descr = descr
         self.Children = []
         self.Parent = None
 
@@ -165,6 +168,18 @@ class FTree:
         return self.Get(prop) == val
 
 #---------------------------------------------------------------------------------------------------
+
+    def ChildrenNames(self):
+        """
+        Get all children names.
+
+        Result:
+            Children names.
+        """
+
+        return [ch.Name for ch in self.Children]
+
+#---------------------------------------------------------------------------------------------------
 # Properties.
 #---------------------------------------------------------------------------------------------------
 
@@ -223,26 +238,101 @@ class FTree:
 # Elements management.
 #---------------------------------------------------------------------------------------------------
 
-    def AddChild(self, tp, nm):
+    def AddChildTree(self, t, count = 1):
         """
         Add new child with given type and name.
 
         Arguments:
-            tp -- type,
-            nm -- name.
+            t -- child FTree,
+            count -- count (weight).
 
         Result:
             Added child.
         """
 
-        ch= FTree(tp, nm);
-        self.Children.append(ch);
-        ch.Parent = self;
+        # Links.
+        self.Children.append(t);
+        t.Parent = self;
 
-        return ch;
+        # Add count.
+        if count > 1:
+            prop = t.CountStr()
+            self.Set(prop, count)
+
+        return t;
+
+#---------------------------------------------------------------------------------------------------
+
+    def AddChildTN(self, tp, nm, descr = "", count = 1):
+        """
+        Add new child with given type and name.
+
+        Arguments:
+            tp -- type,
+            nm -- name,
+            descr -- description.
+
+        Result:
+            Added child.
+        """
+
+        t = FTree(tp, nm, descr);
+
+        return self.AddChildTree(t, count);
 
 #---------------------------------------------------------------------------------------------------
 # Print.
+#---------------------------------------------------------------------------------------------------
+
+    def BaseStr(self):
+        """
+        Basic string.
+
+        Result:
+            Basic string.
+        """
+
+        s = "[" + self.Type + ":" + self.Name + "]"
+
+        if self.Descr != "":
+            s = s +" " + self.Descr
+
+        return s
+
+#---------------------------------------------------------------------------------------------------
+
+    def CountStr(self):
+        """
+        Count string for parent.
+
+        Result:
+            Count string.
+        """
+
+        return self.Type + "_" + self.Name + "_count"
+
+#---------------------------------------------------------------------------------------------------
+
+    def ChildrenCountsStr(self):
+        """
+        String with children counts.
+
+        Result:
+            String with children counts.
+        """
+
+        s = ""
+        for ch in self.Children:
+            prop = ch.CountStr()
+            if self.Has(prop):
+                s = s + ", " + prop + " = " + str(self.Get(prop))
+
+        # Delete first comma and space.
+        if len(s) > 0:
+            s = s[2:]
+
+        return s;
+
 #---------------------------------------------------------------------------------------------------
 
     def Print(self, level, is_recursive):
@@ -271,7 +361,7 @@ class FTree:
         if to_string_fun != None:
             own_str = to_string_fun(self)
         else:
-            own_str = self.Type + " : " + self.Name
+            own_str = self.BaseStr()
         print(sh_str + own_str)
 
         # Print all children.
@@ -501,69 +591,69 @@ if __name__ == "__main__":
     earth = FTree("planet", "Earth")
     
     # Continents.
-    earth.AddChild("continent", "Eurasia")
-    earth.AddChild("continent", "North America")
-    earth.AddChild("continent", "South America")
-    earth.AddChild("continent", "Africa")
-    earth.AddChild("continent", "Australia")
-    earth.AddChild("continent", "Antarctica")
+    earth.AddChildTN("continent", "Eurasia")
+    earth.AddChildTN("continent", "North America")
+    earth.AddChildTN("continent", "South America")
+    earth.AddChildTN("continent", "Africa")
+    earth.AddChildTN("continent", "Australia")
+    earth.AddChildTN("continent", "Antarctica")
 
     # Countries.
     with earth.FindElementByTypeName("continent", "Eurasia") as n:
-        n.AddChild("country", "Russia")
-        n.AddChild("country", "China")
-        n.AddChild("country", "Germany")
+        n.AddChildTN("country", "Russia")
+        n.AddChildTN("country", "China")
+        n.AddChildTN("country", "Germany")
     with earth.FindElementByTypeName("continent", "North America") as n:
-        n.AddChild("country", "USA")
-        n.AddChild("country", "Canada")
+        n.AddChildTN("country", "USA")
+        n.AddChildTN("country", "Canada")
     with earth.FindElementByTypeName("continent", "South America") as n:
-        n.AddChild("country", "Brazil")
-        n.AddChild("country", "Argentina")
-        n.AddChild("country", "Venezuela")
+        n.AddChildTN("country", "Brazil")
+        n.AddChildTN("country", "Argentina")
+        n.AddChildTN("country", "Venezuela")
     with earth.FindElementByTypeName("continent", "Africa") as n:
-        n.AddChild("country", "Egypt")
-        n.AddChild("country", "RSA")
-        n.AddChild("country", "Nigeria")
+        n.AddChildTN("country", "Egypt")
+        n.AddChildTN("country", "RSA")
+        n.AddChildTN("country", "Nigeria")
     with earth.FindElementByTypeName("continent", "Australia") as n:
-        n.AddChild("country", "Australia")
+        n.AddChildTN("country", "Australia")
     with earth.FindElementByTypeName("continent", "Antarctica") as n:
         # No countries.
         pass
 
     # Cities.
     with earth.FindElementByTypeName("country", "Russia") as n:
-        n.AddChild("city", "Moscow")
-        n.AddChild("city", "St. Petersburg")
-        n.AddChild("city", "Kazan")
+        n.AddChildTN("city", "Moscow")
+        n.AddChildTN("city", "St. Petersburg")
+        n.AddChildTN("city", "Kazan")
     with earth.FindElementByTypeName("country", "China") as n:
-        n.AddChild("city", "Beijing")
-        n.AddChild("city", "Shanghai")
+        n.AddChildTN("city", "Beijing")
+        n.AddChildTN("city", "Shanghai")
     with earth.FindElementByTypeName("country", "Germany") as n:
-        n.AddChild("city", "Berlin")
-        n.AddChild("city", "Munich")
-        n.AddChild("city", "Dresden")
+        n.AddChildTN("city", "Berlin")
+        n.AddChildTN("city", "Munich")
+        n.AddChildTN("city", "Dresden")
     with earth.FindElementByTypeName("country", "USA") as n:
-        n.AddChild("city", "New York")
-        n.AddChild("city", "Los Angeles")
-        n.AddChild("city", "Chicago")
+        n.AddChildTN("city", "New York")
+        n.AddChildTN("city", "Los Angeles")
+        n.AddChildTN("city", "Chicago")
     with earth.FindElementByTypeName("country", "Canada") as n:
-        n.AddChild("city", "Montreal")
+        n.AddChildTN("city", "Montreal")
     with earth.FindElementByTypeName("country", "Brazil") as n:
-        n.AddChild("city", "Rio de Janeiro")
-        n.AddChild("city", "San Paulo")
+        n.AddChildTN("city", "Rio de Janeiro")
+        n.AddChildTN("city", "San Paulo")
     with earth.FindElementByTypeName("country", "Argentina") as n:
-        n.AddChild("city", "Buenos Aires")
+        n.AddChildTN("city", "Buenos Aires")
     with earth.FindElementByTypeName("country", "Venezuela") as n:
-        n.AddChild("city", "Caracas")
+        n.AddChildTN("city", "Caracas")
     with earth.FindElementByTypeName("country", "Egypt") as n:
-        n.AddChild("city", "Cairo")
+        n.AddChildTN("city", "Cairo")
     with earth.FindElementByTypeName("country", "RSA") as n:
-        n.AddChild("city", "Cape Town")
+        n.AddChildTN("city", "Cape Town")
     with earth.FindElementByTypeName("country", "Nigeria") as n:
-        n.AddChild("city", "Abuja")
+        n.AddChildTN("city", "Abuja")
     with earth.FindElementByTypeName("country", "Australia") as n:
-        n.AddChild("city", "Sydney")
-        n.AddChild("city", "Melbourne")
+        n.AddChildTN("city", "Sydney")
+        n.AddChildTN("city", "Melbourne")
 
     earth.PrintTree()
 
