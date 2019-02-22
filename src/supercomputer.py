@@ -275,32 +275,6 @@ def center_jscc():
     n.SetOuter(c, "count", 8)
     n.SetOuter(c, "ram", 48)
 
-    # Add special functions for cpus.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " (c" + str(x.Get("cores_count"))
-                                      + "/f" + str(x.Get("freq"))
-                                      + "/t" + str(x.Get("tfs")) + ")"),
-            lambda t: t.IsType("cpu"))
-
-    # Add special functions for node.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " (" + x.PropertiesStr() + ")"),
-            lambda t: t.IsType("node"))
-
-    # Add special functions for segments.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " (" + x.PropertiesStr() + ")"),
-            lambda t: t.IsType("segment"))
-
-    # Add special functions for center.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " (" + x.PropertiesStr() + ")"),
-            lambda t: t.IsType("center"))
-
     return t;
 
 #---------------------------------------------------------------------------------------------------

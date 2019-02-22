@@ -422,25 +422,21 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def PropertiesStr(self):
+    def PropertiesStrings(self):
         """
-        String with all properties.
+        Strings of all properties.
 
         Result:
             Properties string.
         """
 
-        s = ""
+        s = []
 
         # Add all properties.
         for p in self.Dict:
             v = self.Get(p)
             if not (type(v) is type(lambda x: x)):
-                s = s + ", " + p + " = " + str(self.Get(p))
-
-        # Delete first 2 symbols.
-        if len(s) > 2:
-            s = s[2:]
+                s.append(p + " = " + str(self.Get(p)))
 
         return s
 
@@ -463,17 +459,29 @@ class FTree:
             else:
                 sh_str = ""
 
+            sh1_str = sh_str
+            sh2_str = sh_str
+
         else:
             sh = 4 * (level - 1)
-            sh_str = (" " * sh) + "|--->"
+            sh_str = (" " * sh)
+            sh1_str = sh_str + "|--->"
+            sh2_str = sh_str + "    |"
 
         # Print current element.
         to_string_fun = self.Get("to_string_fun")
         if to_string_fun != None:
-            own_str = to_string_fun(self)
+            print(sh_str + to_string_fun(self))
         else:
-            own_str = self.BaseStr()
-        print(sh_str + own_str)
+            extra_base_str = self.BaseStr() + " ("
+            extra_sh1_str = sh1_str + extra_base_str
+            extra_sh2_str = sh2_str + " " * len(extra_base_str)
+            props_strs = self.PropertiesStrings()
+            e = ")" if len(props_strs) == 1 else ""
+            print(extra_sh1_str + props_strs[0] + e)
+            for prop_str in props_strs[1:-1]:
+                print(extra_sh2_str + prop_str)
+            print(extra_sh2_str + props_strs[len(props_strs) - 1] + ")")
 
         # Print all children.
         if is_recursive:
