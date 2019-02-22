@@ -118,13 +118,13 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def SetOuter(self, prop, ch, val):
+    def SetOuter(self, ch, prop, val):
         """
         Set outer property for child.
 
         Arguments:
-            prop -- property name,
             ch -- child,
+            prop -- property name,
             val -- value.
         """
 
@@ -148,6 +148,59 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def HasOuter(self, ch, prop):
+        """
+        Check if tree has the outer property with the given name.
+
+        Arguments:
+            ch -- child,
+            prop -- property.
+
+        Result:
+            True -- if the tree has the property,
+            False -- otherwise.
+        """
+
+        return self.Has(ch.OuterPropertyStr(prop))
+
+#---------------------------------------------------------------------------------------------------
+
+    def GetWithAlternate(self, prop, alt):
+        """
+        Get property (in None case get alternate).
+
+        Arguments:
+            prop -- property,
+            alt -- alternate.
+
+        Result:
+            Property value.
+        """
+
+        if self.Has(prop):
+            return self.Dict[prop]
+        else:
+            return alt
+
+#---------------------------------------------------------------------------------------------------
+
+    def GetOuterWithAlternate(self, ch, prop, alt):
+        """
+        Get outer property (in None case get alternate).
+
+        Arguments:
+            ch -- child,
+            prop -- property,
+            alt -- alternate.
+
+        Result:
+            Property value.
+        """
+
+        return self.GetWithAlternate(ch.OuterPropertyStr(prop), alt)
+
+#---------------------------------------------------------------------------------------------------
+
     def Get(self, prop):
         """
         Get property.
@@ -159,10 +212,23 @@ class FTree:
             Property value.
         """
 
-        if self.Has(prop):
-            return self.Dict[prop]
-        else:
-            return None
+        return self.GetWithAlternate(prop, None)
+
+#---------------------------------------------------------------------------------------------------
+
+    def GetOuter(self, ch, prop):
+        """
+        Get outer property.
+
+        Arguments:
+            ch -- child,
+            prop -- property.
+
+        Result:
+            Property value.
+        """
+
+        return self.Get(ch.OuterPropertyStr(prop))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -180,6 +246,24 @@ class FTree:
         """
 
         return self.Get(prop) == val
+
+#---------------------------------------------------------------------------------------------------
+
+    def IsOuter(self, ch, prop, val):
+        """
+        Check outer property.
+
+        Arguments:
+            ch -- child,
+            prop -- property,
+            val -- value.
+
+        Result:
+            True -- if property "prop" is equal to "val",
+            False -- otherwise.
+        """
+
+        return self.Is(ch.OuterPropertyStr(prop), val)
 
 #---------------------------------------------------------------------------------------------------
 # Properties.
@@ -454,37 +538,60 @@ class FTree:
 # Main functional actions.
 #---------------------------------------------------------------------------------------------------
 
-    def Apply(self, apply_fun, filter_fun = None):
+    def Apply(self, apply_fun, filter_fun = None, is_downward = True):
         """
         Apply "apply_fun" function to all elements of the tree.
 
         Arguments:
-            apply_fun -- apply function.
-            filter_fun -- additional filter function.
+            apply_fun -- apply function,
+            filter_fun -- additional filter function,
+            is_downward -- from up to down.
         """
 
         is_apply = (filter_fun == None) or filter_fun(self)
 
-        # Apply.
-        if is_apply:
-            apply_fun(self)
-            
-        # Children.
-        for ch in self.Children:
-            ch.Apply(apply_fun, filter_fun)
+        if is_downward:
+            # Apply.
+            if is_apply:
+                apply_fun(self)
+
+            # Children.
+            for ch in self.Children:
+                ch.Apply(apply_fun, filter_fun, is_downward)
+        else:
+            # Children.
+            for ch in self.Children:
+                ch.Apply(apply_fun, filter_fun, is_downward)
+
+            # Apply.
+            if is_apply:
+                apply_fun(self)
 
 #---------------------------------------------------------------------------------------------------
 
-    def ApplyForType(self, apply_fun, tp):
+    def ApplyUpward(self, apply_fun, filter_fun = None):
         """
-        Apply function for all elements with given type.
+        Apply "apply_fun" function to all elements of the tree.
 
         Arguments:
-            apply_fun -- function to apply,
-            tp -- type.
+            apply_fun -- apply function,
+            filter_fun -- additional filter function.
         """
 
-        self.Apply(apply_fun, lambda x: x.IsType(tp));
+        self.Apply(apply_fun, filter_fun, False)
+
+#---------------------------------------------------------------------------------------------------
+
+    def ApplyDownward(self, apply_fun, filter_fun = None):
+        """
+        Apply "apply_fun" function to all elements of the tree.
+
+        Arguments:
+            apply_fun -- apply function,
+            filter_fun -- additional filter function.
+        """
+
+        self.Apply(apply_fun, filter_fun, True)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -592,6 +699,24 @@ class FTree:
                 s = s + self.Children[h].SliceChildrenNumbers(ns[1:])
 
         return s
+
+#---------------------------------------------------------------------------------------------------
+# Gather tactics.
+#---------------------------------------------------------------------------------------------------
+
+    def GatherTacticSumWithCount(self, prop):
+        """
+        Gather all 'prop' values from children, multiply on 'count' and
+        set to 'prop' of parent.
+
+        Arguments:
+            prop -- property.
+        """
+
+        if not self.Has(prop):
+            self.Set(prop,
+                     sum([ch.Get(prop) * self.GetOuterWithAlternate(ch, "count", 1.0)
+                          for ch in self.Children]))
 
 #---------------------------------------------------------------------------------------------------
 # Tests.

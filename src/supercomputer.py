@@ -201,99 +201,105 @@ def center_jscc():
     s.Set("pue", 2.0)
     s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "100k")
-    s.SetOuter("count", n, 110)
+    s.SetOuter(n, "count", 110)
     c = n.AddChildTree(cpu_Intel_Xeon_E5450())
-    n.SetOuter("count", c, 2)
-    n.SetOuter("ram", c, 8)
+    n.SetOuter(c, "count", 2)
+    n.SetOuter(c, "ram", 8)
     #
     s = t.AddChildTN("segment", "ps", "Petastream")
     s.Set("watt", 15.0)
     s.Set("pue", 1.25)
     s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "ps")
-    s.SetOuter("count", n, 8)
+    s.SetOuter(n, "count", 8)
     c = n.AddChildTree(cpu_Intel_Xeon_E5_2667())
-    n.SetOuter("count", c, 1)
-    n.SetOuter("ram", c, 8)
+    n.SetOuter(c, "count", 1)
+    n.SetOuter(c, "ram", 8)
     c = n.AddChildTree(cpu_Intel_Xeon_Phi_7120D())
-    n.SetOuter("count", c, 8)
-    n.SetOuter("ram", c, 16)
+    n.SetOuter(c, "count", 8)
+    n.SetOuter(c, "ram", 16)
     #
     s = t.AddChildTN("segment", "tr", "Tornado")
     s.Set("watt", 223.0)
     s.Set("pue", 1.25)
     s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "tr")
-    s.SetOuter("count", n, 207)
+    s.SetOuter(n, "count", 207)
     c = n.AddChildTree(cpu_Intel_Xeon_E5_2690())
-    n.SetOuter("count", c, 2)
-    n.SetOuter("ram", c, 64)
+    n.SetOuter(c, "count", 2)
+    n.SetOuter(c, "ram", 64)
     c = n.AddChildTree(cpu_Intel_Xeon_Phi_7110X())
-    n.SetOuter("count", c, 2)
-    n.SetOuter("ram", c, 16)
+    n.SetOuter(c, "count", 2)
+    n.SetOuter(c, "ram", 16)
     #
     s = t.AddChildTN("segment", "hw", "Haswell")
     s.Set("watt", 28.0)
     s.Set("pue", 1.06)
     s.Set("interconnect", 100.0)
     n = s.AddChildTN("node", "hw")
-    s.SetOuter("count", n, 42)
+    s.SetOuter(n, "count", 42)
     c = n.AddChildTree(cpu_Intel_Xeon_E5_2697v3())
-    n.SetOuter("count", c, 2)
-    n.SetOuter("ram", c, 128)
+    n.SetOuter(c, "count", 2)
+    n.SetOuter(c, "ram", 128)
     #
     s = t.AddChildTN("segment", "bw", "Broadwell")
     s.Set("watt", 91.0)
     s.Set("pue", 1.06)
     s.Set("interconnect", 100.0)
     n = s.AddChildTN("node", "bw")
-    s.SetOuter("count", n, 136)
+    s.SetOuter(n, "count", 136)
     c = n.AddChildTree(cpu_Intel_Xeon_E5_2697Av4())
-    n.SetOuter("count", c, 2)
-    n.SetOuter("ram", c, 128)
+    n.SetOuter(c, "count", 2)
+    n.SetOuter(c, "ram", 128)
     #
     s = t.AddChildTN("segment", "knl", "Knights Landing")
     s.Set("watt", 29.0)
     s.Set("pue", 1.06)
     s.Set("interconnect", 100.0)
     n = s.AddChildTN("node", "knl")
-    s.SetOuter("count", n, 38)
+    s.SetOuter(n, "count", 38)
     c = n.AddChildTree(cpu_Intel_Xeon_Phi_7290())
-    n.SetOuter("count", c, 1)
-    n.SetOuter("ram", c, 96)
+    n.SetOuter(c, "count", 1)
+    n.SetOuter(c, "ram", 96)
     #
     s = t.AddChildTN("segment", "nv", "NVIDIA")
     s.Set("watt", 19.0)
     s.Set("pue", 2.0)
     s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "nv")
-    s.SetOuter("count", n, 6)
+    s.SetOuter(n, "count", 6)
     c = n.AddChildTree(cpu_Intel_Xeon_X5675())
-    n.SetOuter("count", c, 2)
-    n.SetOuter("ram", c, 192)
+    n.SetOuter(c, "count", 2)
+    n.SetOuter(c, "ram", 192)
     c = n.AddChildTree(cpu_NVIDIA_Tesla_M2090())
-    n.SetOuter("count", c, 8)
-    n.SetOuter("ram", c, 48)
+    n.SetOuter(c, "count", 8)
+    n.SetOuter(c, "ram", 48)
 
-    # Add special print function for cpus.
-    t.ApplyForType(lambda t: t.Set("to_string_fun",
-                                   lambda x: x.BaseStr()
-                                             + " (c" + str(x.Get("cores_count"))
-                                             + "/f" + str(x.Get("freq"))
-                                             + "/t" + str(x.Get("tfs")) + ")"),
-                   "cpu")
+    # Add special functions for cpus.
+    t.Apply(lambda t: t.Set("to_string_fun",
+                            lambda x: x.BaseStr()
+                                      + " (c" + str(x.Get("cores_count"))
+                                      + "/f" + str(x.Get("freq"))
+                                      + "/t" + str(x.Get("tfs")) + ")"),
+            lambda t: t.IsType("cpu"))
 
-    # Add special print function for node.
-    t.ApplyForType(lambda t: t.Set("to_string_fun",
-                                   lambda x: x.BaseStr()
-                                             + " (" + x.PropertiesStr() + ")"),
-                   "node")
+    # Add special functions for node.
+    t.Apply(lambda t: t.Set("to_string_fun",
+                            lambda x: x.BaseStr()
+                                      + " (" + x.PropertiesStr() + ")"),
+            lambda t: t.IsType("node"))
 
-    # Add special print function for segments.
-    t.ApplyForType(lambda t: t.Set("to_string_fun",
-                                   lambda x: x.BaseStr()
-                                             + " (" + x.PropertiesStr() + ")"),
-                   "segment")
+    # Add special functions for segments.
+    t.Apply(lambda t: t.Set("to_string_fun",
+                            lambda x: x.BaseStr()
+                                      + " (" + x.PropertiesStr() + ")"),
+            lambda t: t.IsType("segment"))
+
+    # Add special functions for center.
+    t.Apply(lambda t: t.Set("to_string_fun",
+                            lambda x: x.BaseStr()
+                                      + " (" + x.PropertiesStr() + ")"),
+            lambda t: t.IsType("center"))
 
     return t;
 
@@ -303,6 +309,8 @@ def center_jscc():
 
 if __name__ == "__main__":
     jscc = center_jscc()
+    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount("tfs"))
+    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount("cores_count"))
     jscc.PrintTree()
 
 #---------------------------------------------------------------------------------------------------
