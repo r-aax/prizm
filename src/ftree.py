@@ -329,7 +329,7 @@ class FTree:
             Count of children.
         """
 
-        return self.Children.count;
+        return len(self.Children);
 
 #---------------------------------------------------------------------------------------------------
 
@@ -448,45 +448,35 @@ class FTree:
 
         Arguments:
             level -- tree level,
-            is_recursive -- recursive print is needed or not.
+            is_recursive -- recursive print is needed or not,
+            pre -- prefix.
         """
 
-        if level == 0:
+        # Properties.
+        props_strs = self.PropertiesStrings()
+        cnt = len(props_strs)
 
-            # Print "#" ony in recursive mode.
-            if is_recursive:
-                sh_str = "# " # root
-            else:
-                sh_str = ""
+        # Get indent strings.
+        extra_base_str = self.BaseStr()
+        if cnt > 0:
+            extra_base_str = extra_base_str + " ("
+        space_base_str = " " * len(extra_base_str)
 
-            sh1_str = sh_str
-            sh2_str = sh_str
-
+        # Print.
+        if cnt == 0:
+            print(extra_base_str)
+        elif cnt == 1:
+            print(extra_base_str + props_strs[0] + ")")
         else:
-            sh = 4 * (level - 1)
-            sh_str = (" " * sh)
-            sh1_str = sh_str + "|--->"
-            sh2_str = sh_str + "    |"
-
-        # Print current element.
-        to_string_fun = self.Get("to_string_fun")
-        if to_string_fun != None:
-            print(sh_str + to_string_fun(self))
-        else:
-            extra_base_str = self.BaseStr() + " ("
-            extra_sh1_str = sh1_str + extra_base_str
-            extra_sh2_str = sh2_str + " " * len(extra_base_str)
-            props_strs = self.PropertiesStrings()
-            e = ")" if len(props_strs) == 1 else ""
-            print(extra_sh1_str + props_strs[0] + e)
+            print(extra_base_str + props_strs[0])
             for prop_str in props_strs[1:-1]:
-                print(extra_sh2_str + prop_str)
-            print(extra_sh2_str + props_strs[len(props_strs) - 1] + ")")
+                print(space_base_str + prop_str)
+            print(space_base_str + props_strs[cnt - 1] + ")")
 
         # Print all children.
         if is_recursive:
-            for c in self.Children:
-                c.Print(level + 1, True)
+            for i in list(range(self.ChildrenCount())):
+                self.Children[i].Print(level + 1, True)
 
 #---------------------------------------------------------------------------------------------------
 
