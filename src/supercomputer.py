@@ -197,35 +197,83 @@ def center_jscc():
 
     # Init.
     s = t.AddChildTN("segment", "100k", "MVS-100K")
+    s.Set("watt", 36.0)
+    s.Set("pue", 2.0)
+    s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "100k")
-    n.AddChildTree(cpu_Intel_Xeon_E5450())
+    s.SetOuter("count", n, 110)
+    c = n.AddChildTree(cpu_Intel_Xeon_E5450())
+    n.SetOuter("count", c, 2)
+    n.SetOuter("ram", c, 8)
     #
     s = t.AddChildTN("segment", "ps", "Petastream")
+    s.Set("watt", 15.0)
+    s.Set("pue", 1.25)
+    s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "ps")
-    n.AddChildTree(cpu_Intel_Xeon_E5_2667())
-    n.AddChildTree(cpu_Intel_Xeon_Phi_7120D())
+    s.SetOuter("count", n, 8)
+    c = n.AddChildTree(cpu_Intel_Xeon_E5_2667())
+    n.SetOuter("count", c, 1)
+    n.SetOuter("ram", c, 8)
+    c = n.AddChildTree(cpu_Intel_Xeon_Phi_7120D())
+    n.SetOuter("count", c, 8)
+    n.SetOuter("ram", c, 16)
     #
     s = t.AddChildTN("segment", "tr", "Tornado")
+    s.Set("watt", 223.0)
+    s.Set("pue", 1.25)
+    s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "tr")
-    n.AddChildTree(cpu_Intel_Xeon_E5_2690())
-    n.AddChildTree(cpu_Intel_Xeon_Phi_7110X())
+    s.SetOuter("count", n, 207)
+    c = n.AddChildTree(cpu_Intel_Xeon_E5_2690())
+    n.SetOuter("count", c, 2)
+    n.SetOuter("ram", c, 64)
+    c = n.AddChildTree(cpu_Intel_Xeon_Phi_7110X())
+    n.SetOuter("count", c, 2)
+    n.SetOuter("ram", c, 16)
     #
     s = t.AddChildTN("segment", "hw", "Haswell")
+    s.Set("watt", 28.0)
+    s.Set("pue", 1.06)
+    s.Set("interconnect", 100.0)
     n = s.AddChildTN("node", "hw")
-    n.AddChildTree(cpu_Intel_Xeon_E5_2697v3())
+    s.SetOuter("count", n, 42)
+    c = n.AddChildTree(cpu_Intel_Xeon_E5_2697v3())
+    n.SetOuter("count", c, 2)
+    n.SetOuter("ram", c, 128)
     #
     s = t.AddChildTN("segment", "bw", "Broadwell")
+    s.Set("watt", 91.0)
+    s.Set("pue", 1.06)
+    s.Set("interconnect", 100.0)
     n = s.AddChildTN("node", "bw")
-    n.AddChildTree(cpu_Intel_Xeon_E5_2697Av4())
+    s.SetOuter("count", n, 136)
+    c = n.AddChildTree(cpu_Intel_Xeon_E5_2697Av4())
+    n.SetOuter("count", c, 2)
+    n.SetOuter("ram", c, 128)
     #
     s = t.AddChildTN("segment", "knl", "Knights Landing")
+    s.Set("watt", 29.0)
+    s.Set("pue", 1.06)
+    s.Set("interconnect", 100.0)
     n = s.AddChildTN("node", "knl")
-    n.AddChildTree(cpu_Intel_Xeon_Phi_7290())
+    s.SetOuter("count", n, 38)
+    c = n.AddChildTree(cpu_Intel_Xeon_Phi_7290())
+    n.SetOuter("count", c, 1)
+    n.SetOuter("ram", c, 96)
     #
     s = t.AddChildTN("segment", "nv", "NVIDIA")
+    s.Set("watt", 19.0)
+    s.Set("pue", 2.0)
+    s.Set("interconnect", 56.0)
     n = s.AddChildTN("node", "nv")
-    n.AddChildTree(cpu_Intel_Xeon_X5675())
-    n.AddChildTree(cpu_NVIDIA_Tesla_M2090())
+    s.SetOuter("count", n, 6)
+    c = n.AddChildTree(cpu_Intel_Xeon_X5675())
+    n.SetOuter("count", c, 2)
+    n.SetOuter("ram", c, 192)
+    c = n.AddChildTree(cpu_NVIDIA_Tesla_M2090())
+    n.SetOuter("count", c, 8)
+    n.SetOuter("ram", c, 48)
 
     # Add special print function for cpus.
     t.Apply(lambda t: t.Set("to_string_fun",
@@ -237,12 +285,14 @@ def center_jscc():
 
     # Add special print function for node.
     t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()),
+                            lambda x: x.BaseStr()
+                            + " (" + x.PropertiesStr() + ")"),
             lambda t: t.IsType("node"))
 
     # Add special print function for segments.
     t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()),
+                            lambda x: x.BaseStr()
+                            + " (" + x.PropertiesStr() + ")"),
             lambda t: t.IsType("segment"))
 
     return t;

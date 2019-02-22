@@ -118,6 +118,20 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def SetOuter(self, prop, ch, val):
+        """
+        Set outer property for child.
+
+        Arguments:
+            prop -- property name,
+            ch -- child,
+            val -- value.
+        """
+
+        self.Set(ch.OuterPropertyStr(prop), val);
+
+#---------------------------------------------------------------------------------------------------
+
     def Has(self, prop):
         """
         Check if tree has the property with the given name.
@@ -285,16 +299,40 @@ class FTree:
 
     def OuterPropertyStr(self, prop):
         """
-        String for outer property.
+        Generate outer property string.
 
         Arguments:
             prop -- property.
 
         Result:
-            Outer property string.
+            Ouuter property string.
         """
 
         return self.Type + "_" + self.Name + "_" + prop
+
+#---------------------------------------------------------------------------------------------------
+
+    def PropertiesStr(self):
+        """
+        String with all properties.
+
+        Result:
+            Properties string.
+        """
+
+        s = ""
+
+        # Add all properties.
+        for p in self.Dict:
+            v = self.Get(p)
+            if not (type(v) is type(lambda x: x)):
+                s = s + ", " + p + " = " + str(self.Get(p))
+
+        # Delete first 2 symbols.
+        if len(s) > 2:
+            s = s[2:]
+
+        return s
 
 #---------------------------------------------------------------------------------------------------
 
