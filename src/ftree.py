@@ -198,13 +198,13 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def IsList(self):
+    def IsLeaf(self):
         """
         List check.
 
         Result:
-            True -- if is list,
-            False -- if is not list.
+            True -- if is leaf,
+            False -- if is not leaf.
         """
 
         return self.Children == []
