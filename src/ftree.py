@@ -168,18 +168,6 @@ class FTree:
         return self.Get(prop) == val
 
 #---------------------------------------------------------------------------------------------------
-
-    def ChildrenNames(self):
-        """
-        Get all children names.
-
-        Result:
-            Children names.
-        """
-
-        return [ch.Name for ch in self.Children]
-
-#---------------------------------------------------------------------------------------------------
 # Properties.
 #---------------------------------------------------------------------------------------------------
 
@@ -238,13 +226,12 @@ class FTree:
 # Elements management.
 #---------------------------------------------------------------------------------------------------
 
-    def AddChildTree(self, t, count = 1):
+    def AddChildTree(self, t):
         """
         Add new child with given type and name.
 
         Arguments:
-            t -- child FTree,
-            count -- count (weight).
+            t -- child FTree.
 
         Result:
             Added child.
@@ -254,16 +241,11 @@ class FTree:
         self.Children.append(t);
         t.Parent = self;
 
-        # Add count.
-        if count > 1:
-            prop = t.CountStr()
-            self.Set(prop, count)
-
         return t;
 
 #---------------------------------------------------------------------------------------------------
 
-    def AddChildTN(self, tp, nm, descr = "", count = 1):
+    def AddChildTN(self, tp, nm, descr = ""):
         """
         Add new child with given type and name.
 
@@ -278,7 +260,7 @@ class FTree:
 
         t = FTree(tp, nm, descr);
 
-        return self.AddChildTree(t, count);
+        return self.AddChildTree(t);
 
 #---------------------------------------------------------------------------------------------------
 # Print.
@@ -301,37 +283,18 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def CountStr(self):
+    def OuterPropertyStr(self, prop):
         """
-        Count string for parent.
+        String for outer property.
+
+        Arguments:
+            prop -- property.
 
         Result:
-            Count string.
+            Outer property string.
         """
 
-        return self.Type + "_" + self.Name + "_count"
-
-#---------------------------------------------------------------------------------------------------
-
-    def ChildrenCountsStr(self):
-        """
-        String with children counts.
-
-        Result:
-            String with children counts.
-        """
-
-        s = ""
-        for ch in self.Children:
-            prop = ch.CountStr()
-            if self.Has(prop):
-                s = s + ", " + prop + " = " + str(self.Get(prop))
-
-        # Delete first comma and space.
-        if len(s) > 0:
-            s = s[2:]
-
-        return s;
+        return self.Type + "_" + self.Name + "_" + prop
 
 #---------------------------------------------------------------------------------------------------
 

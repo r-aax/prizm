@@ -197,35 +197,35 @@ def center_jscc():
 
     # Init.
     s = t.AddChildTN("segment", "100k", "MVS-100K")
-    n = s.AddChildTN("node", "100k", count = 110)
-    n.AddChildTree(cpu_Intel_Xeon_E5450(), count = 2)
+    n = s.AddChildTN("node", "100k")
+    n.AddChildTree(cpu_Intel_Xeon_E5450())
     #
     s = t.AddChildTN("segment", "ps", "Petastream")
-    n = s.AddChildTN("node", "ps", count = 8)
+    n = s.AddChildTN("node", "ps")
     n.AddChildTree(cpu_Intel_Xeon_E5_2667())
-    n.AddChildTree(cpu_Intel_Xeon_Phi_7120D(), count = 8)
+    n.AddChildTree(cpu_Intel_Xeon_Phi_7120D())
     #
     s = t.AddChildTN("segment", "tr", "Tornado")
-    n = s.AddChildTN("node", "tr", count = 207)
-    n.AddChildTree(cpu_Intel_Xeon_E5_2690(), count = 2)
-    n.AddChildTree(cpu_Intel_Xeon_Phi_7110X(), count = 2)
+    n = s.AddChildTN("node", "tr")
+    n.AddChildTree(cpu_Intel_Xeon_E5_2690())
+    n.AddChildTree(cpu_Intel_Xeon_Phi_7110X())
     #
     s = t.AddChildTN("segment", "hw", "Haswell")
-    n = s.AddChildTN("node", "hw", count = 42)
-    n.AddChildTree(cpu_Intel_Xeon_E5_2697v3(), count = 2)
+    n = s.AddChildTN("node", "hw")
+    n.AddChildTree(cpu_Intel_Xeon_E5_2697v3())
     #
     s = t.AddChildTN("segment", "bw", "Broadwell")
-    n = s.AddChildTN("node", "bw", count = 136)
-    n.AddChildTree(cpu_Intel_Xeon_E5_2697Av4(), count = 2)
+    n = s.AddChildTN("node", "bw")
+    n.AddChildTree(cpu_Intel_Xeon_E5_2697Av4())
     #
     s = t.AddChildTN("segment", "knl", "Knights Landing")
-    n = s.AddChildTN("node", "knl", count = 38)
-    s.AddChildTree(cpu_Intel_Xeon_Phi_7290())
+    n = s.AddChildTN("node", "knl")
+    n.AddChildTree(cpu_Intel_Xeon_Phi_7290())
     #
     s = t.AddChildTN("segment", "nv", "NVIDIA")
-    n = s.AddChildTN("node", "nv", count = 6)
-    n.AddChildTree(cpu_Intel_Xeon_X5675(), count = 2)
-    n.AddChildTree(cpu_NVIDIA_Tesla_M2090(), count = 8)
+    n = s.AddChildTN("node", "nv")
+    n.AddChildTree(cpu_Intel_Xeon_X5675())
+    n.AddChildTree(cpu_NVIDIA_Tesla_M2090())
 
     # Add special print function for cpus.
     t.Apply(lambda t: t.Set("to_string_fun",
@@ -237,14 +237,12 @@ def center_jscc():
 
     # Add special print function for node.
     t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " " + x.ChildrenCountsStr()),
+                            lambda x: x.BaseStr()),
             lambda t: t.IsType("node"))
 
     # Add special print function for segments.
     t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " (" + x.ChildrenCountsStr() + ")"),
+                            lambda x: x.BaseStr()),
             lambda t: t.IsType("segment"))
 
     return t;
