@@ -321,6 +321,43 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def IsFirstChild(self):
+        """
+        Check if the three is first child.
+
+        Result:
+            True -- if it is the first child,
+            False -- otherwise.
+        """
+
+        # False for root.
+        if self.IsRoot():
+            return False;
+
+        # Check.
+        return self == self.Parent.Children[0]
+
+#---------------------------------------------------------------------------------------------------
+
+    def IsLastChild(self):
+        """
+        Check if the three is lsat child.
+
+        Result:
+            True -- if it is the last child,
+            False -- otherwise.
+        """
+
+        # False for root.
+        if self.IsRoot():
+            return False;
+
+        # Check.
+        cnt = self.Parent.ChildrenCount()
+        return self == self.Parent.Children[cnt - 1]
+
+#---------------------------------------------------------------------------------------------------
+
     def ChildrenCount(self):
         """
         Count of children.
@@ -442,6 +479,89 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def FirstIndent(self):
+        """
+        Get first indentation for print.
+
+        Result:
+            First indentation.
+        """
+
+        res = ""
+
+        # Init.
+        is_arrow = True
+        cur = self
+        pre = None
+
+        # Main loop.
+        while cur != None:
+
+            # Define indentation.
+            if is_arrow:
+                ind = "--->"
+                is_arrow = False
+            elif res[:4] == "--->":
+                ind = "   |"
+            elif (pre != None) and pre.IsLastChild():
+                ind = "    "
+            else:
+                ind = "   |"
+
+            # Grow.
+            res = ind + res
+
+            # Shift.
+            pre = cur
+            cur = cur.Parent
+
+        res = res[3:] + " "
+
+        if self.IsRoot():
+            res = "#" + res[1:]
+
+        return res
+
+#---------------------------------------------------------------------------------------------------
+
+    def SecondIndent(self):
+        """
+        Get second indentation for print.
+
+        Result:
+            Second indentation.
+        """
+
+        res = ""
+
+        # Init.
+        cur = self
+        pre = None
+
+        # Main loop.
+        while cur != None:
+
+            # Define indentation.
+            if cur.ChildrenCount() == 0:
+                ind = "    "
+            elif (pre != None) and pre.IsLastChild():
+                ind = "    "
+            else:
+                ind = "   |"
+
+            # Grow.
+            res = ind + res
+
+            # Shift.
+            pre = cur
+            cur = cur.Parent
+
+        res = res[3:] + " "
+
+        return res
+
+#---------------------------------------------------------------------------------------------------
+
     def Print(self, level, is_recursive):
         """
         Print.
@@ -462,21 +582,25 @@ class FTree:
             extra_base_str = extra_base_str + " ("
         space_base_str = " " * len(extra_base_str)
 
+        # Indentation.
+        f_ind = self.FirstIndent()
+        s_ind = self.SecondIndent()
+
         # Print.
         if cnt == 0:
-            print(extra_base_str)
+            print(f_ind + extra_base_str)
         elif cnt == 1:
-            print(extra_base_str + props_strs[0] + ")")
+            print(f_ind + extra_base_str + props_strs[0] + ")")
         else:
-            print(extra_base_str + props_strs[0])
+            print(f_ind + extra_base_str + props_strs[0])
             for prop_str in props_strs[1:-1]:
-                print(space_base_str + prop_str)
-            print(space_base_str + props_strs[cnt - 1] + ")")
+                print(s_ind + space_base_str + prop_str)
+            print(s_ind + space_base_str + props_strs[cnt - 1] + ")")
 
         # Print all children.
         if is_recursive:
-            for i in list(range(self.ChildrenCount())):
-                self.Children[i].Print(level + 1, True)
+            for ch in self.Children:
+                ch.Print(level + 1, True)
 
 #---------------------------------------------------------------------------------------------------
 
