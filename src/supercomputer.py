@@ -310,6 +310,8 @@ def center_jscc():
 if __name__ == "__main__":
     jscc = center_jscc()
     jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount("tfs"))
+    jscc.Apply(lambda t: t.GatherTacticSumOuterProperties("ram"))
+    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount("ram"))
     jscc.PrintTree()
 
 #---------------------------------------------------------------------------------------------------

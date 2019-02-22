@@ -745,6 +745,24 @@ class FTree:
                           for ch in self.Children]))
 
 #---------------------------------------------------------------------------------------------------
+
+    def GatherTacticSumOuterProperties(self, prop):
+        """
+        Sum outer properties.
+
+        Arguments:
+            prop -- property.
+        """
+
+        assert not self.Has(prop), self.BaseStr() + " must not to have property " + prop
+
+        r = sum([self.GetOuterWithAlternate(ch, prop, 0) for ch in self.Children])
+
+        # If there is some result.
+        if r > 0:
+            self.Set(prop, r)
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
