@@ -475,6 +475,19 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def ApplyForType(self, apply_fun, tp):
+        """
+        Apply function for all elements with given type.
+
+        Arguments:
+            apply_fun -- function to apply,
+            tp -- type.
+        """
+
+        self.Apply(apply_fun, lambda x: x.IsType(tp));
+
+#---------------------------------------------------------------------------------------------------
+
     def FoldDepth(self, fun, acc):
         """
         Fold tree while depth-first search.

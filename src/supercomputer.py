@@ -276,24 +276,24 @@ def center_jscc():
     n.SetOuter("ram", c, 48)
 
     # Add special print function for cpus.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                                      + " (c" + str(x.Get("cores_count"))
-                                      + "/f" + str(x.Get("freq"))
-                                      + "/t" + str(x.Get("tfs")) + ")"),
-            lambda t: t.IsType("cpu"))
+    t.ApplyForType(lambda t: t.Set("to_string_fun",
+                                   lambda x: x.BaseStr()
+                                             + " (c" + str(x.Get("cores_count"))
+                                             + "/f" + str(x.Get("freq"))
+                                             + "/t" + str(x.Get("tfs")) + ")"),
+                   "cpu")
 
     # Add special print function for node.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                            + " (" + x.PropertiesStr() + ")"),
-            lambda t: t.IsType("node"))
+    t.ApplyForType(lambda t: t.Set("to_string_fun",
+                                   lambda x: x.BaseStr()
+                                             + " (" + x.PropertiesStr() + ")"),
+                   "node")
 
     # Add special print function for segments.
-    t.Apply(lambda t: t.Set("to_string_fun",
-                            lambda x: x.BaseStr()
-                            + " (" + x.PropertiesStr() + ")"),
-            lambda t: t.IsType("segment"))
+    t.ApplyForType(lambda t: t.Set("to_string_fun",
+                                   lambda x: x.BaseStr()
+                                             + " (" + x.PropertiesStr() + ")"),
+                   "segment")
 
     return t;
 
