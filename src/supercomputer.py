@@ -310,7 +310,6 @@ def center_jscc():
 if __name__ == "__main__":
     jscc = center_jscc()
     jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount("tfs"))
-    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount("cores_count"))
     jscc.PrintTree()
 
 #---------------------------------------------------------------------------------------------------

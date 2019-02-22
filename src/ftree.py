@@ -266,6 +266,32 @@ class FTree:
         return self.Is(ch.OuterPropertyStr(prop), val)
 
 #---------------------------------------------------------------------------------------------------
+
+    def Del(self, prop):
+        """
+        Delete property.
+
+        Arguments:
+            prop -- property.
+        """
+
+        if self.Has(prop):
+            self.Dict.pop(prop)
+
+#---------------------------------------------------------------------------------------------------
+
+    def DelOuter(self, ch, prop):
+        """
+        Delete property.
+
+        Arguments:
+            ch -- child,
+            prop -- property.
+        """
+
+        self.Del(ch.OuterPropertyStr(prop))
+
+#---------------------------------------------------------------------------------------------------
 # Properties.
 #---------------------------------------------------------------------------------------------------
 
