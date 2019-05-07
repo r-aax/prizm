@@ -32,6 +32,7 @@ class ITree:
             data -- data.
         """
 
+        self.X = None
         self.Data = data
         self.Parent = None
         self.Children= []
@@ -194,7 +195,7 @@ class ITree:
         if self.Data == None:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
-            return 'x = %f (1d)' % self.Data
+            return 'x = %d, data = %f (1d)' % (self.X, self.Data)
         else:
             return 'str'
 
@@ -230,6 +231,10 @@ def ierarchical_clustering(ps):
 
     trees = [ITree(p) for p in ps]
 
+    # Now set indexes.
+    for i in range(len(trees)):
+        trees[i].X = i
+
     while len(trees) > 1:
 
         # Find two nearest points.
@@ -248,6 +253,7 @@ def ierarchical_clustering(ps):
         new_tree = ITree()
         new_tree.Children = chs
         new_tree.Data = 0.5 * (ch1.Data + ch2.Data)
+        new_tree.X = 0.5 * (ch1.X + ch2.X)
         ch1.Parent = new_tree
         ch2.Parent = new_tree
         trees = trees[ : fpi] + [new_tree] + trees[fpi + 2 : ]
@@ -259,28 +265,27 @@ def ierarchical_clustering(ps):
 # Visualization.
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree(it, fx = 40, dy = 40, mx = 10, my = 10):
+def draw_ierarchical_tree(it, dx = 40, dy = 40, mx = 10, my = 10):
     """
     Draw ierarchical tree.
 
     Arguments:
         it -- ierarchical tree,
-        fx -- horizontal factor,
+        dx -- horizontal distance between two neighbours,
         dy -- vertical distance between nodes,
         mx -- horizontal margin,
         my -- vertical margin.
     """
 
     # Create image.
-    left_x = it.LeftLeaf().Data
-    width = int((it.RightLeaf().Data - left_x) * fx + 2 * mx)
+    width = int((it.Width() - 1) * dx + 2 * mx)
     height = int((it.Height() - 1) * dy + 2 * my)
     img = Image.new('RGB', (width, height), color = (230, 230, 230))
     c = aggdraw.Draw(img)
     c.setantialias(True)
 
     # Recursive draw.
-    draw_ierarchical_tree_on_img(it, c, left_x, fx, dy, mx, my)
+    draw_ierarchical_tree_on_img(it, c, dx, dy, mx, my)
 
     # Flush, save and show.
     c.flush()
@@ -289,30 +294,29 @@ def draw_ierarchical_tree(it, fx = 40, dy = 40, mx = 10, my = 10):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree_on_img(it, c, left_x, fx, dy, mx, my):
+def draw_ierarchical_tree_on_img(it, c, dx, dy, mx, my):
     """
     Draw ierarchical tree on image.
 
     Arguments:
         it -- ierarchical tree,
         c -- canvas,
-        left_x -- left coordinate,
-        fx -- horizontal distance between nodes,
+        dx -- horizontal distance between two neighbours,
         dy -- vertical distance between nodes,
         mx -- horizontal margin,
         my -- vertical margin.
     """
 
     # Coordinates.
-    cx = int((it.Data - left_x) * fx + mx)
+    cx = int(it.X * dx + mx)
     cy = int((it.Height() - 1) * dy + my)
 
     # Draw children.
     for ch in it.Children:
-        chx = int((ch.Data - left_x) * fx + mx)
+        chx = int(ch.X * dx + mx)
         chy = int((ch.Height() - 1) * dy + my)
         c.line((cx, cy, chx, chy), aggdraw.Pen('orange', 2.0))
-        draw_ierarchical_tree_on_img(ch, c, left_x, fx, dy, mx, my)
+        draw_ierarchical_tree_on_img(ch, c, dx, dy, mx, my)
 
     # Draw point.
     c.ellipse((cx - 3, cy - 3, cx + 3, cy + 3),
@@ -323,11 +327,22 @@ def draw_ierarchical_tree_on_img(it, c, left_x, fx, dy, mx, my):
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
+
+    # Simple range.
     #ps = list(range(150))
-    ps = [100.0 * random.random() for j in range(100)]
+
+    # Random numbers.
+    #ps = [100.0 * random.random() for j in range(100)]
+
+    # Normal distribution.
+    #ps = [random.normalvariate(50.0, 20.0) for j in range(100)]
+
+    # Normal distribution.
+    ps = [random.gammavariate(50.0, 20.0) for j in range(100)]
+
     ps.sort()
     tree = ierarchical_clustering(ps)
     tree.Print()
-    draw_ierarchical_tree(tree, fx = 10)
+    draw_ierarchical_tree(tree, dx = 20)
 
 #---------------------------------------------------------------------------------------------------
