@@ -33,6 +33,8 @@ class ITree:
         """
 
         self.X = None
+        self.N = None
+        self.Mark = False
         self.Data = data
         self.Parent = None
         self.Children= []
@@ -195,7 +197,7 @@ class ITree:
         if self.Data == None:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
-            return 'x = %d, data = %f (1d)' % (self.X, self.Data)
+            return 'x = %d, n = %d, data = %f (1d)' % (self.X, self.N, self.Data)
         else:
             return 'str'
 
@@ -218,12 +220,13 @@ class ITree:
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
-def ierarchical_clustering(ps):
+def ierarchical_clustering(ps, k = 1):
     """
     Ierarchical clustering.
 
     Arguments:
-        ps -- array of points.
+        ps -- array of points,
+        k -- clusters count.
 
     Result:
         Clustering tree.
@@ -231,9 +234,13 @@ def ierarchical_clustering(ps):
 
     trees = [ITree(p) for p in ps]
 
-    # Now set indexes.
+    # Now set pseudocoordinates and numbers.
     for i in range(len(trees)):
         trees[i].X = i
+        trees[i].N = i
+
+    # Next number.
+    next_n = len(trees)
 
     while len(trees) > 1:
 
@@ -254,9 +261,16 @@ def ierarchical_clustering(ps):
         new_tree.Children = chs
         new_tree.Data = 0.5 * (ch1.Data + ch2.Data)
         new_tree.X = 0.5 * (ch1.X + ch2.X)
+        new_tree.N = next_n
+        next_n = next_n + 1
         ch1.Parent = new_tree
         ch2.Parent = new_tree
         trees = trees[ : fpi] + [new_tree] + trees[fpi + 2 : ]
+
+        # Mark.
+        if len(trees) == k:
+            for tree in trees:
+                tree.Mark = True
 
     # Last tree is a root.
     return trees[0]
@@ -321,6 +335,9 @@ def draw_ierarchical_tree_on_img(it, c, dx, dy, mx, my):
     # Draw point.
     c.ellipse((cx - 3, cy - 3, cx + 3, cy + 3),
               aggdraw.Pen('orange', 2.0), aggdraw.Brush('blue'))
+    if it.Mark:
+        c.ellipse((cx - 10, cy - 10, cx + 10, cy + 10),
+                  aggdraw.Pen('red', 2.0))
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -338,10 +355,10 @@ if __name__ == '__main__':
     #ps = [random.normalvariate(50.0, 20.0) for j in range(100)]
 
     # Normal distribution.
-    ps = [random.gammavariate(50.0, 20.0) for j in range(100)]
+    ps = [random.gammavariate(50.0, 20.0) for j in range(50)]
 
     ps.sort()
-    tree = ierarchical_clustering(ps)
+    tree = ierarchical_clustering(ps, k = 20)
     tree.Print()
     draw_ierarchical_tree(tree, dx = 20)
 
