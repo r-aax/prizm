@@ -308,13 +308,55 @@ class ClusteringDrawingType(Enum):
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
-def ierarchical_clustering(ps, k = 1):
+def metric_data_dist(a, b, r):
+    """
+    Metric - distance between points.
+
+    Arguments:
+        a -- first data,
+        b -- second data,
+        r -- power.
+
+    Result:
+        Metric result.
+    """
+
+    if isinstance(a, numbers.Number):
+        return abs(a - b)
+    elif isinstance(a, tuple):
+        return pow(sum([pow(abs(ai - bi), r) for (ai, bi) in zip(a, b)]), 1.0 / r)
+    else:
+        raise Exception("wrong data for metric_data_dist")
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_dist(t1, t2, r):
+    """
+    Metric - distance between trees.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree,
+        r -- power.
+
+    Result:
+        Metric result.
+    """
+
+    return metric_data_dist(t1.Data, t2.Data, r)
+
+#---------------------------------------------------------------------------------------------------
+
+def ierarchical_clustering(ps,
+                           k = 1,
+                           metric = lambda t1, t2: metric_tree_dist(t1, t2, 1.0)):
     """
     Ierarchical clustering.
 
     Arguments:
         ps -- array of points,
-        k -- clusters count for mark.
+        k -- clusters count for mark,
+        metric -- metric function.
 
     Result:
         Clustering tree.
@@ -334,11 +376,11 @@ def ierarchical_clustering(ps, k = 1):
 
         # Find two nearest points.
         fpi = 0
-        dist = abs(trees[fpi].Data - trees[fpi + 1].Data)
+        m = metric(trees[fpi], trees[fpi + 1])
         for i in range(fpi + 1, len(trees) - 1):
-            new_dist = abs(trees[i].Data - trees[i + 1].Data)
-            if new_dist < dist:
-                fpi, dist = i, new_dist
+            new_m = metric(trees[i], trees[i + 1])
+            if new_m < m:
+                fpi, m = i, new_m
 
         # Merge points first_point_index and first_point_index + 1.
         ch1, ch2 = trees[fpi], trees[fpi + 1]
@@ -435,7 +477,7 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
 
     # Pens and brushes.
     mark_pen = aggdraw.Pen('red', 2.0)
-    brush = aggdraw.Brush('blue')
+    brush = aggdraw.Brush('silver')
 
     # Change color for subtree.
     if it.Mark:
