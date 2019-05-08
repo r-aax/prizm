@@ -226,6 +226,44 @@ class ITree:
             c.Print()
 
 #---------------------------------------------------------------------------------------------------
+
+    def TreeSizes(self, deltas, margins):
+        """
+        Tree sizes.
+
+        Arguments:
+            deltas -- distances between nodes,
+            margins -- margins.
+
+        Result:
+            Tree sizes.
+        """
+
+        (dx, dy) = deltas
+        (mx, my) = margins
+
+        return (int((self.Width() - 1) * dx + 2 * mx), int((self.Height() - 1) * dy + 2 * my))
+
+#---------------------------------------------------------------------------------------------------
+
+    def NodeCoordinates(self, deltas, margins):
+        """
+        Coordinates of node.
+
+        Arguments:
+            deltas -- distances between nodes,
+            margins -- margins.
+
+        Result:
+            Node coordinates.
+        """
+
+        (dx, dy) = deltas
+        (mx, my) = margins
+
+        return (int(self.X * dx + mx), int((self.Height() - 1) * dy + my))
+
+#---------------------------------------------------------------------------------------------------
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
@@ -288,28 +326,41 @@ def ierarchical_clustering(ps, k = 1):
 # Visualization.
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree(it, deltas = (40, 40), margin = (10, 10)):
+def expand_to_circle(c, r):
+    """
+    Expand center coordinates to circle corners.
+
+    Arguments:
+        c -- coordinates,
+        r -- radius.
+
+    Result:
+        Expanded coordinates.
+    """
+
+    (cx, cy) = c
+
+    return (cx - r, cy - r, cx + r, cy + r)
+
+#---------------------------------------------------------------------------------------------------
+
+def draw_ierarchical_tree(it, deltas = (40, 40), margins = (10, 10)):
     """
     Draw ierarchical tree.
 
     Arguments:
         it -- ierarchical tree,
         deltas -- distances between nodes,
-        margin -- margin.
+        margins -- margins.
     """
 
-    (dx, dy) = deltas
-    (mx, my) = margin
-
     # Create image.
-    width = int((it.Width() - 1) * dx + 2 * mx)
-    height = int((it.Height() - 1) * dy + 2 * my)
-    img = Image.new('RGB', (width, height), color = (230, 230, 230))
+    img = Image.new('RGB', it.TreeSizes(deltas, margins), color = (230, 230, 230))
     c = aggdraw.Draw(img)
     c.setantialias(True)
 
     # Recursive draw.
-    draw_ierarchical_tree_on_img(it, c, deltas, margin)
+    draw_ierarchical_tree_on_img(it, c, deltas, margins)
 
     # Flush, save and show.
     c.flush()
@@ -318,7 +369,7 @@ def draw_ierarchical_tree(it, deltas = (40, 40), margin = (10, 10)):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree_on_img(it, c, deltas, margin):
+def draw_ierarchical_tree_on_img(it, c, deltas, margins):
     """
     Draw ierarchical tree on image.
 
@@ -326,29 +377,26 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margin):
         it -- ierarchical tree,
         c -- canvas,
         deltas -- distances between nodes,
-        margin -- margin.
+        margins -- margins.
     """
 
-    (dx, dy) = deltas
-    (mx, my) = margin
+    # Pens and brushes.
+    op = aggdraw.Pen('orange', 2.0)
+    rp = aggdraw.Pen('red', 2.0)
+    bb = aggdraw.Brush('blue')
 
     # Coordinates.
-    cx = int(it.X * dx + mx)
-    cy = int((it.Height() - 1) * dy + my)
+    p = it.NodeCoordinates(deltas, margins)
 
     # Draw children.
     for ch in it.Children:
-        chx = int(ch.X * dx + mx)
-        chy = int((ch.Height() - 1) * dy + my)
-        c.line((cx, cy, chx, chy), aggdraw.Pen('orange', 2.0))
-        draw_ierarchical_tree_on_img(ch, c, deltas, margin)
+        c.line(p + ch.NodeCoordinates(deltas, margins), op)
+        draw_ierarchical_tree_on_img(ch, c, deltas, margins)
 
     # Draw point.
-    c.ellipse((cx - 3, cy - 3, cx + 3, cy + 3),
-              aggdraw.Pen('orange', 2.0), aggdraw.Brush('blue'))
+    c.ellipse(expand_to_circle(p, 3), op, bb)
     if it.Mark:
-        c.ellipse((cx - 10, cy - 10, cx + 10, cy + 10),
-                  aggdraw.Pen('red', 2.0))
+        c.ellipse(expand_to_circle(p, 10), rp)
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -371,6 +419,6 @@ if __name__ == '__main__':
     ps.sort()
     tree = ierarchical_clustering(ps, k = 12)
     tree.Print()
-    draw_ierarchical_tree(tree, deltas = (10, 40), margin = (12, 12))
+    draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12))
 
 #---------------------------------------------------------------------------------------------------
