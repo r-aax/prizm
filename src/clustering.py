@@ -355,11 +355,11 @@ if __name__ == '__main__':
     #ps = [random.normalvariate(50.0, 20.0) for j in range(100)]
 
     # Normal distribution.
-    ps = [random.gammavariate(50.0, 20.0) for j in range(50)]
+    ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
 
     ps.sort()
-    tree = ierarchical_clustering(ps, k = 20)
+    tree = ierarchical_clustering(ps, k = 12)
     tree.Print()
-    draw_ierarchical_tree(tree, dx = 20)
+    draw_ierarchical_tree(tree, dx = 10, mx = 12, my = 12)
 
 #---------------------------------------------------------------------------------------------------
