@@ -239,8 +239,8 @@ class ITree:
             Tree sizes.
         """
 
-        (dx, dy) = deltas
-        (mx, my) = margins
+        dx, dy = deltas
+        mx, my = margins
 
         return (int((self.Width() - 1) * dx + 2 * mx), int((self.Height() - 1) * dy + 2 * my))
 
@@ -258,10 +258,38 @@ class ITree:
             Node coordinates.
         """
 
-        (dx, dy) = deltas
-        (mx, my) = margins
+        dx, dy = deltas
+        mx, my = margins
 
         return (int(self.X * dx + mx), int((self.Height() - 1) * dy + my))
+
+#---------------------------------------------------------------------------------------------------
+
+    def Merge(t1, t2):
+        """
+        Merge two trees.
+
+        Arguments:
+            t1 -- first tree,
+            t2 -- second tree.
+
+        Result:
+            New tree.
+        """
+
+        # New tree.
+        t = ITree()
+
+        # Links.
+        t.Children = [t1, t2]
+        t1.Parent = t
+        t2.Parent = t
+
+        # Data.
+        t.Data = 0.5 * (t1.Data + t2.Data)
+        t.X = 0.5 * (t1.X + t2.X)
+
+        return t
 
 #---------------------------------------------------------------------------------------------------
 # Clustering.
@@ -297,21 +325,13 @@ def ierarchical_clustering(ps, k = 1):
         for i in range(fpi + 1, len(trees) - 1):
             new_dist = abs(trees[i].Data - trees[i + 1].Data)
             if new_dist < dist:
-                fpi = i
-                dist = new_dist
+                fpi, dist = i, new_dist
 
         # Merge points first_point_index and first_point_index + 1.
-        ch1 = trees[fpi]
-        ch2 = trees[fpi + 1]
-        chs = [ch1, ch2]
-        new_tree = ITree()
-        new_tree.Children = chs
-        new_tree.Data = 0.5 * (ch1.Data + ch2.Data)
-        new_tree.X = 0.5 * (ch1.X + ch2.X)
+        ch1, ch2 = trees[fpi], trees[fpi + 1]
+        new_tree = ITree.Merge(ch1, ch2)
         new_tree.N = next_n
         next_n = next_n + 1
-        ch1.Parent = new_tree
-        ch2.Parent = new_tree
         trees = trees[ : fpi] + [new_tree] + trees[fpi + 2 : ]
 
         # Mark.
