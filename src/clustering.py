@@ -11,6 +11,7 @@ import numbers
 import random
 import numpy as np
 import aggdraw
+from enum import Enum
 from PIL import Image
 
 #---------------------------------------------------------------------------------------------------
@@ -292,6 +293,18 @@ class ITree:
         return t
 
 #---------------------------------------------------------------------------------------------------
+# Clustering visualization type.
+#---------------------------------------------------------------------------------------------------
+
+class ClusteringDrawingType(Enum):
+
+    # Connect nodes with simple lines.
+    Lines = 1,
+
+    # Connect nodes with orthogonal lines.
+    Orthogonal = 2
+
+#---------------------------------------------------------------------------------------------------
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
@@ -364,14 +377,32 @@ def expand_to_circle(c, r):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree(it, deltas = (40, 40), margins = (10, 10)):
+def random_color():
+    """
+    Random 3-component color.
+
+    Result:
+        Random color.
+    """
+
+    return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+#---------------------------------------------------------------------------------------------------
+
+def draw_ierarchical_tree(it,
+                          deltas = (40, 40),
+                          margins = (10, 10),
+                          pen = aggdraw.Pen('orange', 2.0),
+                          drawing_type = ClusteringDrawingType.Lines):
     """
     Draw ierarchical tree.
 
     Arguments:
         it -- ierarchical tree,
         deltas -- distances between nodes,
-        margins -- margins.
+        margins -- margins,
+        pen -- pen,
+        drawing_type -- drawing type.
     """
 
     # Create image.
@@ -380,7 +411,7 @@ def draw_ierarchical_tree(it, deltas = (40, 40), margins = (10, 10)):
     c.setantialias(True)
 
     # Recursive draw.
-    draw_ierarchical_tree_on_img(it, c, deltas, margins)
+    draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type)
 
     # Flush, save and show.
     c.flush()
@@ -389,7 +420,7 @@ def draw_ierarchical_tree(it, deltas = (40, 40), margins = (10, 10)):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree_on_img(it, c, deltas, margins):
+def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
     """
     Draw ierarchical tree on image.
 
@@ -397,26 +428,41 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins):
         it -- ierarchical tree,
         c -- canvas,
         deltas -- distances between nodes,
-        margins -- margins.
+        margins -- margins,
+        pen -- pen,
+        drawing_type -- drawing type.
     """
 
     # Pens and brushes.
-    op = aggdraw.Pen('orange', 2.0)
-    rp = aggdraw.Pen('red', 2.0)
-    bb = aggdraw.Brush('blue')
+    mark_pen = aggdraw.Pen('red', 2.0)
+    brush = aggdraw.Brush('blue')
+
+    # Change color for subtree.
+    if it.Mark:
+        pen = aggdraw.Pen(random_color(), 2.0)
 
     # Coordinates.
     p = it.NodeCoordinates(deltas, margins)
 
     # Draw children.
     for ch in it.Children:
-        c.line(p + ch.NodeCoordinates(deltas, margins), op)
-        draw_ierarchical_tree_on_img(ch, c, deltas, margins)
+        chp = ch.NodeCoordinates(deltas, margins)
+
+        if drawing_type == ClusteringDrawingType.Lines:
+            c.line(p + chp, pen)
+        elif drawing_type == ClusteringDrawingType.Orthogonal:
+            (px, py) = p
+            (chpx, chpy) = chp
+            c.line((px, py, chpx, py, chpx, chpy), pen)
+        else:
+            raise Exception("wrong drawing type : %s" % str(drawing_type))
+
+        draw_ierarchical_tree_on_img(ch, c, deltas, margins, pen, drawing_type)
 
     # Draw point.
-    c.ellipse(expand_to_circle(p, 3), op, bb)
+    c.ellipse(expand_to_circle(p, 3), pen, brush)
     if it.Mark:
-        c.ellipse(expand_to_circle(p, 10), rp)
+        c.ellipse(expand_to_circle(p, 10), mark_pen)
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -439,6 +485,7 @@ if __name__ == '__main__':
     ps.sort()
     tree = ierarchical_clustering(ps, k = 12)
     tree.Print()
-    draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12))
+    draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
+                          drawing_type = ClusteringDrawingType.Orthogonal)
 
 #---------------------------------------------------------------------------------------------------
