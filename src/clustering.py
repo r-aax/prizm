@@ -32,10 +32,19 @@ class ITree:
             data -- data.
         """
 
+        # X coordinate for visualization.
         self.X = None
+
+        # Node number.
         self.N = None
+
+        # Mark for additional purposes.
         self.Mark = False
+
+        # Data.
         self.Data = data
+
+        # Links to parent and children.
         self.Parent = None
         self.Children= []
 
@@ -226,7 +235,7 @@ def ierarchical_clustering(ps, k = 1):
 
     Arguments:
         ps -- array of points,
-        k -- clusters count.
+        k -- clusters count for mark.
 
     Result:
         Clustering tree.
@@ -279,17 +288,18 @@ def ierarchical_clustering(ps, k = 1):
 # Visualization.
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree(it, dx = 40, dy = 40, mx = 10, my = 10):
+def draw_ierarchical_tree(it, deltas = (40, 40), margin = (10, 10)):
     """
     Draw ierarchical tree.
 
     Arguments:
         it -- ierarchical tree,
-        dx -- horizontal distance between two neighbours,
-        dy -- vertical distance between nodes,
-        mx -- horizontal margin,
-        my -- vertical margin.
+        deltas -- distances between nodes,
+        margin -- margin.
     """
+
+    (dx, dy) = deltas
+    (mx, my) = margin
 
     # Create image.
     width = int((it.Width() - 1) * dx + 2 * mx)
@@ -299,7 +309,7 @@ def draw_ierarchical_tree(it, dx = 40, dy = 40, mx = 10, my = 10):
     c.setantialias(True)
 
     # Recursive draw.
-    draw_ierarchical_tree_on_img(it, c, dx, dy, mx, my)
+    draw_ierarchical_tree_on_img(it, c, deltas, margin)
 
     # Flush, save and show.
     c.flush()
@@ -308,18 +318,19 @@ def draw_ierarchical_tree(it, dx = 40, dy = 40, mx = 10, my = 10):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree_on_img(it, c, dx, dy, mx, my):
+def draw_ierarchical_tree_on_img(it, c, deltas, margin):
     """
     Draw ierarchical tree on image.
 
     Arguments:
         it -- ierarchical tree,
         c -- canvas,
-        dx -- horizontal distance between two neighbours,
-        dy -- vertical distance between nodes,
-        mx -- horizontal margin,
-        my -- vertical margin.
+        deltas -- distances between nodes,
+        margin -- margin.
     """
+
+    (dx, dy) = deltas
+    (mx, my) = margin
 
     # Coordinates.
     cx = int(it.X * dx + mx)
@@ -330,7 +341,7 @@ def draw_ierarchical_tree_on_img(it, c, dx, dy, mx, my):
         chx = int(ch.X * dx + mx)
         chy = int((ch.Height() - 1) * dy + my)
         c.line((cx, cy, chx, chy), aggdraw.Pen('orange', 2.0))
-        draw_ierarchical_tree_on_img(ch, c, dx, dy, mx, my)
+        draw_ierarchical_tree_on_img(ch, c, deltas, margin)
 
     # Draw point.
     c.ellipse((cx - 3, cy - 3, cx + 3, cy + 3),
@@ -360,6 +371,6 @@ if __name__ == '__main__':
     ps.sort()
     tree = ierarchical_clustering(ps, k = 12)
     tree.Print()
-    draw_ierarchical_tree(tree, dx = 10, mx = 12, my = 12)
+    draw_ierarchical_tree(tree, deltas = (10, 40), margin = (12, 12))
 
 #---------------------------------------------------------------------------------------------------
