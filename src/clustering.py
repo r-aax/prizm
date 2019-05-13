@@ -287,13 +287,24 @@ class ITree:
         t1.Parent = t
         t2.Parent = t
 
-        # Data.
-        t.Data = 0.5 * (t1.Data + t2.Data)
-
-        # Coordinate X scaled by Width.
+        # Weights and mean function.
         w1 = t1.Width()
         w2 = t2.Width()
-        t.X = (t1.X * w1 + t2.X * w2) / (w1 + w2)
+        m = lambda v1, v2: (v1 * w1 + v2 * w2) / (w1 + w2)
+
+        # Data.
+        if isinstance(t1.Data, numbers.Number):
+            t.Data = m(t1.Data, t2.Data)
+        elif isinstance(t1.Data, tuple):
+            if len(t1.Data) == 2:
+                t.Data = (m(t1.Data[0], t2.Data[0]), m(t1.Data[1], t2.Data[1]))
+            else:
+                raise Exception("wrong tuple len for data while merging")
+        else:
+            raise Exception("wrong data type for merge")
+
+        # Coordinate X scaled by Width.
+        t.X = m(t1.X, t2.X)
 
         return t
 
@@ -458,8 +469,6 @@ def pretty_color(n):
     else:
         pc = random_color()
 
-    print(pc)
-
     return pc
 
 #---------------------------------------------------------------------------------------------------
@@ -555,7 +564,8 @@ if __name__ == '__main__':
     #ps = [random.normalvariate(50.0, 20.0) for j in range(100)]
 
     # Normal distribution.
-    ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
+    #ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
+    ps = [(x, x) for x in range(150)]
 
     ps.sort()
     tree = ierarchical_clustering(ps, k = 12)
