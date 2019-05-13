@@ -11,6 +11,7 @@ import numbers
 import random
 import numpy as np
 import aggdraw
+import itertools
 from enum import Enum
 from PIL import Image
 
@@ -36,11 +37,11 @@ class ITree:
         # X coordinate for visualization.
         self.X = None
 
-        # Node number.
-        self.N = None
-
         # Mark for additional purposes.
         self.Mark = False
+
+        # Cluster number.
+        self.KN = -1
 
         # Data.
         self.Data = data
@@ -207,7 +208,7 @@ class ITree:
         if self.Data == None:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
-            return 'x = %d, n = %d, data = %f (1d)' % (self.X, self.N, self.Data)
+            return 'x = %d, kn = %d, data = %f (1d)' % (self.X, self.KN, self.Data)
         else:
             return 'str'
 
@@ -299,7 +300,7 @@ class ITree:
 class ClusteringDrawingType(Enum):
 
     # Connect nodes with simple lines.
-    Lines = 1,
+    Lines = 1
 
     # Connect nodes with orthogonal lines.
     Orthogonal = 2
@@ -367,7 +368,7 @@ def ierarchical_clustering(ps,
     # Now set pseudocoordinates and numbers.
     for i in range(len(trees)):
         trees[i].X = i
-        trees[i].N = i
+        trees[i].NN = i
 
     # Next number.
     next_n = len(trees)
@@ -377,7 +378,7 @@ def ierarchical_clustering(ps,
         # Find two nearest points.
         fpi = 0
         m = metric(trees[fpi], trees[fpi + 1])
-        for i in range(fpi + 1, len(trees) - 1):
+        for i in range(1, len(trees) - 1):
             new_m = metric(trees[i], trees[i + 1])
             if new_m < m:
                 fpi, m = i, new_m
@@ -391,8 +392,9 @@ def ierarchical_clustering(ps,
 
         # Mark.
         if len(trees) == k:
-            for tree in trees:
-                tree.Mark = True
+            for i in range(len(trees)):
+                trees[i].KN = i
+                trees[i].Mark = True
 
     # Last tree is a root.
     return trees[0]
@@ -428,6 +430,33 @@ def random_color():
     """
 
     return (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+#---------------------------------------------------------------------------------------------------
+
+def pretty_color(n):
+    """
+    Pretty color by number.
+
+    Arguments:
+        n -- number.
+
+    Result:
+        Color.
+    """
+
+    colors = [(146,  18,  80), ( 21, 161,  44), ( 51,  83, 142), (178, 143, 131),
+              (227,  50,  11), (113, 144, 184), ( 12,  75,  20), ( 71, 103, 220),
+              (220, 129, 118), (126, 110,  20), (199, 114, 146), ( 34,  35, 177)]
+    colors_count = len(colors)
+
+    if n < colors_count:
+        pc = colors[n]
+    else:
+        pc = random_color()
+
+    print(pc)
+
+    return pc
 
 #---------------------------------------------------------------------------------------------------
 
@@ -481,7 +510,7 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
 
     # Change color for subtree.
     if it.Mark:
-        pen = aggdraw.Pen(random_color(), 2.0)
+        pen = aggdraw.Pen(pretty_color(it.KN), 2.0)
 
     # Coordinates.
     p = it.NodeCoordinates(deltas, margins)
