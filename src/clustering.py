@@ -8,6 +8,7 @@ Created on Tue May  7 12:35:16 2019
 """
 
 import numbers
+import math
 import random
 import numpy as np
 import aggdraw
@@ -479,6 +480,43 @@ def pretty_color(n):
 
 #---------------------------------------------------------------------------------------------------
 
+def draw_trajectory(ps):
+    """
+    Draw trajectory.
+
+    Arguments:
+        ps -- points array.
+    """
+
+    # Transform image.
+    w = 600
+    h = 200
+    sw = 100
+    sh = 80
+
+    # Create image.
+    img = Image.new('RGB', (w, h), color = (230, 230, 230))
+    c = aggdraw.Draw(img)
+    c.setantialias(True)
+
+    # Draw points.
+    for i in range(len(ps) - 1):
+        p1 = ps[i]
+        p2 = ps[i + 1]
+        c.line((p1[0] * sw,
+                p1[1] * sh + h / 2,
+                p2[0] * sw,
+                p2[1] * sh + h / 2),
+               aggdraw.Pen('red', 1.0))
+
+    # Flush save and show.
+    c.flush()
+    img.save('trajectory.png')
+    img.show()
+
+#---------------------------------------------------------------------------------------------------
+
+
 def draw_ierarchical_tree(it,
                           deltas = (40, 40),
                           margins = (10, 10),
@@ -569,14 +607,21 @@ if __name__ == '__main__':
     # Normal distribution.
     #ps = [random.normalvariate(50.0, 20.0) for j in range(100)]
 
-    # Normal distribution.
+    # Gamma distribution.
     #ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
-    ps = [(x, x) for x in range(150)]
 
+    ps = [(x / 100.0, math.sin(x / 25.0)) for x in range(600)]
+    ps[300] = (ps[300][0], 1000.0)
     ps.sort()
-    tree = ierarchical_clustering(ps, k = 12)
-    tree.Print()
-    draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
-                          drawing_type = ClusteringDrawingType.Orthogonal)
+    clust = True
+
+    # Just draw or clluster.
+    if not clust:
+        draw_trajectory(ps)
+    else:
+        tree = ierarchical_clustering(ps, k = 12)
+        tree.Print()
+        draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
+                              drawing_type = ClusteringDrawingType.Orthogonal)
 
 #---------------------------------------------------------------------------------------------------
