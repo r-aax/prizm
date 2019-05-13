@@ -289,7 +289,11 @@ class ITree:
 
         # Data.
         t.Data = 0.5 * (t1.Data + t2.Data)
-        t.X = 0.5 * (t1.X + t2.X)
+
+        # Coordinate X scaled by Width.
+        w1 = t1.Width()
+        w2 = t2.Width()
+        t.X = (t1.X * w1 + t2.X * w2) / (w1 + w2)
 
         return t
 
