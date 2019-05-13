@@ -209,6 +209,12 @@ class ITree:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
             return 'x = %d, kn = %d, data = %f (1d)' % (self.X, self.KN, self.Data)
+        elif isinstance(self.Data, tuple):
+            if len(self.Data) == 2:
+                return 'x = %d, kn = %d, data = (%f, %f) (2d)' \
+                       % (self.X, self.KN, self.Data[0], self.Data[1])
+            else:
+                raise Exception('wrong data for string representation')
         else:
             return 'str'
 
@@ -299,9 +305,9 @@ class ITree:
             if len(t1.Data) == 2:
                 t.Data = (m(t1.Data[0], t2.Data[0]), m(t1.Data[1], t2.Data[1]))
             else:
-                raise Exception("wrong tuple len for data while merging")
+                raise Exception('wrong tuple len for data while merging')
         else:
-            raise Exception("wrong data type for merge")
+            raise Exception('wrong data type for merge')
 
         # Coordinate X scaled by Width.
         t.X = m(t1.X, t2.X)
@@ -342,7 +348,7 @@ def metric_data_dist(a, b, r):
     elif isinstance(a, tuple):
         return pow(sum([pow(abs(ai - bi), r) for (ai, bi) in zip(a, b)]), 1.0 / r)
     else:
-        raise Exception("wrong data for metric_data_dist")
+        raise Exception('wrong data for metric_data_dist')
 
 #---------------------------------------------------------------------------------------------------
 
@@ -539,7 +545,7 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
             (chpx, chpy) = chp
             c.line((px, py, chpx, py, chpx, chpy), pen)
         else:
-            raise Exception("wrong drawing type : %s" % str(drawing_type))
+            raise Exception('wrong drawing type : %s' % str(drawing_type))
 
         draw_ierarchical_tree_on_img(ch, c, deltas, margins, pen, drawing_type)
 
