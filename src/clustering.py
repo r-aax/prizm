@@ -316,6 +316,18 @@ class ITree:
         return t
 
 #---------------------------------------------------------------------------------------------------
+# Clustering nearest finding type.
+#---------------------------------------------------------------------------------------------------
+
+class ClusteringNearestType(Enum):
+
+    # Find only for adjacent elements (good for 1d clustering).
+    OnlyAdjacent = 1
+
+    # All elements.
+    All = 2
+
+#---------------------------------------------------------------------------------------------------
 # Clustering visualization type.
 #---------------------------------------------------------------------------------------------------
 
@@ -372,7 +384,8 @@ def metric_tree_dist(t1, t2, r):
 
 def ierarchical_clustering(ps,
                            k = 1,
-                           metric = lambda t1, t2: metric_tree_dist(t1, t2, 1.0)):
+                           metric = lambda t1, t2: metric_tree_dist(t1, t2, 1.0),
+                           nearest_type = ClusteringNearestType.All):
     """
     Ierarchical clustering.
 
@@ -397,20 +410,29 @@ def ierarchical_clustering(ps,
 
     while len(trees) > 1:
 
-        # Find two nearest points.
-        fpi = 0
-        m = metric(trees[fpi], trees[fpi + 1])
-        for i in range(1, len(trees) - 1):
-            new_m = metric(trees[i], trees[i + 1])
-            if new_m < m:
-                fpi, m = i, new_m
+        # Initial indexes and metric.
+        fpi, spi, m = 0, 1, metric(trees[0], trees[1])
 
-        # Merge points first_point_index and first_point_index + 1.
-        ch1, ch2 = trees[fpi], trees[fpi + 1]
-        new_tree = ITree.Merge(ch1, ch2)
+        # Find two nearest points.
+        if nearest_type == ClusteringNearestType.OnlyAdjacent:
+            for i in range(1, len(trees) - 1):
+                new_m = metric(trees[i], trees[i + 1])
+                if new_m < m:
+                    fpi, spi, m = i, i + 1, new_m
+        elif nearest_type == ClusteringNearestType.All:
+            for i in range(0, len(trees)):
+                for j in range(i + 1, len(trees)):
+                    new_m = metric(trees[i], trees[j])
+                    if new_m < m:
+                        fpi, spi, m = i, j, new_m
+        else:
+            raise Exception("wrong nearest type for clustering")
+
+        # Merge two trees.
+        new_tree = ITree.Merge(trees[fpi], trees[spi])
         new_tree.N = next_n
         next_n = next_n + 1
-        trees = trees[ : fpi] + [new_tree] + trees[fpi + 2 : ]
+        trees = trees[ : fpi] + [new_tree] + trees[fpi + 1 : spi] + trees[spi + 1 : ]
 
         # Mark.
         if len(trees) == k:
@@ -610,9 +632,11 @@ if __name__ == '__main__':
     # Gamma distribution.
     #ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
 
-    ps = [(x / 100.0, math.sin(x / 25.0)) for x in range(600)]
-    ps[300] = (ps[300][0], 1000.0)
-    ps.sort()
+    ps = [(x / 100.0, math.sin(x / 25.0)) for x in range(100)]
+    ps[25] = (ps[25][0], 0.6)
+    ps[50] = (ps[50][0], 0.6)
+    ps[75] = (ps[75][0], 0.6)
+    #ps.sort()
     clust = True
 
     # Just draw or clluster.
