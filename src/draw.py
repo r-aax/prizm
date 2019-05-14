@@ -27,7 +27,8 @@ class Drawer:
     def __init__(self,
                  draw_area = (0.0, 0.0, 100.0, 100.0),
                  pic_size = (640, 480),
-                 margins = (10, 10)):
+                 margins = (10, 10),
+                 invert = (False, True)):
         """
         Constructor.
 
@@ -48,8 +49,15 @@ class Drawer:
         (mx, my) = margins
         self.FXI = (dxl, dxh)
         self.FYI = (dyl, dyh)
-        self.TXI = (mx, px - mx)
-        self.TYI = (my, py - my)
+        (inv_x, inv_y) = invert
+        if inv_x:
+            self.TXI = (px - mx, mx)
+        else:
+            self.TXI = (mx, px - mx)
+        if inv_y:
+            self.TYI = (py - my, my)
+        else:
+            self.TYI = (my, py - my)
 
 #---------------------------------------------------------------------------------------------------
 

@@ -568,8 +568,8 @@ def draw_data(ps,
         D.Line((0, min_y), (0, max_y), pen = pen)
         D.FixLine((max_x, 0), (-10, 5), pen = pen)
         D.FixLine((max_x, 0), (-10, -5), pen = pen)
-        D.FixLine((0, max_y), (5, -10), pen = pen)
-        D.FixLine((0, max_y), (-5, -10), pen = pen)
+        D.FixLine((0, max_y), (5, 10), pen = pen)
+        D.FixLine((0, max_y), (-5, 10), pen = pen)
 
     # Grid.
     if grid != None:
