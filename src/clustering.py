@@ -540,6 +540,7 @@ def pretty_color(n):
 #---------------------------------------------------------------------------------------------------
 
 def draw_data(ps,
+              clusters = None,
               pic_size = (640, 480),
               is_axis = True,
               grid = None):
@@ -566,10 +567,10 @@ def draw_data(ps,
         (max_x, max_y) = max_coords
         D.Line((min_x, 0), (max_x, 0), pen = pen)
         D.Line((0, min_y), (0, max_y), pen = pen)
-        D.FixLine((max_x, 0), (-10, 5), pen = pen)
-        D.FixLine((max_x, 0), (-10, -5), pen = pen)
-        D.FixLine((0, max_y), (5, 10), pen = pen)
-        D.FixLine((0, max_y), (-5, 10), pen = pen)
+        D.FixLine((max_x, 0), (-12, 4), pen = pen)
+        D.FixLine((max_x, 0), (-12, -4), pen = pen)
+        D.FixLine((0, max_y), (4, 12), pen = pen)
+        D.FixLine((0, max_y), (-4, 12), pen = pen)
 
     # Grid.
     if grid != None:
@@ -593,8 +594,17 @@ def draw_data(ps,
             gy_cur = gy_cur - gy
 
     # Draw points.
+    pen = aggdraw.Pen('red', 1.0)
+    point_pen = pen
+    point_brush = aggdraw.Brush('red')
     for i in range(len(ps) - 1):
-        D.Line(ps[i], ps[i + 1], pen = aggdraw.Pen('red', 1.0))
+        D.Line(ps[i], ps[i + 1], pen = pen)
+    for i in range(len(ps)):
+        if clusters != None:
+            color = pretty_color(clusters[i])
+            point_pen = aggdraw.Pen(color, 1.0)
+            point_brush = aggdraw.Brush(color)
+        D.Point(ps[i], 3, pen = point_pen, brush = point_brush)
 
     # Flush save and show.
     D.FSS(filename = 'imput_data.png')
@@ -734,7 +744,8 @@ if __name__ == '__main__':
 
     if run == RunType.TrajectoryIni:
         ps = test_set_trajectory()
-        draw_data(ps, pic_size = (600, 400),
+        draw_data(ps,
+                  pic_size = (1000, 600),
                   grid = (1.0, 0.3))
     elif run == RunType.TrajectoryClusterTree:
         ps = test_set_trajectory()
