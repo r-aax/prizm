@@ -25,7 +25,7 @@ class Drawer:
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self,
-                 draw_size = (100.0, 100.0),
+                 draw_area = (0.0, 0.0, 100.0, 100.0),
                  pic_size = (640, 480),
                  margins = (10, 10)):
         """
@@ -43,11 +43,11 @@ class Drawer:
         self.Canvas.setantialias(True)
 
         # Data for transform.
-        (dx, dy) = draw_size
+        (dxl, dyl, dxh, dyh) = draw_area
         (px, py) = pic_size
         (mx, my) = margins
-        self.FXI = (0, dx)
-        self.FYI = (0, dy)
+        self.FXI = (dxl, dxh)
+        self.FYI = (dyl, dyh)
         self.TXI = (mx, px - mx)
         self.TYI = (my, py - my)
 
@@ -127,16 +127,61 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Line(self, p1, p2, pen = aggdraw.Pen('black', 1.0)):
+    def Line(self, p1, p2,
+             pen = aggdraw.Pen('black', 1.0)):
         """
         Line.
 
         Arguments:
             p1 -- from point,
-            p2 -- to point.
+            p2 -- to point,
+            pen -- pen.
         """
 
         self.Canvas.line(self.To(p1) + self.To(p2), pen)
+
+#---------------------------------------------------------------------------------------------------
+
+    def Ellipse(self, p1, p2,
+                pen = aggdraw.Pen('black', 1.0),
+                brush = None):
+        """
+        Ellipse.
+
+        Arguments:
+            p1 -- first point,
+            p2 -- second point,
+            pen -- pen,
+            brush -- brush.
+        """
+
+        c = self.To(p1) + self.To(p2)
+        if brush == None:
+            self.Canvas.ellipse(c, pen)
+        else:
+            self.Canvas.ellipse(c, pen, brush)
+
+#---------------------------------------------------------------------------------------------------
+
+    def Point(self, p, r,
+              pen = aggdraw.Pen('black', 1.0),
+              brush = None):
+        """
+        Point.
+
+        Arguments:
+            p -- center of point,
+            r -- radius,
+            pen -- pen,
+            brush -- brush.
+        """
+
+        (cx, cy) = self.To(p)
+        c = (cx - r, cy - r, cx + r, cy + r)
+        if brush == None:
+            self.Canvas.ellipse(c, pen)
+        else:
+            self.Canvas.ellipse(c, pen, brush)
 
 #---------------------------------------------------------------------------------------------------
 # Other functions.
@@ -219,7 +264,10 @@ def test_drawer():
     """
 
     D = Drawer()
-    D.Line((0, 0), (100, 100), pen = aggdraw.Pen('black', 1.0))
+    D.Line((0, 0), (100, 100))
+    D.Ellipse((30, 30), (70, 70), pen = aggdraw.Pen('red', 1.5), brush = aggdraw.Brush('blue'))
+    D.Point((10, 80), 5)
+    D.Point((80, 10), 5)
     D.FSS()
 
 #---------------------------------------------------------------------------------------------------

@@ -13,6 +13,8 @@ import random
 import numpy as np
 import aggdraw
 import itertools
+from functools import reduce
+from draw import Drawer
 from enum import Enum
 from PIL import Image
 
@@ -502,39 +504,28 @@ def pretty_color(n):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_trajectory(ps):
+def draw_input_data(ps,
+                    pic_size = (640, 480)):
     """
-    Draw trajectory.
+    Draw input data.
 
     Arguments:
         ps -- points array.
     """
 
-    # Transform image.
-    w = 600
-    h = 200
-    sw = 100
-    sh = 80
+    # Points characteristics.
+    min_coords = reduce(lambda p1, p2: (min(p1[0], p2[0]), min(p1[1], p2[1])), ps[1:], ps[0])
+    max_coords = reduce(lambda p1, p2: (max(p1[0], p2[0]), max(p1[1], p2[1])), ps[1:], ps[0])
 
-    # Create image.
-    img = Image.new('RGB', (w, h), color = (230, 230, 230))
-    c = aggdraw.Draw(img)
-    c.setantialias(True)
+    # Drawer ini.
+    D = Drawer(draw_area = min_coords + max_coords)
 
     # Draw points.
     for i in range(len(ps) - 1):
-        p1 = ps[i]
-        p2 = ps[i + 1]
-        c.line((p1[0] * sw,
-                p1[1] * sh + h / 2,
-                p2[0] * sw,
-                p2[1] * sh + h / 2),
-               aggdraw.Pen('red', 1.0))
+        D.Line(ps[i], ps[i + 1], aggdraw.Pen('red', 1.0))
 
     # Flush save and show.
-    c.flush()
-    img.save('trajectory.png')
-    img.show()
+    D.FSS(filename = 'imput_data.png')
 
 #---------------------------------------------------------------------------------------------------
 
@@ -637,11 +628,11 @@ if __name__ == '__main__':
     ps[50] = (ps[50][0], 0.6)
     ps[75] = (ps[75][0], 0.6)
     #ps.sort()
-    clust = True
+    clust = False
 
     # Just draw or clluster.
     if not clust:
-        draw_trajectory(ps)
+        draw_input_data(ps)
     else:
         tree = ierarchical_clustering(ps, k = 12)
         tree.Print()
