@@ -14,6 +14,131 @@ import aggdraw
 from PIL import Image, ImageDraw, ImageFont
 
 #---------------------------------------------------------------------------------------------------
+# Class drawer.
+#---------------------------------------------------------------------------------------------------
+
+class Drawer:
+    """
+    Drawer based on aggdraw.
+    """
+
+#---------------------------------------------------------------------------------------------------
+
+    def __init__(self,
+                 draw_size = (100.0, 100.0),
+                 pic_size = (640, 480),
+                 margins = (10, 10)):
+        """
+        Constructor.
+
+        Arguments:
+            draw_size -- drawing area size,
+            margins -- margins,
+            pic_size -- picture size.
+        """
+
+        # Create image and drawer.
+        self.Img = Image.new('RGB', pic_size, color = (230, 230, 230))
+        self.Canvas = aggdraw.Draw(self.Img)
+        self.Canvas.setantialias(True)
+
+        # Data for transform.
+        (dx, dy) = draw_size
+        (px, py) = pic_size
+        (mx, my) = margins
+        self.FXI = (0, dx)
+        self.FYI = (0, dy)
+        self.TXI = (mx, px - mx)
+        self.TYI = (my, py - my)
+
+#---------------------------------------------------------------------------------------------------
+
+    def FSS(self,
+            filename = 'test.png'):
+        """
+        Flush, Save, Show.
+
+        Arguments:
+            filename -- name of file.
+        """
+
+        # Flush
+        self.Canvas.flush()
+        self.Img.save(filename)
+        self.Img.show()
+
+#---------------------------------------------------------------------------------------------------
+
+    def TransformCoord(self, x, f, t):
+        """
+        Transform coordinate.
+
+        Arguments:
+            x -- coordinate,
+            f -- from interval,
+            t -- to interval.
+
+        Result:
+            New coordinate.
+        """
+
+        (fl, fh) = f
+        (tl, th) = t
+        a = (tl - th) / (fl - fh)
+        b = tl - a * fl
+
+        return a * x + b
+
+#---------------------------------------------------------------------------------------------------
+
+    def To(self, p):
+        """
+        Transform point TO.
+
+        Arguments:
+            p -- point from drawing area.
+
+        Result:
+            Point from picture area.
+        """
+
+        (px, py) = p
+
+        return (self.TransformCoord(px, self.FXI, self.TXI),
+                self.TransformCoord(py, self.FYI, self.TYI))
+
+#---------------------------------------------------------------------------------------------------
+
+    def From(self, p):
+        """
+        Transfrom point FROM.
+
+        Arguments:
+            p -- point from picture area.
+
+        Result:
+            Point from drawing area.
+        """
+
+        (px, py) = p
+
+        return (self.TransformCoord(px, self.TXI, self.FXI),
+                self.TransformCoord(py, self.TYI, self.FYI))
+
+#---------------------------------------------------------------------------------------------------
+
+    def Line(self, p1, p2, pen = aggdraw.Pen('black', 1.0)):
+        """
+        Line.
+
+        Arguments:
+            p1 -- from point,
+            p2 -- to point.
+        """
+
+        self.Canvas.line(self.To(p1) + self.To(p2), pen)
+
+#---------------------------------------------------------------------------------------------------
 # Other functions.
 #---------------------------------------------------------------------------------------------------
 
@@ -87,11 +212,23 @@ def test_aggdraw():
     img.show()
 
 #---------------------------------------------------------------------------------------------------
+
+def test_drawer():
+    """
+    Drawer test.
+    """
+
+    D = Drawer()
+    D.Line((0, 0), (100, 100), pen = aggdraw.Pen('black', 1.0))
+    D.FSS()
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
     #test_pil()
-    test_aggdraw()
+    #test_aggdraw()
+    test_drawer()
 
 #---------------------------------------------------------------------------------------------------
