@@ -553,7 +553,7 @@ def draw_input_data(ps,
     max_coords = reduce(lambda p1, p2: (max(p1[0], p2[0]), max(p1[1], p2[1])), ps[1:], ps[0])
 
     # Drawer ini.
-    D = Drawer(draw_area = min_coords + max_coords)
+    D = Drawer(draw_area = min_coords + max_coords, pic_size = pic_size)
 
     # Draw points.
     for i in range(len(ps) - 1):
@@ -644,6 +644,34 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
+def test_set_trajectory():
+    """
+    Test set Trajectory.
+
+    Result:
+        Test set.
+    """
+
+    s = 200
+    ps = [(x / 15.0, math.sin(x / 15.0)) for x in range(s)]
+
+    # Ripple.
+    for i in range(s):
+        dx = random.uniform(-0.03, 0.03)
+        dy = random.uniform(-0.03, 0.03)
+        ps[i] = (ps[i][0] + dx, ps[i][1] + dy)
+
+    # Overshoots.
+    for i in range(4):
+        ind = 40 * (i + 1)
+        dx = random.uniform(-0.6, 0.6)
+        dy = random.uniform(-0.6, 0.6)
+        ps[ind] = (ps[ind][0] + dx, ps[ind][1] + dy)
+
+    return ps
+
+#---------------------------------------------------------------------------------------------------
+
 if __name__ == '__main__':
 
     # Simple range.
@@ -658,14 +686,14 @@ if __name__ == '__main__':
     # Gamma distribution.
     #ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
 
-    ps = [(x / 15.0, math.sin(x / 15.0)) for x in range(200)]
+    ps = test_set_trajectory()
 
     #ps.sort()
     clust = False
 
     # Just draw or clluster.
     if not clust:
-        draw_input_data(ps)
+        draw_input_data(ps, pic_size = (600, 400))
     else:
         tree = ierarchical_clustering(ps, k = 12)
         tree.Print()
