@@ -367,6 +367,25 @@ def metric_data_dist(a, b, r):
 
 #---------------------------------------------------------------------------------------------------
 
+def metric_data_idist(a, b):
+    """
+    Metric - distance between i-th components.
+
+    Arguments:
+        a -- first data,
+        b -- second data.
+
+    Result:
+        Metric result.
+    """
+
+    if not isinstance(a, tuple):
+        raise Exception('wrong data for metric_data_idist')
+
+    return abs(a[i] - b[i])
+
+#---------------------------------------------------------------------------------------------------
+
 def metric_tree_dist(t1, t2, r):
     """
     Metric - distance between trees.
@@ -381,6 +400,22 @@ def metric_tree_dist(t1, t2, r):
     """
 
     return metric_data_dist(t1.Data, t2.Data, r)
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_idist(t1, t2):
+    """
+    Metric - distance between i-th components.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return metric_data_idist(t1.Data, t2.Data)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -623,10 +658,8 @@ if __name__ == '__main__':
     # Gamma distribution.
     #ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
 
-    ps = [(x / 100.0, math.sin(x / 25.0)) for x in range(100)]
-    ps[25] = (ps[25][0], 0.6)
-    ps[50] = (ps[50][0], 0.6)
-    ps[75] = (ps[75][0], 0.6)
+    ps = [(x / 15.0, math.sin(x / 15.0)) for x in range(200)]
+
     #ps.sort()
     clust = False
 
