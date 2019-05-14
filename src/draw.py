@@ -72,7 +72,8 @@ class Drawer:
 
         # Flush
         self.Canvas.flush()
-        self.Img.save(filename)
+        if filename != None:
+            self.Img.save(filename)
         self.Img.show()
 
 #---------------------------------------------------------------------------------------------------

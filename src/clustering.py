@@ -367,13 +367,14 @@ def metric_data_dist(a, b, r):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_data_idist(a, b):
+def metric_data_idist(a, b, i):
     """
     Metric - distance between i-th components.
 
     Arguments:
         a -- first data,
-        b -- second data.
+        b -- second data,
+        i -- element number.
 
     Result:
         Metric result.
@@ -403,19 +404,20 @@ def metric_tree_dist(t1, t2, r):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_idist(t1, t2):
+def metric_tree_idist(t1, t2, i):
     """
     Metric - distance between i-th components.
 
     Arguments:
         t1 -- first tree,
-        t2 -- second tree.
+        t2 -- second tree,
+        i -- element number.
 
     Result:
         Metric result.
     """
 
-    return metric_data_idist(t1.Data, t2.Data)
+    return metric_data_idist(t1.Data, t2.Data, i)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -543,7 +545,8 @@ def draw_data(ps,
               clusters = None,
               pic_size = (640, 480),
               is_axis = True,
-              grid = None):
+              grid = None,
+              filename = None):
     """
     Draw data.
 
@@ -607,7 +610,7 @@ def draw_data(ps,
         D.Point(ps[i], 3, pen = point_pen, brush = point_brush)
 
     # Flush save and show.
-    D.FSS(filename = 'imput_data.png')
+    D.FSS(filename = filename)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -616,7 +619,8 @@ def draw_ierarchical_tree(it,
                           deltas = (40, 40),
                           margins = (10, 10),
                           pen = aggdraw.Pen('orange', 2.0),
-                          drawing_type = ClusteringDrawingType.Lines):
+                          drawing_type = ClusteringDrawingType.Lines,
+                          filename = None):
     """
     Draw ierarchical tree.
 
@@ -638,7 +642,8 @@ def draw_ierarchical_tree(it,
 
     # Flush, save and show.
     c.flush()
-    img.save('itree.png')
+    if filename != None:
+        img.save(filename)
     img.show()
 
 #---------------------------------------------------------------------------------------------------
@@ -726,33 +731,27 @@ class RunType(Enum):
     Type of test run.
     """
 
-    # Show initial trajectory.
-    TrajectoryIni = 1
-
-    # Trajectoru clusterization tree.
-    TrajectoryClusterTree = 2
-
-    # Trajectory result.
-    TrajectoryClusterResult = 3
+    # Trajectory test.
+    Trajectory = 1
 
 #---------------------------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
 
-    run = RunType.TrajectoryIni
+    run = RunType.Trajectory
 
-    if run == RunType.TrajectoryIni:
+    if run == RunType.Trajectory:
         ps = test_set_trajectory()
         draw_data(ps,
                   pic_size = (1000, 600),
-                  grid = (1.0, 0.3))
-    elif run == RunType.TrajectoryClusterTree:
-        ps = test_set_trajectory()
+                  grid = (1.0, 0.3),
+                  filename = 'trajectory_init.png')
         tree = ierarchical_clustering(ps, k = 12)
         tree.Print()
         draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
-                              drawing_type = ClusteringDrawingType.Orthogonal)
+                              drawing_type = ClusteringDrawingType.Orthogonal,
+                              filename = 'trajectory_tree.png')
     else:
         raise Exception('wrong test run type')
 
