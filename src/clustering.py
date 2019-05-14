@@ -463,7 +463,7 @@ def ierarchical_clustering(ps,
                     if new_m < m:
                         fpi, spi, m = i, j, new_m
         else:
-            raise Exception("wrong nearest type for clustering")
+            raise Exception('wrong nearest type for clustering')
 
         # Merge two trees.
         new_tree = ITree.Merge(trees[fpi], trees[spi])
@@ -539,13 +539,17 @@ def pretty_color(n):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_input_data(ps,
-                    pic_size = (640, 480)):
+def draw_data(ps,
+              pic_size = (640, 480),
+              is_axis = True,
+              grid = None):
     """
-    Draw input data.
+    Draw data.
 
     Arguments:
-        ps -- points array.
+        ps -- points array,
+        pic_sizr -- picture size,
+        is_axis -- need to draw axis.
     """
 
     # Points characteristics.
@@ -555,9 +559,42 @@ def draw_input_data(ps,
     # Drawer ini.
     D = Drawer(draw_area = min_coords + max_coords, pic_size = pic_size)
 
+    # Axis.
+    if is_axis:
+        pen = aggdraw.Pen('silver', 2.0)
+        (min_x, min_y) = min_coords
+        (max_x, max_y) = max_coords
+        D.Line((min_x, 0), (max_x, 0), pen = pen)
+        D.Line((0, min_y), (0, max_y), pen = pen)
+        D.FixLine((max_x, 0), (-10, 5), pen = pen)
+        D.FixLine((max_x, 0), (-10, -5), pen = pen)
+        D.FixLine((0, max_y), (5, -10), pen = pen)
+        D.FixLine((0, max_y), (-5, -10), pen = pen)
+
+    # Grid.
+    if grid != None:
+        pen = aggdraw.Pen('silver', 1.0)
+        (gx, gy) = grid
+        gx_cur = gx
+        while gx_cur <= max_x:
+            D.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
+            gx_cur = gx_cur + gx
+        gx_cur = -gx
+        while gx_cur >= min_x:
+            D.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
+            gx_cur = gx_cur - gx
+        gy_cur = gy
+        while gy_cur <= max_y:
+            D.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
+            gy_cur = gy_cur + gy
+        gy_cur = -gy
+        while gy_cur >= min_y:
+            D.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
+            gy_cur = gy_cur - gy
+
     # Draw points.
     for i in range(len(ps) - 1):
-        D.Line(ps[i], ps[i + 1], aggdraw.Pen('red', 1.0))
+        D.Line(ps[i], ps[i + 1], pen = aggdraw.Pen('red', 1.0))
 
     # Flush save and show.
     D.FSS(filename = 'imput_data.png')
@@ -671,33 +708,41 @@ def test_set_trajectory():
     return ps
 
 #---------------------------------------------------------------------------------------------------
+# Run type.
+#---------------------------------------------------------------------------------------------------
+
+class RunType(Enum):
+    """
+    Type of test run.
+    """
+
+    # Show initial trajectory.
+    TrajectoryIni = 1
+
+    # Trajectoru clusterization tree.
+    TrajectoryClusterTree = 2
+
+    # Trajectory result.
+    TrajectoryClusterResult = 3
+
+#---------------------------------------------------------------------------------------------------
+
 
 if __name__ == '__main__':
 
-    # Simple range.
-    #ps = list(range(150))
+    run = RunType.TrajectoryIni
 
-    # Random numbers.
-    #ps = [100.0 * random.random() for j in range(100)]
-
-    # Normal distribution.
-    #ps = [random.normalvariate(50.0, 20.0) for j in range(100)]
-
-    # Gamma distribution.
-    #ps = [random.gammavariate(50.0, 20.0) for j in range(150)]
-
-    ps = test_set_trajectory()
-
-    #ps.sort()
-    clust = False
-
-    # Just draw or clluster.
-    if not clust:
-        draw_input_data(ps, pic_size = (600, 400))
-    else:
+    if run == RunType.TrajectoryIni:
+        ps = test_set_trajectory()
+        draw_data(ps, pic_size = (600, 400),
+                  grid = (1.0, 0.3))
+    elif run == RunType.TrajectoryClusterTree:
+        ps = test_set_trajectory()
         tree = ierarchical_clustering(ps, k = 12)
         tree.Print()
         draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
                               drawing_type = ClusteringDrawingType.Orthogonal)
+    else:
+        raise Exception('wrong test run type')
 
 #---------------------------------------------------------------------------------------------------

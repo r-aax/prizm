@@ -142,6 +142,23 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
+    def FixLine(self, p, dp,
+                pen = aggdraw.Pen('black', 1.0)):
+        """
+        Fix line.
+
+        Arguments:
+            p -- from point,
+            dp -- fixed displacement.
+        """
+
+        (cx, cy) = self.To(p)
+        (dpx, dpy) = dp
+        c = (cx, cy, cx + dpx, cy + dpy)
+        self.Canvas.line(c, pen)
+
+#---------------------------------------------------------------------------------------------------
+
     def Ellipse(self, p1, p2,
                 pen = aggdraw.Pen('black', 1.0),
                 brush = None):
