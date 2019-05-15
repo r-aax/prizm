@@ -53,6 +53,12 @@ class ITree:
         self.Parent = None
         self.Children= []
 
+        # Height difference.
+        self.HeightDiff = None
+
+        # Is overshoot.
+        self.IsOvershoot = False
+
 #---------------------------------------------------------------------------------------------------
 
     def IsRoot(self):
@@ -208,14 +214,17 @@ class ITree:
             String.
         """
 
+        height_diff_str = (', hd = ' + str(self.HeightDiff)) if self.HeightDiff != None else ''
+
         if self.Data == None:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
-            return 'x = %d, kn = %d, data = %f (1d)' % (self.X, self.KN, self.Data)
+            return 'x = %d, kn = %d, data = %f%s (1d)' \
+                   % (self.X, self.KN, self.Data, height_diff_str)
         elif isinstance(self.Data, tuple):
             if len(self.Data) == 2:
-                return 'x = %d, kn = %d, data = (%f, %f) (2d)' \
-                       % (self.X, self.KN, self.Data[0], self.Data[1])
+                return 'x = %d, kn = %d, data = (%f, %f)%s (2d)' \
+                       % (self.X, self.KN, self.Data[0], self.Data[1], height_diff_str)
             else:
                 raise Exception('wrong data for string representation')
         else:
@@ -316,6 +325,63 @@ class ITree:
         t.X = m(t1.X, t2.X)
 
         return t
+
+#---------------------------------------------------------------------------------------------------
+
+    def CalculateHeightDifferences(self):
+        """
+        Calculate height differences.
+        """
+
+        if self.IsLeaf():
+            self.HeightDiff = self.Parent.Height() - self.Height()
+        else:
+            for ch in self.Children:
+                ch.CalculateHeightDifferences()
+
+#---------------------------------------------------------------------------------------------------
+
+    def MaxOvershootLeaf(self):
+        """
+        Maximum overshoot leaf.
+
+        Result:
+            Maximum overshoot leaf.
+        """
+
+        if self.IsLeaf():
+            if self.IsOvershoot:
+                return None
+            else:
+                return self
+        else:
+            ms = [ch.MaxOvershootLeaf() for ch in self.Children]
+            cur_m = None
+            for m in ms:
+                if cur_m == None:
+                    cur_m = m
+                elif m == None:
+                    pass
+                elif m.HeightDiff > cur_m.HeightDiff:
+                    cur_m = m
+                else:
+                    pass
+
+        return cur_m
+
+#---------------------------------------------------------------------------------------------------
+
+    def FindOvershoots(self, n):
+        """
+        Find overshoots.
+
+        Arguments:
+            n -- count.
+        """
+
+        for i in range(n):
+            m = self.MaxOvershootLeaf()
+            m.IsOvershoot = True
 
 #---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.
@@ -542,6 +608,7 @@ def pretty_color(n):
 #---------------------------------------------------------------------------------------------------
 
 def draw_data(ps,
+              draw_trajectory = False,
               clusters = None,
               pic_size = (640, 480),
               is_axis = True,
@@ -600,8 +667,9 @@ def draw_data(ps,
     pen = aggdraw.Pen('red', 1.0)
     point_pen = pen
     point_brush = aggdraw.Brush('red')
-    for i in range(len(ps) - 1):
-        D.Line(ps[i], ps[i + 1], pen = pen)
+    if draw_trajectory:
+        for i in range(len(ps) - 1):
+            D.Line(ps[i], ps[i + 1], pen = pen)
     for i in range(len(ps)):
         if clusters != None:
             color = pretty_color(clusters[i])
@@ -688,7 +756,10 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
         draw_ierarchical_tree_on_img(ch, c, deltas, margins, pen, drawing_type)
 
     # Draw point.
-    c.ellipse(expand_to_circle(p, 3), pen, brush)
+    if it.IsOvershoot:
+        c.ellipse(expand_to_circle(p, 5), aggdraw.Pen('black', 2.0), aggdraw.Brush('black'))
+    else:
+        c.ellipse(expand_to_circle(p, 3), pen, brush)
     if it.Mark:
         c.ellipse(expand_to_circle(p, 10), mark_pen)
 
@@ -696,9 +767,48 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
-def test_set_trajectory():
+def test_set_points2d(n, k):
+    """
+    Test set with 2D points.
+
+    Arguments:
+        n -- points count,
+        k -- clusters count.
+
+    Result:
+        Points.
+    """
+
+    # Random point.
+    rp = lambda : (random.uniform(0.0, 100.0), random.uniform(0.0, 100.0))
+
+    # Clusters.
+    ks = [(rp(), random.uniform(0.0, 20.0)) for x in range(k)]
+
+    # Generare points.
+    ps = []
+    for i in range(n):
+        ki = random.randint(0, k - 1)
+        ((cx, cy), r) = ks[ki]
+        while True:
+            (px, py) = (random.uniform(cx - r, cx + r), random.uniform(cy - r, cy + r))
+            dx = px - cx
+            dy = py - cy
+            if dx * dx + dy * dy < r * r:
+                break
+        ps = ps + [(px, py)]
+
+    return ps
+
+#---------------------------------------------------------------------------------------------------
+
+def test_set_trajectory(ripple, overshoot):
     """
     Test set Trajectory.
+
+    Arguments:
+        ripple -- ripple intensive,
+        overshoot -- overshoot value.
 
     Result:
         Test set.
@@ -709,15 +819,15 @@ def test_set_trajectory():
 
     # Ripple.
     for i in range(s):
-        dx = random.uniform(-0.03, 0.03)
-        dy = random.uniform(-0.03, 0.03)
+        dx = random.uniform(-ripple, ripple)
+        dy = random.uniform(-ripple, ripple)
         ps[i] = (ps[i][0] + dx, ps[i][1] + dy)
 
     # Overshoots.
     for i in range(4):
         ind = 40 * (i + 1)
-        dx = random.uniform(-0.6, 0.6)
-        dy = random.uniform(-0.6, 0.6)
+        dx = random.uniform(-overshoot, overshoot)
+        dy = random.uniform(-overshoot, overshoot)
         ps[ind] = (ps[ind][0] + dx, ps[ind][1] + dy)
 
     return ps
@@ -731,23 +841,43 @@ class RunType(Enum):
     Type of test run.
     """
 
+    # Points 2D.
+    Points2D = 1
+
     # Trajectory test.
-    Trajectory = 1
+    Trajectory = 2
 
 #---------------------------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
 
-    run = RunType.Trajectory
+    points_count = 200
+    run = RunType.Points2D
 
-    if run == RunType.Trajectory:
-        ps = test_set_trajectory()
+    if run == RunType.Points2D:
+        ps = test_set_points2d(points_count, k = 12)
         draw_data(ps,
+                  pic_size = (600, 600),
+                  grid = (10.0, 10.0),
+                  filename = 'points2d_init.png')
+        tree = ierarchical_clustering(ps, k = 12)
+        tree.CalculateHeightDifferences()
+        tree.FindOvershoots(5)
+        tree.Print()
+        draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
+                              drawing_type = ClusteringDrawingType.Orthogonal,
+                              filename = 'points2d_tree.png')
+    elif run == RunType.Trajectory:
+        ps = test_set_trajectory(0.03, 0.9)
+        draw_data(ps,
+                  draw_trajectory = True,
                   pic_size = (1000, 600),
                   grid = (1.0, 0.3),
                   filename = 'trajectory_init.png')
         tree = ierarchical_clustering(ps, k = 12)
+        tree.CalculateHeightDifferences()
+        tree.FindOvershoots(4)
         tree.Print()
         draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
                               drawing_type = ClusteringDrawingType.Orthogonal,
