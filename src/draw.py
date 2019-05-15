@@ -229,14 +229,53 @@ class Drawer:
         (min_x, min_y, max_x, max_y) = self.DrawArea
 
         # OX
-        self.Line((min_x, 0), (max_x, 0), pen = pen)
-        self.FixLine((max_x, 0), (-h * self.InvKX, w), pen = pen)
-        self.FixLine((max_x, 0), (-h * self.InvKX, -w), pen = pen)
+        if (min_y <= 0) and (max_y >= 0):
+            self.Line((min_x, 0), (max_x, 0), pen = pen)
+            self.FixLine((max_x, 0), (-h * self.InvKX, w), pen = pen)
+            self.FixLine((max_x, 0), (-h * self.InvKX, -w), pen = pen)
 
         # OY
-        self.Line((0, min_y), (0, max_y), pen = pen)
-        self.FixLine((0, max_y), (w, -h * self.InvKY), pen = pen)
-        self.FixLine((0, max_y), (-w, -h * self.InvKY), pen = pen)
+        if (min_x <= 0) and (max_x >= 0):
+            self.Line((0, min_y), (0, max_y), pen = pen)
+            self.FixLine((0, max_y), (w, -h * self.InvKY), pen = pen)
+            self.FixLine((0, max_y), (-w, -h * self.InvKY), pen = pen)
+
+#---------------------------------------------------------------------------------------------------
+
+    def Grid(self,
+             deltas,
+             pen = aggdraw.Pen('silver', 1.0)):
+        """
+        Draw grid.
+
+        Arguments:
+            deltas -- distances between adjacent lines,
+            pen -- pen.
+        """
+
+        (min_x, min_y, max_x, max_y) = self.DrawArea
+
+        (gx, gy) = deltas
+        gx_cur = gx
+        while gx_cur <= max_x:
+            if gx_cur >= min_x:
+                self.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
+            gx_cur = gx_cur + gx
+        gx_cur = -gx
+        while gx_cur >= min_x:
+            if gx_cur <= max_x:
+                self.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
+            gx_cur = gx_cur - gx
+        gy_cur = gy
+        while gy_cur <= max_y:
+            if gy_cur >= min_y:
+                self.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
+            gy_cur = gy_cur + gy
+        gy_cur = -gy
+        while gy_cur >= min_y:
+            if gy_cur <= max_y:
+                self.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
+            gy_cur = gy_cur - gy
 
 #---------------------------------------------------------------------------------------------------
 # Other functions.

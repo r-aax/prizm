@@ -672,26 +672,7 @@ def draw_data(ps,
 
     # Grid.
     if grid != None:
-        (min_x, min_y) = min_coords
-        (max_x, max_y) = max_coords
-        pen = aggdraw.Pen('silver', 1.0)
-        (gx, gy) = grid
-        gx_cur = gx
-        while gx_cur <= max_x:
-            D.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
-            gx_cur = gx_cur + gx
-        gx_cur = -gx
-        while gx_cur >= min_x:
-            D.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
-            gx_cur = gx_cur - gx
-        gy_cur = gy
-        while gy_cur <= max_y:
-            D.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
-            gy_cur = gy_cur + gy
-        gy_cur = -gy
-        while gy_cur >= min_y:
-            D.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
-            gy_cur = gy_cur - gy
+        D.Grid(grid)
 
     # Draw points.
     pen = aggdraw.Pen('red', 1.0)
