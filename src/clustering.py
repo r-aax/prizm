@@ -668,18 +668,12 @@ def draw_data(ps,
 
     # Axis.
     if is_axis:
-        pen = aggdraw.Pen('silver', 2.0)
-        (min_x, min_y) = min_coords
-        (max_x, max_y) = max_coords
-        D.Line((min_x, 0), (max_x, 0), pen = pen)
-        D.Line((0, min_y), (0, max_y), pen = pen)
-        D.FixLine((max_x, 0), (-12, 4), pen = pen)
-        D.FixLine((max_x, 0), (-12, -4), pen = pen)
-        D.FixLine((0, max_y), (4, 12), pen = pen)
-        D.FixLine((0, max_y), (-4, 12), pen = pen)
+        D.Axis()
 
     # Grid.
     if grid != None:
+        (min_x, min_y) = min_coords
+        (max_x, max_y) = max_coords
         pen = aggdraw.Pen('silver', 1.0)
         (gx, gy) = grid
         gx_cur = gx
@@ -897,15 +891,15 @@ if __name__ == '__main__':
                   pic_size = (600, 600),
                   grid = (10.0, 10.0),
                   filename = 'points2d_init.png')
-        tree = ierarchical_clustering(ps, k = 12)
-        tree.SetLeafsXs()
-        tree.RefreshXs()
-        tree.CalculateHeightDifferences()
-        tree.FindOvershoots(5)
-        tree.Print()
-        draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
-                              drawing_type = ClusteringDrawingType.Orthogonal,
-                              filename = 'points2d_tree.png')
+        #tree = ierarchical_clustering(ps, k = 12)
+        #tree.SetLeafsXs()
+        #tree.RefreshXs()
+        #tree.CalculateHeightDifferences()
+        #tree.FindOvershoots(5)
+        #tree.Print()
+        #draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
+        #                      drawing_type = ClusteringDrawingType.Orthogonal,
+        #                      filename = 'points2d_tree.png')
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
         draw_data(ps,

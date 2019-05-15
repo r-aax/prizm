@@ -44,20 +44,17 @@ class Drawer:
         self.Canvas.setantialias(True)
 
         # Data for transform.
+        self.DrawArea = draw_area
         (dxl, dyl, dxh, dyh) = draw_area
         (px, py) = pic_size
         (mx, my) = margins
         self.FXI = (dxl, dxh)
         self.FYI = (dyl, dyh)
+        self.TXI = (mx, px - mx)
+        self.TYI = (my, py - my)
         (inv_x, inv_y) = invert
-        if inv_x:
-            self.TXI = (px - mx, mx)
-        else:
-            self.TXI = (mx, px - mx)
-        if inv_y:
-            self.TYI = (py - my, my)
-        else:
-            self.TYI = (my, py - my)
+        self.InvKX = -1.0 if inv_x else 1.0
+        self.InvKY = -1.0 if inv_y else 1.0
 
 #---------------------------------------------------------------------------------------------------
 
@@ -78,14 +75,15 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def TransformCoord(self, x, f, t):
+    def TransformCoord(self, x, f, t, inv_k):
         """
         Transform coordinate.
 
         Arguments:
             x -- coordinate,
             f -- from interval,
-            t -- to interval.
+            t -- to interval,
+            inv_k -- invert coefficient.
 
         Result:
             New coordinate.
@@ -93,8 +91,13 @@ class Drawer:
 
         (fl, fh) = f
         (tl, th) = t
-        a = (tl - th) / (fl - fh)
-        b = tl - a * fl
+
+        if inv_k > 0.0:
+            a = (tl - th) / (fl - fh)
+            b = tl - a * fl
+        else:
+            a = (th - tl) / (fl - fh)
+            b = tl - a * fh
 
         return a * x + b
 
@@ -113,8 +116,8 @@ class Drawer:
 
         (px, py) = p
 
-        return (self.TransformCoord(px, self.FXI, self.TXI),
-                self.TransformCoord(py, self.FYI, self.TYI))
+        return (self.TransformCoord(px, self.FXI, self.TXI, self.InvKX),
+                self.TransformCoord(py, self.FYI, self.TYI, self.InvKY))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -131,8 +134,8 @@ class Drawer:
 
         (px, py) = p
 
-        return (self.TransformCoord(px, self.TXI, self.FXI),
-                self.TransformCoord(py, self.TYI, self.FYI))
+        return (self.TransformCoord(px, self.TXI, self.FXI, self.InvKX),
+                self.TransformCoord(py, self.TYI, self.FYI, self.InvKY))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -208,6 +211,32 @@ class Drawer:
             self.Canvas.ellipse(c, pen)
         else:
             self.Canvas.ellipse(c, pen, brush)
+
+#---------------------------------------------------------------------------------------------------
+
+    def Axis(self,
+             h = 12, w = 4,
+             pen = aggdraw.Pen('silver', 2.0)):
+        """
+        Draw axis.
+
+        Arguments:
+            h -- arrow height,
+            w -- arrow width,
+            pen -- pen.
+        """
+
+        (min_x, min_y, max_x, max_y) = self.DrawArea
+
+        # OX
+        self.Line((min_x, 0), (max_x, 0), pen = pen)
+        self.FixLine((max_x, 0), (-h * self.InvKX, w), pen = pen)
+        self.FixLine((max_x, 0), (-h * self.InvKX, -w), pen = pen)
+
+        # OY
+        self.Line((0, min_y), (0, max_y), pen = pen)
+        self.FixLine((0, max_y), (w, -h * self.InvKY), pen = pen)
+        self.FixLine((0, max_y), (-w, -h * self.InvKY), pen = pen)
 
 #---------------------------------------------------------------------------------------------------
 # Other functions.
