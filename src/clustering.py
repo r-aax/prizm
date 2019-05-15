@@ -208,6 +208,38 @@ class ITree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def NextLeafLeftRoRight(self, leaf):
+        """
+        Get next leaf (left to right walk).
+
+        Arguments:
+            leaf - leaf.
+
+        Result:
+            Next leaf or none.
+        """
+
+        if not leaf.IsLeaf():
+            raise Exception('not a leaf')
+
+        # Find next leaf.
+        cur = leaf
+        while True:
+
+            if cur.IsRoot():
+                return None
+
+            p = cur.Parent
+
+            if cur == p.RightChild():
+                cur = p
+            else:
+                for i in range(p.ChildrenCount()):
+                    if cur == p.Children[i]:
+                        return p.Children[i + 1].LeftLeaf()
+
+#---------------------------------------------------------------------------------------------------
+
     def Str(self):
         """
         String representation.
@@ -695,10 +727,10 @@ def draw_data(ps,
 
 
 def draw_ierarchical_tree(it,
-                          deltas = (40, 40),
-                          margins = (10, 10),
+                          deltas = (10, 40),
+                          margins = (12, 12),
                           pen = aggdraw.Pen('orange', 2.0),
-                          drawing_type = ClusteringDrawingType.Lines,
+                          drawing_type = ClusteringDrawingType.Orthogonal,
                           filename = None):
     """
     Draw ierarchical tree.
@@ -863,24 +895,23 @@ class RunType(Enum):
 
 if __name__ == '__main__':
 
-    points_count = 200
+    points_count, clusters_count, overshoots_count = 50, 3, 2
     run = RunType.Points2D
 
     if run == RunType.Points2D:
-        ps = test_set_points2d(points_count, k = 12)
+        ps = test_set_points2d(points_count, k = clusters_count)
+        tree = ierarchical_clustering(ps, k = clusters_count)
+        tree.SetLeafsXs()
+        tree.RefreshXs()
+        tree.CalculateHeightDifferences()
+        tree.FindOvershoots(overshoots_count)
+        tree.Print()
+        draw_ierarchical_tree(tree,
+                              filename = 'points2d_tree.png')
         draw_data(ps,
                   pic_size = (600, 600),
                   grid = (10.0, 10.0),
-                  filename = 'points2d_init.png')
-        #tree = ierarchical_clustering(ps, k = 12)
-        #tree.SetLeafsXs()
-        #tree.RefreshXs()
-        #tree.CalculateHeightDifferences()
-        #tree.FindOvershoots(5)
-        #tree.Print()
-        #draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
-        #                      drawing_type = ClusteringDrawingType.Orthogonal,
-        #                      filename = 'points2d_tree.png')
+                  filename = 'points2d_result.png')
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
         draw_data(ps,
@@ -888,12 +919,11 @@ if __name__ == '__main__':
                   pic_size = (1000, 600),
                   grid = (1.0, 0.3),
                   filename = 'trajectory_init.png')
-        tree = ierarchical_clustering(ps, k = 12)
+        tree = ierarchical_clustering(ps, k = clusters_count)
         tree.CalculateHeightDifferences()
-        tree.FindOvershoots(4)
+        tree.FindOvershoots(overshoots_count)
         tree.Print()
-        draw_ierarchical_tree(tree, deltas = (10, 40), margins = (12, 12),
-                              drawing_type = ClusteringDrawingType.Orthogonal,
+        draw_ierarchical_tree(tree,
                               filename = 'trajectory_tree.png')
     else:
         raise Exception('wrong test run type')
