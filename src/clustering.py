@@ -219,11 +219,11 @@ class ITree:
         if self.Data == None:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
-            return 'x = %d, kn = %d, data = %f%s (1d)' \
+            return 'x = %f, kn = %d, data = %f%s (1d)' \
                    % (self.X, self.KN, self.Data, height_diff_str)
         elif isinstance(self.Data, tuple):
             if len(self.Data) == 2:
-                return 'x = %d, kn = %d, data = (%f, %f)%s (2d)' \
+                return 'x = %f, kn = %d, data = (%f, %f)%s (2d)' \
                        % (self.X, self.KN, self.Data[0], self.Data[1], height_diff_str)
             else:
                 raise Exception('wrong data for string representation')
@@ -382,6 +382,44 @@ class ITree:
         for i in range(n):
             m = self.MaxOvershootLeaf()
             m.IsOvershoot = True
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetLeafsXs(self, start = 0):
+        """
+        Set X coordinates for leafs.
+
+        Arguments:
+            start -- start position
+        """
+
+        if self.IsLeaf():
+            self.X = start
+        else:
+            cur = start
+            for i in range(self.ChildrenCount()):
+                ch = self.Children[i]
+                ch.SetLeafsXs(cur)
+                cur = cur + ch.Width()
+
+#---------------------------------------------------------------------------------------------------
+
+    def RefreshXs(self):
+        """
+        Refresh Xs.
+        """
+
+        if self.IsLeaf():
+            pass
+        else:
+            for ch in self.Children:
+                ch.RefreshXs()
+            t1 = self.Children[0]
+            t2 = self.Children[1]
+            w1 = t1.Width()
+            w2 = t2.Width()
+            m = lambda v1, v2: (v1 * w1 + v2 * w2) / (w1 + w2)
+            self.X = m(t1.X, t2.X)
 
 #---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.
@@ -862,6 +900,8 @@ if __name__ == '__main__':
                   grid = (10.0, 10.0),
                   filename = 'points2d_init.png')
         tree = ierarchical_clustering(ps, k = 12)
+        tree.SetLeafsXs()
+        tree.RefreshXs()
         tree.CalculateHeightDifferences()
         tree.FindOvershoots(5)
         tree.Print()
