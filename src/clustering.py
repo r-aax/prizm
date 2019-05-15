@@ -9,10 +9,12 @@ Created on Tue May  7 12:35:16 2019
 
 import numbers
 import math
+import fun
 import random
 import numpy as np
 import aggdraw
 import itertools
+import mth
 from functools import reduce
 from draw import Drawer
 from enum import Enum
@@ -306,23 +308,22 @@ class ITree:
         t2.Parent = t
 
         # Weights and mean function.
-        w1 = t1.Width()
-        w2 = t2.Width()
-        m = lambda v1, v2: (v1 * w1 + v2 * w2) / (w1 + w2)
+        ws = [t1.Width(), t2.Width()]
 
         # Data.
         if isinstance(t1.Data, numbers.Number):
-            t.Data = m(t1.Data, t2.Data)
+            t.Data = mth.avg_weighted([t1.Data, t2.Data], ws)
         elif isinstance(t1.Data, tuple):
             if len(t1.Data) == 2:
-                t.Data = (m(t1.Data[0], t2.Data[0]), m(t1.Data[1], t2.Data[1]))
+                t.Data = (mth.avg_weighted([t1.Data[0], t2.Data[0]], ws),
+                          mth.avg_weighted([t1.Data[1], t2.Data[1]], ws))
             else:
                 raise Exception('wrong tuple len for data while merging')
         else:
             raise Exception('wrong data type for merge')
 
         # Coordinate X scaled by Width.
-        t.X = m(t1.X, t2.X)
+        t.X = mth.avg_weighted([t1.X, t2.X], ws)
 
         return t
 
@@ -414,12 +415,9 @@ class ITree:
         else:
             for ch in self.Children:
                 ch.RefreshXs()
-            t1 = self.Children[0]
-            t2 = self.Children[1]
-            w1 = t1.Width()
-            w2 = t2.Width()
-            m = lambda v1, v2: (v1 * w1 + v2 * w2) / (w1 + w2)
-            self.X = m(t1.X, t2.X)
+            xws = [(ch.X, ch.Width()) for ch in self.Children]
+            (xs, ws) = fun.unzip(xws)
+            self.X = mth.avg_weighted(xs, ws)
 
 #---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.
