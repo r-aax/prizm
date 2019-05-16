@@ -7,6 +7,8 @@ Created on Wed May 15 10:58:59 2019
 @author: Rybakov
 """
 
+import operator
+
 #---------------------------------------------------------------------------------------------------
 
 def zipwith(a, b, f):
@@ -41,21 +43,50 @@ def unzip(ab):
 
 #---------------------------------------------------------------------------------------------------
 
-def descartes_product(a, b):
+def partial_tail2(f, p):
     """
-    Descartes product of two lists.
+    Partial apply function - set the second argument.
 
     Arguments:
-        a -- first list,
-        b -- second list.
+        f -- function of 2 arguments,
+        p -- parameter.
 
     Result:
-        Descartes product.
+        New function of 1 argument.
     """
 
-    lb = len(b)
+    return lambda x: f(x, p)
 
-    return [(a[i // lb], b[i % lb]) for i in range(len(a) * lb)]
+#---------------------------------------------------------------------------------------------------
+
+def partial_tail3(f, p):
+    """
+    Partial apply function - set the third argument.
+
+    Arguments:
+        f -- function of 3 arguments,
+        p -- parameter.
+
+    Result:
+        New function of 2 arguments.
+    """
+
+    return lambda x, y: f(x, y, p)
+
+#---------------------------------------------------------------------------------------------------
+
+def flip(f):
+    """
+    Flip function.
+
+    Argument:
+        f -- function.
+
+    Result:
+        Flipped function.
+    """
+
+    return lambda x, y: f(y, x)
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -63,6 +94,6 @@ def descartes_product(a, b):
 
 if __name__ == '__main__':
 
-    print(descartes_product(['a', 'b'], [1, 2, 3]))
+    assert partial_tail2(operator.add, 5)(10) == 15
 
 #---------------------------------------------------------------------------------------------------

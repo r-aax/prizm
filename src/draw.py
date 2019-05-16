@@ -359,7 +359,7 @@ def test_drawer():
 
     D = Drawer()
     D.Line((0, 0), (100, 100))
-    D.Ellipse((30, 30), (70, 70), pen = aggdraw.Pen('red', 1.5), brush = aggdraw.Brush('blue'))
+    D.Ellipse((30, 30), (70, 70), pen = aggdraw.Pen('red', 1.5), brush = aggdraw.Brush('steelblue'))
     D.Point((10, 80), 5)
     D.Point((80, 10), 5)
     D.FSS()

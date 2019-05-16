@@ -10,6 +10,7 @@ Created on Tue May  7 12:35:16 2019
 import numbers
 import math
 import fun
+import lst
 import operator
 import random
 import numpy as np
@@ -506,6 +507,26 @@ class ITree:
                           [])
 
 #---------------------------------------------------------------------------------------------------
+
+    def OvershootData(self):
+        """
+        Overshootdata (leafs).
+
+        Result:
+            Overshoot data.
+        """
+
+        if self.IsLeaf():
+            if self.IsOvershoot:
+                return [self.Data]
+            else:
+                return []
+        else:
+            return reduce(operator.__concat__,
+                          [ch.OvershootData() for ch in self.Children],
+                          [])
+
+#---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.
 #---------------------------------------------------------------------------------------------------
 
@@ -533,7 +554,7 @@ class ClusteringDrawingType(Enum):
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
-def metric_data_dist(a, b, r = 2):
+def metric_data_dist(a, b, r = 2.0):
     """
     Metric - distance between points.
 
@@ -575,7 +596,7 @@ def metric_data_idist(a, b, i):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_dist(t1, t2, r = 2):
+def metric_tree_dist(t1, t2, r = 2.0):
     """
     Metric - distance between trees.
 
@@ -592,7 +613,7 @@ def metric_tree_dist(t1, t2, r = 2):
 
 #---------------------------------------------------------------------------------------------------
 
-def dists_list(t1, t2, r = 2):
+def dists_list(t1, t2, r = 2.0):
     """
     List of distances for all pair of leafs.
 
@@ -607,13 +628,13 @@ def dists_list(t1, t2, r = 2):
 
     d1 = t1.AllData()
     d2 = t2.AllData()
-    datas = fun.descartes_product(d1, d2)
+    datas = lst.descartes_product(d1, d2)
 
     return [metric_data_dist(p1, p2, r) for (p1, p2) in datas]
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_min_dist(t1, t2, r = 2):
+def metric_tree_min_dist(t1, t2, r = 2.0):
     """
     Metric - minimal distance between nodes.
 
@@ -630,7 +651,7 @@ def metric_tree_min_dist(t1, t2, r = 2):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_max_dist(t1, t2, r = 2):
+def metric_tree_max_dist(t1, t2, r = 2.0):
     """
     Metric - maximal distance between nodes.
 
@@ -647,7 +668,7 @@ def metric_tree_max_dist(t1, t2, r = 2):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_avg_dist(t1, t2, r = 2):
+def metric_tree_avg_dist(t1, t2, r = 2.0):
     """
     Metric - average distance between nodes.
 
@@ -888,6 +909,60 @@ def draw_data(tree,
 
 #---------------------------------------------------------------------------------------------------
 
+def draw_overshoots(ps, overshoots, ok,
+                    pic_size = (640, 480),
+                    is_axis = True,
+                    grid = None,
+                    filename = None):
+    """
+    Draw overshoots.
+
+    Arguments:
+        ps -- points,
+        overshoots -- list of overshoots,
+        ok -- overshoots count (leaders),
+        pic_size -- picture size,
+        is_axis -- need to draw axis,
+        grid -- grid lines characteristics,
+        filename -- file name for picture.
+    """
+
+    # Points characteristics.
+    min_coords = reduce(lambda p1, p2: (min(p1[0], p2[0]), min(p1[1], p2[1])), ps[1:], ps[0])
+    max_coords = reduce(lambda p1, p2: (max(p1[0], p2[0]), max(p1[1], p2[1])), ps[1:], ps[0])
+
+    # Drawer ini.
+    D = Drawer(draw_area = min_coords + max_coords, pic_size = pic_size)
+
+    # Axis.
+    if is_axis:
+        D.Axis()
+
+    # Grid.
+    if grid != None:
+        D.Grid(grid)
+
+    # Draw points.
+    red_pen = aggdraw.Pen('red', 1.0)
+    red_brush = aggdraw.Brush('red')
+    for p in ps:
+        D.Point(p, 3, red_pen, red_brush)
+
+    # Draw overshoots.
+    black_pen = aggdraw.Pen('black', 2.0)
+    steelblue_brush = aggdraw.Brush('steelblue')
+    for overshoot in overshoots[ok:]:
+        (r, p) = overshoot
+        D.Point(p, 3 * r, black_pen)
+    for overshoot in overshoots[:ok]:
+        (r, p) = overshoot
+        D.Point(p, 3 * r, black_pen, steelblue_brush)
+        D.Point(p, 3, red_pen, red_brush)
+
+    # Flush save and show.
+    D.FSS(filename = filename)
+
+#---------------------------------------------------------------------------------------------------
 
 def draw_ierarchical_tree(it,
                           deltas = (10, 40),
@@ -1123,7 +1198,7 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
     tree.FindOvershoots(overshoots_count)
 
     # Ierarchical tree.
-    tree.Print()
+    #tree.Print()
     draw_ierarchical_tree(tree, filename = 'points2d_%s_tree_%d.png' % fmt)
 
     # Draw data.
@@ -1136,6 +1211,8 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
               pic_size = (600, 600), grid = (10.0, 10.0),
               filename = 'points2d_%s_clusters_%d.png' % fmt)
 
+    return tree.OvershootData()
+
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
@@ -1145,17 +1222,43 @@ if __name__ == '__main__':
 
     if run == RunType.Points2D:
 
+        # Test number.
+        test_number = 1
+
         # Get test case.
         ps = test_set_points2d(200, k = clusters_count)
         #ps = test_set_points2d_grid(10, 10)
         #ps = test_set_points2d_circles(4, 50)
 
-        modes = [(metric_tree_dist, 'center'), (metric_tree_min_dist, 'min'),
-                 (metric_tree_max_dist, 'max'), (metric_tree_avg_dist, 'avg')]
+        overshoots = []
+        modes = [(fun.partial_tail3(metric_tree_min_dist, 1.0), 'min1'),
+                 (fun.partial_tail3(metric_tree_max_dist, 1.0), 'max1'),
+                 (fun.partial_tail3(metric_tree_avg_dist, 1.0), 'avg1'),
+                 (fun.partial_tail3(metric_tree_min_dist, 2.0), 'min2'),
+                 (fun.partial_tail3(metric_tree_max_dist, 2.0), 'max2'),
+                 (fun.partial_tail3(metric_tree_avg_dist, 2.0), 'avg2'),
+                 (fun.partial_tail3(metric_tree_min_dist, 4.0), 'min4'),
+                 (fun.partial_tail3(metric_tree_max_dist, 4.0), 'max4'),
+                 (fun.partial_tail3(metric_tree_avg_dist, 4.0), 'avg4')]
         for (metric, metric_name) in modes:
-            test_case_points2d(ps, clusters_count,
-                               metric = metric, metric_name = metric_name,
-                               test_number = 1)
+            local_overshoots = test_case_points2d(ps, clusters_count,
+                                                  metric = metric, metric_name = metric_name,
+                                                  test_number = test_number)
+            overshoots = overshoots + local_overshoots
+            overshoots.sort()
+            grouped_overshoots = lst.group(overshoots)
+            sorted_overshoots = sorted([(c, p) for (p, c) in grouped_overshoots])
+            sorted_overshoots.reverse()
+            print("Grouped local overshoots for name %s:" % metric_name)
+            print(sorted_overshoots)
+
+        # Process statistics.
+        draw_overshoots(ps,
+                        sorted_overshoots,
+                        overshoots_count,
+                        pic_size = (600, 600),
+                        grid = (10.0, 10.0),
+                        filename = 'points2d_overshoots_%d.png' % test_number)
 
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
