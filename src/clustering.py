@@ -386,9 +386,14 @@ class ITree:
         Calculate height differences.
         """
 
-        if self.IsLeaf():
-            self.HeightDiff = self.Parent.Height() - self.Height()
+        # Calculate own heights difference.
+        if self.IsRoot():
+            self.HeightDiff = 0
         else:
+            self.HeightDiff = self.Parent.Height() - self.Height()
+
+        # Calculate childrens' heights differences.
+        if not self.IsLeaf():
             for ch in self.Children:
                 ch.CalculateHeightDifferences()
 
@@ -402,14 +407,13 @@ class ITree:
             Maximum overshoot leaf.
         """
 
-        if self.IsLeaf():
-            if self.IsOvershoot:
-                return None
-            else:
-                return self
+        if self.IsOvershoot:
+            return None
+        elif self.IsLeaf():
+            return self
         else:
             ms = [ch.MaxOvershootLeaf() for ch in self.Children]
-            cur_m = None
+            cur_m = self
             for m in ms:
                 if cur_m == None:
                     cur_m = m
@@ -419,8 +423,19 @@ class ITree:
                     cur_m = m
                 else:
                     pass
+            return cur_m
 
-        return cur_m
+#---------------------------------------------------------------------------------------------------
+
+    def SetOvershootRecursive(self):
+        """"
+        Set overshoot recursive.
+        """
+
+        self.IsOvershoot = True
+
+        for ch in self.Children:
+            ch.SetOvershootRecursive()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -434,7 +449,7 @@ class ITree:
 
         for i in range(n):
             m = self.MaxOvershootLeaf()
-            m.IsOvershoot = True
+            m.SetOvershootRecursive()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -843,12 +858,17 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
     for ch in it.Children:
         chp = ch.NodeCoordinates(deltas, margins)
 
+        # Define line pen.
+        line_pen = pen
+        if it.IsOvershoot and ch.IsOvershoot:
+            line_pen = aggdraw.Pen('black', 1.0)
+
         if drawing_type == ClusteringDrawingType.Lines:
-            c.line(p + chp, pen)
+            c.line(p + chp, line_pen)
         elif drawing_type == ClusteringDrawingType.Orthogonal:
             (px, py) = p
             (chpx, chpy) = chp
-            c.line((px, py, chpx, py, chpx, chpy), pen)
+            c.line((px, py, chpx, py, chpx, chpy), line_pen)
         else:
             raise Exception('wrong drawing type : %s' % str(drawing_type))
 
