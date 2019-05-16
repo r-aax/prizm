@@ -240,6 +240,25 @@ class ITree:
 
 #---------------------------------------------------------------------------------------------------
 
+    def ClusterNumber(self):
+        """
+        Node cluster number.
+
+        Result:
+            Cluster number.
+        """
+
+        kn = self.KN
+
+        if self.IsRoot():
+            return kn
+        elif kn != -1:
+            return kn
+        else:
+            return self.Parent.ClusterNumber()
+
+#---------------------------------------------------------------------------------------------------
+
     def Str(self):
         """
         String representation.
@@ -675,9 +694,8 @@ def pretty_color(n):
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_data(ps,
+def draw_data(tree,
               draw_trajectory = False,
-              clusters = None,
               pic_size = (640, 480),
               is_axis = True,
               grid = None,
@@ -686,9 +704,11 @@ def draw_data(ps,
     Draw data.
 
     Arguments:
-        ps -- points array,
-        pic_sizr -- picture size,
-        is_axis -- need to draw axis.
+        tree -- clustering tree,
+        pic_size -- picture size,
+        is_axis -- need to draw axi,
+        grid -- grid lines characteristics,
+        filename -- file name for picture.
     """
 
     # Points characteristics.
@@ -707,18 +727,40 @@ def draw_data(ps,
         D.Grid(grid)
 
     # Draw points.
-    pen = aggdraw.Pen('red', 1.0)
-    point_pen = pen
-    point_brush = aggdraw.Brush('red')
-    if draw_trajectory:
-        for i in range(len(ps) - 1):
-            D.Line(ps[i], ps[i + 1], pen = pen)
-    for i in range(len(ps)):
-        if clusters != None:
-            color = pretty_color(clusters[i])
-            point_pen = aggdraw.Pen(color, 1.0)
-            point_brush = aggdraw.Brush(color)
-        D.Point(ps[i], 3, pen = point_pen, brush = point_brush)
+    leaf = tree.LeftLeaf()
+    while leaf != None:
+
+        # Default colors and etc.
+        color = 'red'
+        point_radius = 3
+
+        # Define color if cluster number is set.
+        kn = leaf.ClusterNumber()
+        if leaf.IsOvershoot:
+            color = 'black'
+            point_radius = 5
+        elif kn != -1:
+            color = pretty_color(kn)
+
+        # Define pen, brush and draw point.
+        point_pen = aggdraw.Pen(color, 1.0)
+        point_brush = aggdraw.Brush(color)
+        D.Point(leaf.Data, point_radius, pen = point_pen, brush = point_brush)
+        leaf = tree.NextLeafLeftRoRight(leaf)
+
+    # Draw points.
+    #pen = aggdraw.Pen('red', 1.0)
+    #point_pen = pen
+    #point_brush = aggdraw.Brush('red')
+    #if draw_trajectory:
+    #    for i in range(len(ps) - 1):
+    #        D.Line(ps[i], ps[i + 1], pen = pen)
+    #for i in range(len(ps)):
+    #    if clusters != None:
+    #        color = pretty_color(clusters[i])
+    #        point_pen = aggdraw.Pen(color, 1.0)
+    #        point_brush = aggdraw.Brush(color)
+    #    D.Point(ps[i], 3, pen = point_pen, brush = point_brush)
 
     # Flush save and show.
     D.FSS(filename = filename)
@@ -895,7 +937,7 @@ class RunType(Enum):
 
 if __name__ == '__main__':
 
-    points_count, clusters_count, overshoots_count = 50, 3, 2
+    points_count, clusters_count, overshoots_count = 200, 12, 4
     run = RunType.Points2D
 
     if run == RunType.Points2D:
@@ -908,23 +950,23 @@ if __name__ == '__main__':
         tree.Print()
         draw_ierarchical_tree(tree,
                               filename = 'points2d_tree.png')
-        draw_data(ps,
+        draw_data(tree,
                   pic_size = (600, 600),
                   grid = (10.0, 10.0),
                   filename = 'points2d_result.png')
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
-        draw_data(ps,
-                  draw_trajectory = True,
-                  pic_size = (1000, 600),
-                  grid = (1.0, 0.3),
-                  filename = 'trajectory_init.png')
         tree = ierarchical_clustering(ps, k = clusters_count)
         tree.CalculateHeightDifferences()
         tree.FindOvershoots(overshoots_count)
         tree.Print()
         draw_ierarchical_tree(tree,
                               filename = 'trajectory_tree.png')
+        draw_data(tree,
+                  draw_trajectory = True,
+                  pic_size = (1000, 600),
+                  grid = (1.0, 0.3),
+                  filename = 'trajectory_init.png')
     else:
         raise Exception('wrong test run type')
 
