@@ -28,7 +28,8 @@ class Drawer:
                  draw_area = (0.0, 0.0, 100.0, 100.0),
                  pic_size = (640, 480),
                  margins = (10, 10),
-                 invert = (False, True)):
+                 invert = (False, True),
+                 backcolor = (255, 255, 255)):
         """
         Constructor.
 
@@ -39,7 +40,8 @@ class Drawer:
         """
 
         # Create image and drawer.
-        self.Img = Image.new('RGB', pic_size, color = (230, 230, 230))
+        self.Img = Image.new('RGB', pic_size, color = backcolor)
+        self.Backcolor = backcolor
         self.Canvas = aggdraw.Draw(self.Img)
         self.Canvas.setantialias(True)
 

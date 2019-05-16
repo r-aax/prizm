@@ -874,9 +874,9 @@ def draw_data(tree,
                 leaf2 = tree.NextLeafLeftRoRight(leaf2)
             leaf1 = tree.NextLeafLeftRoRight(leaf1)
 
-    foreground_color = (230, 230, 230)
-    foreground_pen = aggdraw.Pen(foreground_color, 1.0)
-    foreground_brush = aggdraw.Brush(foreground_color)
+    backcolor = D.Backcolor
+    backcolor_pen = aggdraw.Pen(backcolor, 1.0)
+    backcolor_brush = aggdraw.Brush(backcolor)
 
     # Draw points.
     leaf = tree.LeftLeaf()
@@ -901,7 +901,7 @@ def draw_data(tree,
         D.Point(leaf.Data, point_radius, pen = point_pen, brush = point_brush)
         if draw_clusters:
             if not leaf.IsOvershoot:
-                D.Point(leaf.Data, 1, pen = foreground_pen, brush = foreground_brush)
+                D.Point(leaf.Data, 1, pen = backcolor_pen, brush = backcolor_brush)
         leaf = tree.NextLeafLeftRoRight(leaf)
 
     # Flush save and show.
@@ -982,7 +982,7 @@ def draw_ierarchical_tree(it,
     """
 
     # Create image.
-    img = Image.new('RGB', it.TreeSizes(deltas, margins), color = (230, 230, 230))
+    img = Image.new('RGB', it.TreeSizes(deltas, margins), color = (255, 255, 255))
     c = aggdraw.Draw(img)
     c.setantialias(True)
 
