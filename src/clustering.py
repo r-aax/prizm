@@ -389,6 +389,8 @@ class ITree:
         # Calculate own heights difference.
         if self.IsRoot():
             self.HeightDiff = 0
+        elif self.ClusterNumber() == -1:
+            self.HeightDiff = 0
         else:
             self.HeightDiff = self.Parent.Height() - self.Height()
 
@@ -743,7 +745,7 @@ def draw_data(tree,
     if grid != None:
         D.Grid(grid)
 
-    # Draw clusters.
+    # Draw clusters lines.
     if draw_clusters:
         leaf1 = tree.LeftLeaf()
         while leaf1 != None:
@@ -775,12 +777,13 @@ def draw_data(tree,
         point_radius = 3
 
         # Define color if cluster number is set.
-        kn = leaf.ClusterNumber()
-        if leaf.IsOvershoot:
-            color = 'black'
-            point_radius = 5
-        elif kn != -1:
-            color = pretty_color(kn)
+        if draw_clusters:
+            kn = leaf.ClusterNumber()
+            if leaf.IsOvershoot:
+                color = 'black'
+                point_radius = 5
+            elif kn != -1:
+                color = pretty_color(kn)
 
         # Define pen, brush and draw point.
         point_pen = aggdraw.Pen(color, 1.0)
@@ -921,6 +924,45 @@ def test_set_points2d(n, k):
 
 #---------------------------------------------------------------------------------------------------
 
+def test_set_points2d_grid(nx, ny):
+    """
+    Test set with 2D points in grid nodes.
+
+    Arguments:
+        nx -- points number in X dimension,
+        ny -- points number in Y dimension.
+
+    Result:
+        Points.
+    """
+
+    return fun.descartes_product(list(range(nx)), list(range(ny)))
+
+#---------------------------------------------------------------------------------------------------
+
+def test_set_points2d_circles(c, p):
+    """
+    Test set with 2D points in concentric circles.
+
+    Arguments:
+        c -- circles count,
+        p -- points count.
+
+    Result:
+        Points.
+    """
+
+    ps = []
+
+    for ci in range(c):
+        r = 10.0 * ci
+        da = 2.0 * math.pi / p
+        ps = ps + [(r * math.cos(pi * da), r * math.sin(pi * da)) for pi in range(p)]
+
+    return ps
+
+#---------------------------------------------------------------------------------------------------
+
 def test_set_trajectory(ripple, overshoot):
     """
     Test set Trajectory.
@@ -971,23 +1013,43 @@ class RunType(Enum):
 
 if __name__ == '__main__':
 
-    points_count, clusters_count, overshoots_count = 200, 12, 4
+    clusters_count, overshoots_count = 8, 0
     run = RunType.Points2D
 
     if run == RunType.Points2D:
-        ps = test_set_points2d(points_count, k = clusters_count)
+
+        # 2D case.
+        test_number = 11
+
+        # Get test case.
+        #ps = test_set_points2d(200, k = clusters_count)
+        #ps = test_set_points2d_grid(10, 10)
+        ps = test_set_points2d_circles(4, 50)
+
+        # Clustering and rearrange leafs Xs (because data is not ordered).
         tree = ierarchical_clustering(ps, k = clusters_count)
         tree.SetLeafsXs()
         tree.RefreshXs()
+
+        # Find shoots_count.
         tree.CalculateHeightDifferences()
         tree.FindOvershoots(overshoots_count)
+
+        # Ierarchical tree.
         tree.Print()
         draw_ierarchical_tree(tree,
-                              filename = 'points2d_tree.png')
+                              filename = 'points2d_tree_%d.png' % test_number)
+
+        # Draw data.
         draw_data(tree,
-                  pic_size = (600, 600),
-                  grid = (10.0, 10.0),
-                  filename = 'points2d_result.png')
+                  draw_clusters = False,
+                  pic_size = (600, 600), grid = (10.0, 10.0),
+                  filename = 'points2d_init_%d.png' % test_number)
+        draw_data(tree,
+                  draw_clusters = True,
+                  pic_size = (600, 600), grid = (10.0, 10.0),
+                  filename = 'points2d_clusters_%d.png' % test_number)
+
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
         tree = ierarchical_clustering(ps, k = clusters_count)
