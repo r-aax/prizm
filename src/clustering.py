@@ -489,6 +489,23 @@ class ITree:
             self.X = mth.avg_weighted(xs, ws)
 
 #---------------------------------------------------------------------------------------------------
+
+    def AllData(self):
+        """
+        All data of tree (leafs).
+
+        Result:
+            Data as a list.
+        """
+
+        if self.IsLeaf():
+            return [self.Data]
+        else:
+            return reduce(operator.__concat__,
+                          [ch.AllData() for ch in self.Children],
+                          [])
+
+#---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.
 #---------------------------------------------------------------------------------------------------
 
@@ -516,7 +533,7 @@ class ClusteringDrawingType(Enum):
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
-def metric_data_dist(a, b, r):
+def metric_data_dist(a, b, r = 2):
     """
     Metric - distance between points.
 
@@ -558,7 +575,7 @@ def metric_data_idist(a, b, i):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_dist(t1, t2, r):
+def metric_tree_dist(t1, t2, r = 2):
     """
     Metric - distance between trees.
 
@@ -572,6 +589,78 @@ def metric_tree_dist(t1, t2, r):
     """
 
     return metric_data_dist(t1.Data, t2.Data, r)
+
+#---------------------------------------------------------------------------------------------------
+
+def dists_list(t1, t2, r = 2):
+    """
+    List of distances for all pair of leafs.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree,
+        r -- power.
+
+    Result:
+        List of distances between nodes from two trees.
+    """
+
+    d1 = t1.AllData()
+    d2 = t2.AllData()
+    datas = fun.descartes_product(d1, d2)
+
+    return [metric_data_dist(p1, p2, r) for (p1, p2) in datas]
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_min_dist(t1, t2, r = 2):
+    """
+    Metric - minimal distance between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree,
+        r -- power.
+
+    Result:
+        Metric result.
+    """
+
+    return min(dists_list(t1, t2, r))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_max_dist(t1, t2, r = 2):
+    """
+    Metric - maximal distance between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree,
+        r -- power.
+
+    Result:
+        Metric result.
+    """
+
+    return max(dists_list(t1, t2, r))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_avg_dist(t1, t2, r = 2):
+    """
+    Metric - average distance between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree,
+        r -- power.
+
+    Result:
+        Metric result.
+    """
+
+    return mth.avg_arith(dists_list(t1, t2, r))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -594,7 +683,7 @@ def metric_tree_idist(t1, t2, i):
 
 def ierarchical_clustering(ps,
                            k = 1,
-                           metric = lambda t1, t2: metric_tree_dist(t1, t2, 1.0),
+                           metric = lambda t1, t2: metric_tree_dist(t1, t2, 2.0),
                            nearest_type = ClusteringNearestType.All):
     """
     Ierarchical clustering.
@@ -902,7 +991,7 @@ def test_set_points2d(n, k):
     """
 
     # Random point.
-    rp = lambda : (random.uniform(0.0, 100.0), random.uniform(0.0, 100.0))
+    rp = lambda : (random.uniform(-50.0, 50.0), random.uniform(-50.0, 50.0))
 
     # Clusters.
     ks = [(rp(), random.uniform(0.0, 20.0)) for x in range(k)]
@@ -1010,45 +1099,63 @@ class RunType(Enum):
 
 #---------------------------------------------------------------------------------------------------
 
+def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
+    """
+    Run for test case.
+
+    Arguments:
+        ps -- points list,
+        k -- clusters count,
+        metric -- metric,
+        metric_name -- name of metri,
+        test_number -- number of test.
+    """
+
+    fmt = (metric_name, test_number)
+
+    # Clustering and rearrange leafs Xs (because data is not ordered).
+    tree = ierarchical_clustering(ps, k = k, metric = metric)
+    tree.SetLeafsXs()
+    tree.RefreshXs()
+
+    # Find shoots_count.
+    tree.CalculateHeightDifferences()
+    tree.FindOvershoots(overshoots_count)
+
+    # Ierarchical tree.
+    tree.Print()
+    draw_ierarchical_tree(tree, filename = 'points2d_%s_tree_%d.png' % fmt)
+
+    # Draw data.
+    draw_data(tree,
+              draw_clusters = False,
+              pic_size = (600, 600), grid = (10.0, 10.0),
+              filename = 'points2d_%s_init_%d.png' % fmt)
+    draw_data(tree,
+              draw_clusters = True,
+              pic_size = (600, 600), grid = (10.0, 10.0),
+              filename = 'points2d_%s_clusters_%d.png' % fmt)
+
+#---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
 
-    clusters_count, overshoots_count = 8, 0
+    clusters_count, overshoots_count = 12, 3
     run = RunType.Points2D
 
     if run == RunType.Points2D:
 
-        # 2D case.
-        test_number = 11
-
         # Get test case.
-        #ps = test_set_points2d(200, k = clusters_count)
+        ps = test_set_points2d(200, k = clusters_count)
         #ps = test_set_points2d_grid(10, 10)
-        ps = test_set_points2d_circles(4, 50)
+        #ps = test_set_points2d_circles(4, 50)
 
-        # Clustering and rearrange leafs Xs (because data is not ordered).
-        tree = ierarchical_clustering(ps, k = clusters_count)
-        tree.SetLeafsXs()
-        tree.RefreshXs()
-
-        # Find shoots_count.
-        tree.CalculateHeightDifferences()
-        tree.FindOvershoots(overshoots_count)
-
-        # Ierarchical tree.
-        tree.Print()
-        draw_ierarchical_tree(tree,
-                              filename = 'points2d_tree_%d.png' % test_number)
-
-        # Draw data.
-        draw_data(tree,
-                  draw_clusters = False,
-                  pic_size = (600, 600), grid = (10.0, 10.0),
-                  filename = 'points2d_init_%d.png' % test_number)
-        draw_data(tree,
-                  draw_clusters = True,
-                  pic_size = (600, 600), grid = (10.0, 10.0),
-                  filename = 'points2d_clusters_%d.png' % test_number)
+        modes = [(metric_tree_dist, 'center'), (metric_tree_min_dist, 'min'),
+                 (metric_tree_max_dist, 'max'), (metric_tree_avg_dist, 'avg')]
+        for (metric, metric_name) in modes:
+            test_case_points2d(ps, clusters_count,
+                               metric = metric, metric_name = metric_name,
+                               test_number = 1)
 
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
