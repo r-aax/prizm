@@ -596,6 +596,46 @@ def metric_data_idist(a, b, i):
 
 #---------------------------------------------------------------------------------------------------
 
+def metric_data_divergence_coefficient(a, b):
+    """
+    Clark's divergence coefficient.
+
+    Arguments:
+        a -- first data,
+        b -- second data.
+
+    Result:
+        Metric result.
+    """
+
+    if isinstance(a, numbers.Number):
+        return abs((a - b) / (a + b))
+    else:
+        k = 1.0 / len(a)
+        return math.sqrt(k * sum([pow((ai - bi) / (ai + bi), 2.0) for (ai, bi) in zip (a, b)]))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_data_jeffreys_matsushita(a, b):
+    """
+    Jeffreys-Matsushita metric.
+
+    Arguments:
+        a -- first data,
+        b -- second data.
+
+    Result:
+        Metric result.
+    """
+
+    if isinstance(a, numbers.Number):
+        return abs(abs(a) - abs(b))
+    else:
+        return math.sqrt(sum([pow(math.sqrt(abs(ai)) - math.sqrt(abs(bi)),
+                                  2.0) for (ai, bi) in zip(a, b)]))
+
+#---------------------------------------------------------------------------------------------------
+
 def metric_tree_dist(t1, t2, r = 2.0):
     """
     Metric - distance between trees.
@@ -631,6 +671,46 @@ def dists_list(t1, t2, r = 2.0):
     datas = lst.descartes_product(d1, d2)
 
     return [metric_data_dist(p1, p2, r) for (p1, p2) in datas]
+
+#---------------------------------------------------------------------------------------------------
+
+def divergences_coefficients_list(t1, t2):
+    """
+    List of divergences coefficients.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        List of divergences coefficients.
+    """
+
+    d1 = t1.AllData()
+    d2 = t2.AllData()
+    datas = lst.descartes_product(d1, d2)
+
+    return [metric_data_divergence_coefficient(p1, p2) for (p1, p2) in datas]
+
+#---------------------------------------------------------------------------------------------------
+
+def jeffreys_matsushita_list(t1, t2):
+    """
+    List of Jeffreys-Matsushita.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        List of Jeffreys-Matsushita.
+    """
+
+    d1 = t1.AllData()
+    d2 = t2.AllData()
+    datas = lst.descartes_product(d1, d2)
+
+    return [metric_data_jeffreys_matsushita(p1, p2) for (p1, p2) in datas]
 
 #---------------------------------------------------------------------------------------------------
 
@@ -682,6 +762,102 @@ def metric_tree_avg_dist(t1, t2, r = 2.0):
     """
 
     return mth.avg_arith(dists_list(t1, t2, r))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_min_divergence_coefficient(t1, t2):
+    """
+    Metric - minimal divergence coefficient between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return min(divergences_coefficients_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_max_divergence_coefficient(t1, t2):
+    """
+    Metric - maximal divergence coefficient between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return max(divergences_coefficients_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_avg_divergence_coefficient(t1, t2):
+    """
+    Metric - average divergence coefficient between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return mth.avg_arith(divergences_coefficients_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_min_jeffreys_matsushita(t1, t2):
+    """
+    Metric - minimal Jeffreys Matsushita between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return min(jeffreys_matsushita_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_max_jeffreys_matsushita(t1, t2):
+    """
+    Metric - maximal Jeffreys Matsushita between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return max(jeffreys_matsushita_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_avg_jeffreys_matsushita(t1, t2):
+    """
+    Metric - average Jeffreys Matsushita between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return mth.avg_arith(jeffreys_matsushita_list(t1, t2))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -1066,7 +1242,7 @@ def test_set_points2d(n, k):
     """
 
     # Random point.
-    rp = lambda : (random.uniform(-50.0, 50.0), random.uniform(-50.0, 50.0))
+    rp = lambda : (random.uniform(0.0, 100.0), random.uniform(0.0, 100.0))
 
     # Clusters.
     ks = [(rp(), random.uniform(0.0, 20.0)) for x in range(k)]
@@ -1239,7 +1415,13 @@ if __name__ == '__main__':
                  (fun.partial_tail3(metric_tree_avg_dist, 2.0), 'avg2'),
                  (fun.partial_tail3(metric_tree_min_dist, 4.0), 'min4'),
                  (fun.partial_tail3(metric_tree_max_dist, 4.0), 'max4'),
-                 (fun.partial_tail3(metric_tree_avg_dist, 4.0), 'avg4')]
+                 (fun.partial_tail3(metric_tree_avg_dist, 4.0), 'avg4'),
+                 (metric_tree_min_jeffreys_matsushita, 'min_jm'),
+                 (metric_tree_max_jeffreys_matsushita, 'max_jm'),
+                 (metric_tree_avg_jeffreys_matsushita, 'avg_jm'),
+                 (metric_tree_min_divergence_coefficient, 'min_dc'),
+                 (metric_tree_max_divergence_coefficient, 'max_dc'),
+                 (metric_tree_avg_divergence_coefficient, 'avg_dc')]
         for (metric, metric_name) in modes:
             local_overshoots = test_case_points2d(ps, clusters_count,
                                                   metric = metric, metric_name = metric_name,
@@ -1249,10 +1431,13 @@ if __name__ == '__main__':
             grouped_overshoots = lst.group(overshoots)
             sorted_overshoots = sorted([(c, p) for (p, c) in grouped_overshoots])
             sorted_overshoots.reverse()
-            print("Grouped local overshoots for name %s:" % metric_name)
+            print('Sortd local overshoots for name %s:' % metric_name)
             print(sorted_overshoots)
 
         # Process statistics.
+        sorted_overshoots = [(c, p) for (c, p) in sorted_overshoots if c > 1]
+        print('Final sorted overshoots:')
+        print(sorted_overshoots)
         draw_overshoots(ps,
                         sorted_overshoots,
                         overshoots_count,
