@@ -10,6 +10,7 @@ Created on Tue May  7 12:35:16 2019
 import numbers
 import math
 import fun
+import operator
 import random
 import numpy as np
 import aggdraw
@@ -696,6 +697,7 @@ def pretty_color(n):
 
 def draw_data(tree,
               draw_trajectory = False,
+              draw_clusters = True,
               pic_size = (640, 480),
               is_axis = True,
               grid = None,
@@ -747,6 +749,25 @@ def draw_data(tree,
         point_brush = aggdraw.Brush(color)
         D.Point(leaf.Data, point_radius, pen = point_pen, brush = point_brush)
         leaf = tree.NextLeafLeftRoRight(leaf)
+
+    # Draw clusters.
+    if draw_clusters:
+        leaf1 = tree.LeftLeaf()
+        while leaf1 != None:
+            leaf2 = tree.NextLeafLeftRoRight(leaf1)
+            while leaf2 != None:
+
+                # Draw.
+                d1 = leaf1.Data
+                d2 = leaf2.Data
+                kn1 = leaf1.ClusterNumber()
+                kn2 = leaf2.ClusterNumber()
+                is_not_overshoots = (not leaf1.IsOvershoot) and (not leaf2.IsOvershoot)
+                if is_not_overshoots and (kn1 != -1) and (kn1 == kn2):
+                    D.Line(d1, d2, pen = aggdraw.Pen(pretty_color(kn1), 1.0))
+
+                leaf2 = tree.NextLeafLeftRoRight(leaf2)
+            leaf1 = tree.NextLeafLeftRoRight(leaf1)
 
     # Draw points.
     #pen = aggdraw.Pen('red', 1.0)
@@ -937,7 +958,7 @@ class RunType(Enum):
 
 if __name__ == '__main__':
 
-    points_count, clusters_count, overshoots_count = 200, 12, 4
+    points_count, clusters_count, overshoots_count = 50, 4, 3
     run = RunType.Points2D
 
     if run == RunType.Points2D:
