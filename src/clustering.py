@@ -57,8 +57,8 @@ class ITree:
         self.Parent = None
         self.Children= []
 
-        # Height difference.
-        self.HeightDiff = None
+        # Overshoot value.
+        self.OvershootValue = None
 
         # Is overshoot.
         self.IsOvershoot = False
@@ -269,17 +269,17 @@ class ITree:
             String.
         """
 
-        height_diff_str = (', hd = ' + str(self.HeightDiff)) if self.HeightDiff != None else ''
+        ov_str = (', hd = ' + str(self.OvershootValue)) if self.OvershootValue != None else ''
 
         if self.Data == None:
             return 'None'
         elif isinstance(self.Data, numbers.Number):
             return 'x = %f, kn = %d, data = %f%s (1d)' \
-                   % (self.X, self.KN, self.Data, height_diff_str)
+                   % (self.X, self.KN, self.Data, ov_str)
         elif isinstance(self.Data, tuple):
             if len(self.Data) == 2:
                 return 'x = %f, kn = %d, data = (%f, %f)%s (2d)' \
-                       % (self.X, self.KN, self.Data[0], self.Data[1], height_diff_str)
+                       % (self.X, self.KN, self.Data[0], self.Data[1], ov_str)
             else:
                 raise Exception('wrong data for string representation')
         else:
@@ -382,23 +382,23 @@ class ITree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def CalculateHeightDifferences(self):
+    def CalculateOvershootValues(self):
         """
-        Calculate height differences.
+        Calculate overshoot values.
         """
 
         # Calculate own heights difference.
         if self.IsRoot():
-            self.HeightDiff = 0
+            self.OvershootValue = 0.0
         elif self.ClusterNumber() == -1:
-            self.HeightDiff = 0
+            self.OvershootValue = 0.0
         else:
-            self.HeightDiff = self.Parent.Height() - self.Height()
+            self.OvershootValue = self.Parent.Height() - self.Height()
 
         # Calculate childrens' heights differences.
         if not self.IsLeaf():
             for ch in self.Children:
-                ch.CalculateHeightDifferences()
+                ch.CalculateOvershootValues()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -422,7 +422,7 @@ class ITree:
                     cur_m = m
                 elif m == None:
                     pass
-                elif m.HeightDiff > cur_m.HeightDiff:
+                elif m.OvershootValue > cur_m.OvershootValue:
                     cur_m = m
                 else:
                     pass
@@ -1370,7 +1370,7 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
     tree.RefreshXs()
 
     # Find shoots_count.
-    tree.CalculateHeightDifferences()
+    tree.CalculateOvershootValues()
     tree.FindOvershoots(overshoots_count)
 
     # Ierarchical tree.
@@ -1431,7 +1431,7 @@ if __name__ == '__main__':
             grouped_overshoots = lst.group(overshoots)
             sorted_overshoots = sorted([(c, p) for (p, c) in grouped_overshoots])
             sorted_overshoots.reverse()
-            print('Sortd local overshoots for name %s:' % metric_name)
+            print('Sorted local overshoots for name %s:' % metric_name)
             print(sorted_overshoots)
 
         # Process statistics.
