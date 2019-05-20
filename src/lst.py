@@ -77,8 +77,33 @@ def group(a):
 
 #---------------------------------------------------------------------------------------------------
 
+def slice_rows(a, s):
+    """
+    Slice list into rows.
+
+    Arguments:
+        a -- list,
+        s -- row size.
+
+    Result:
+        Matrix (last row may be incomplete).
+    """
+
+    c = a
+    m = []
+    while len(c) >= s:
+        m = m + [c[:s]]
+        c = c[s:]
+    if c != []:
+        m = m + [c]
+    return m
+
+#---------------------------------------------------------------------------------------------------
+
 if __name__ == '__main__':
 
     assert descartes_product(['a', 'b'], [1, 2, 3]) == \
            [('a', 1), ('a', 2), ('a', 3), ('b', 1), ('b', 2), ('b', 3)]
     assert group([1, 3, 2, 1, 3, 2, 3, 1, 3]) == [(1, 3), (2, 2), (3, 4)]
+    assert slice_rows([1, 2, 3, 4], 2) == [[1, 2], [3, 4]]
+    assert slice_rows([1, 2, 3, 4, 5, 6, 7], 3) == [[1, 2, 3], [4, 5, 6], [7]]

@@ -17,6 +17,7 @@ import numpy as np
 import aggdraw
 import itertools
 import mth
+import metrics
 from functools import reduce
 from draw import Drawer
 from enum import Enum
@@ -393,7 +394,7 @@ class ITree:
         elif self.ClusterNumber() == -1:
             self.OvershootValue = 0.0
         else:
-            self.OvershootValue = self.Parent.Height() - self.Height()
+            self.OvershootValue = float(self.Parent.Height() - self.Height()) / self.Width()
 
         # Calculate childrens' heights differences.
         if not self.IsLeaf():
@@ -554,106 +555,7 @@ class ClusteringDrawingType(Enum):
 # Clustering.
 #---------------------------------------------------------------------------------------------------
 
-def metric_data_dist(a, b, r = 2.0):
-    """
-    Metric - distance between points.
-
-    Arguments:
-        a -- first data,
-        b -- second data,
-        r -- power.
-
-    Result:
-        Metric result.
-    """
-
-    if isinstance(a, numbers.Number):
-        return abs(a - b)
-    elif isinstance(a, tuple):
-        return pow(sum([pow(abs(ai - bi), r) for (ai, bi) in zip(a, b)]), 1.0 / r)
-    else:
-        raise Exception('wrong data for metric_data_dist')
-
-#---------------------------------------------------------------------------------------------------
-
-def metric_data_idist(a, b, i):
-    """
-    Metric - distance between i-th components.
-
-    Arguments:
-        a -- first data,
-        b -- second data,
-        i -- element number.
-
-    Result:
-        Metric result.
-    """
-
-    if not isinstance(a, tuple):
-        raise Exception('wrong data for metric_data_idist')
-
-    return abs(a[i] - b[i])
-
-#---------------------------------------------------------------------------------------------------
-
-def metric_data_divergence_coefficient(a, b):
-    """
-    Clark's divergence coefficient.
-
-    Arguments:
-        a -- first data,
-        b -- second data.
-
-    Result:
-        Metric result.
-    """
-
-    if isinstance(a, numbers.Number):
-        return abs((a - b) / (a + b))
-    else:
-        k = 1.0 / len(a)
-        return math.sqrt(k * sum([pow((ai - bi) / (ai + bi), 2.0) for (ai, bi) in zip (a, b)]))
-
-#---------------------------------------------------------------------------------------------------
-
-def metric_data_jeffreys_matsushita(a, b):
-    """
-    Jeffreys-Matsushita metric.
-
-    Arguments:
-        a -- first data,
-        b -- second data.
-
-    Result:
-        Metric result.
-    """
-
-    if isinstance(a, numbers.Number):
-        return abs(abs(a) - abs(b))
-    else:
-        return math.sqrt(sum([pow(math.sqrt(abs(ai)) - math.sqrt(abs(bi)),
-                                  2.0) for (ai, bi) in zip(a, b)]))
-
-#---------------------------------------------------------------------------------------------------
-
-def metric_tree_dist(t1, t2, r = 2.0):
-    """
-    Metric - distance between trees.
-
-    Arguments:
-        t1 -- first tree,
-        t2 -- second tree,
-        r -- power.
-
-    Result:
-        Metric result.
-    """
-
-    return metric_data_dist(t1.Data, t2.Data, r)
-
-#---------------------------------------------------------------------------------------------------
-
-def dists_list(t1, t2, r = 2.0):
+def lp_norm_list(t1, t2, r = 2.0):
     """
     List of distances for all pair of leafs.
 
@@ -670,27 +572,27 @@ def dists_list(t1, t2, r = 2.0):
     d2 = t2.AllData()
     datas = lst.descartes_product(d1, d2)
 
-    return [metric_data_dist(p1, p2, r) for (p1, p2) in datas]
+    return [metrics.lp_norm(p1, p2, r) for (p1, p2) in datas]
 
 #---------------------------------------------------------------------------------------------------
 
-def divergences_coefficients_list(t1, t2):
+def sup_norm_list(t1, t2):
     """
-    List of divergences coefficients.
+    List of supreme norm of leafs.
 
     Arguments:
         t1 -- first tree,
         t2 -- second tree.
 
     Result:
-        List of divergences coefficients.
+        List of supreme norms.
     """
 
     d1 = t1.AllData()
     d2 = t2.AllData()
     datas = lst.descartes_product(d1, d2)
 
-    return [metric_data_divergence_coefficient(p1, p2) for (p1, p2) in datas]
+    return [metrics.sup_norm(p1, p2) for (p1, p2) in datas]
 
 #---------------------------------------------------------------------------------------------------
 
@@ -710,11 +612,31 @@ def jeffreys_matsushita_list(t1, t2):
     d2 = t2.AllData()
     datas = lst.descartes_product(d1, d2)
 
-    return [metric_data_jeffreys_matsushita(p1, p2) for (p1, p2) in datas]
+    return [metrics.jeffreys_matsushita(p1, p2) for (p1, p2) in datas]
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_min_dist(t1, t2, r = 2.0):
+def div_coef_list(t1, t2):
+    """
+    List of divergences coefficients.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        List of divergences coefficients.
+    """
+
+    d1 = t1.AllData()
+    d2 = t2.AllData()
+    datas = lst.descartes_product(d1, d2)
+
+    return [metrics.div_coef(p1, p2) for (p1, p2) in datas]
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_min_lp_norm(t1, t2, r = 2.0):
     """
     Metric - minimal distance between nodes.
 
@@ -727,11 +649,11 @@ def metric_tree_min_dist(t1, t2, r = 2.0):
         Metric result.
     """
 
-    return min(dists_list(t1, t2, r))
+    return min(lp_norm_list(t1, t2, r))
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_max_dist(t1, t2, r = 2.0):
+def metric_tree_max_lp_norm(t1, t2, r = 2.0):
     """
     Metric - maximal distance between nodes.
 
@@ -744,11 +666,11 @@ def metric_tree_max_dist(t1, t2, r = 2.0):
         Metric result.
     """
 
-    return max(dists_list(t1, t2, r))
+    return max(lp_norm_list(t1, t2, r))
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_avg_dist(t1, t2, r = 2.0):
+def metric_tree_avg_lp_norm(t1, t2, r = 2.0):
     """
     Metric - average distance between nodes.
 
@@ -761,13 +683,13 @@ def metric_tree_avg_dist(t1, t2, r = 2.0):
         Metric result.
     """
 
-    return mth.avg_arith(dists_list(t1, t2, r))
+    return mth.avg_arith(lp_norm_list(t1, t2, r))
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_min_divergence_coefficient(t1, t2):
+def metric_tree_min_sup_norm(t1, t2):
     """
-    Metric - minimal divergence coefficient between nodes.
+    Metric - minimal supreme norm.
 
     Arguments:
         t1 -- first tree,
@@ -777,13 +699,13 @@ def metric_tree_min_divergence_coefficient(t1, t2):
         Metric result.
     """
 
-    return min(divergences_coefficients_list(t1, t2))
+    return min(sup_norm_list(t1, t2))
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_max_divergence_coefficient(t1, t2):
+def metric_tree_max_sup_norm(t1, t2):
     """
-    Metric - maximal divergence coefficient between nodes.
+    Metric - maximal supreme norm.
 
     Arguments:
         t1 -- first tree,
@@ -793,13 +715,13 @@ def metric_tree_max_divergence_coefficient(t1, t2):
         Metric result.
     """
 
-    return max(divergences_coefficients_list(t1, t2))
+    return max(sup_norm_list(t1, t2))
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_avg_divergence_coefficient(t1, t2):
+def metric_tree_avg_sup_norm(t1, t2):
     """
-    Metric - average divergence coefficient between nodes.
+    Metric - average supreme norm.
 
     Arguments:
         t1 -- first tree,
@@ -809,7 +731,7 @@ def metric_tree_avg_divergence_coefficient(t1, t2):
         Metric result.
     """
 
-    return mth.avg_arith(divergences_coefficients_list(t1, t2))
+    return mth.avg_arith(sup_norm_list(t1, t2))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -861,26 +783,57 @@ def metric_tree_avg_jeffreys_matsushita(t1, t2):
 
 #---------------------------------------------------------------------------------------------------
 
-def metric_tree_idist(t1, t2, i):
+def metric_tree_min_div_coef(t1, t2):
     """
-    Metric - distance between i-th components.
+    Metric - minimal divergence coefficient between nodes.
 
     Arguments:
         t1 -- first tree,
-        t2 -- second tree,
-        i -- element number.
+        t2 -- second tree.
 
     Result:
         Metric result.
     """
 
-    return metric_data_idist(t1.Data, t2.Data, i)
+    return min(div_coef_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_max_div_coef(t1, t2):
+    """
+    Metric - maximal divergence coefficient between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return max(div_coef_list(t1, t2))
+
+#---------------------------------------------------------------------------------------------------
+
+def metric_tree_avg_div_coef(t1, t2):
+    """
+    Metric - average divergence coefficient between nodes.
+
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
+
+    Result:
+        Metric result.
+    """
+
+    return mth.avg_arith(div_coef_list(t1, t2))
 
 #---------------------------------------------------------------------------------------------------
 
 def ierarchical_clustering(ps,
                            k = 1,
-                           metric = lambda t1, t2: metric_tree_dist(t1, t2, 2.0),
+                           metric = metric_tree_min_lp_norm,
                            nearest_type = ClusteringNearestType.All):
     """
     Ierarchical clustering.
@@ -1242,7 +1195,7 @@ def test_set_points2d(n, k):
     """
 
     # Random point.
-    rp = lambda : (random.uniform(0.0, 100.0), random.uniform(0.0, 100.0))
+    rp = lambda : (random.uniform(-50.0, 50.0), random.uniform(-50.0, 50.0))
 
     # Clusters.
     ks = [(rp(), random.uniform(0.0, 20.0)) for x in range(k)]
@@ -1342,11 +1295,17 @@ class RunType(Enum):
     Type of test run.
     """
 
+    # Simple test.
+    Test = 0
+
     # Points 2D.
     Points2D = 1
 
+    # Analyze points 2d scenario.
+    Points2DAnalyze = 2
+
     # Trajectory test.
-    Trajectory = 2
+    Trajectory = 3
 
 #---------------------------------------------------------------------------------------------------
 
@@ -1394,9 +1353,14 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
 if __name__ == '__main__':
 
     clusters_count, overshoots_count = 12, 3
-    run = RunType.Points2D
+    run = RunType.Test
 
-    if run == RunType.Points2D:
+    if run == RunType.Test:
+
+        # Simple test.
+        pass
+
+    elif run == RunType.Points2D:
 
         # Test number.
         test_number = 1
@@ -1407,21 +1371,24 @@ if __name__ == '__main__':
         #ps = test_set_points2d_circles(4, 50)
 
         overshoots = []
-        modes = [(fun.partial_tail3(metric_tree_min_dist, 1.0), 'min1'),
-                 (fun.partial_tail3(metric_tree_max_dist, 1.0), 'max1'),
-                 (fun.partial_tail3(metric_tree_avg_dist, 1.0), 'avg1'),
-                 (fun.partial_tail3(metric_tree_min_dist, 2.0), 'min2'),
-                 (fun.partial_tail3(metric_tree_max_dist, 2.0), 'max2'),
-                 (fun.partial_tail3(metric_tree_avg_dist, 2.0), 'avg2'),
-                 (fun.partial_tail3(metric_tree_min_dist, 4.0), 'min4'),
-                 (fun.partial_tail3(metric_tree_max_dist, 4.0), 'max4'),
-                 (fun.partial_tail3(metric_tree_avg_dist, 4.0), 'avg4'),
+        modes = [(fun.partial_tail3(metric_tree_min_lp_norm, 1.0), 'min1'),
+                 (fun.partial_tail3(metric_tree_max_lp_norm, 1.0), 'max1'),
+                 (fun.partial_tail3(metric_tree_avg_lp_norm, 1.0), 'avg1'),
+                 (fun.partial_tail3(metric_tree_min_lp_norm, 2.0), 'min2'),
+                 (fun.partial_tail3(metric_tree_max_lp_norm, 2.0), 'max2'),
+                 (fun.partial_tail3(metric_tree_avg_lp_norm, 2.0), 'avg2'),
+                 (fun.partial_tail3(metric_tree_min_lp_norm, 4.0), 'min4'),
+                 (fun.partial_tail3(metric_tree_max_lp_norm, 4.0), 'max4'),
+                 (fun.partial_tail3(metric_tree_avg_lp_norm, 4.0), 'avg4'),
+                 (metric_tree_min_sup_norm, 'min_s'),
+                 (metric_tree_max_sup_norm, 'max_s'),
+                 (metric_tree_avg_sup_norm, 'avg_s'),
                  (metric_tree_min_jeffreys_matsushita, 'min_jm'),
                  (metric_tree_max_jeffreys_matsushita, 'max_jm'),
                  (metric_tree_avg_jeffreys_matsushita, 'avg_jm'),
-                 (metric_tree_min_divergence_coefficient, 'min_dc'),
-                 (metric_tree_max_divergence_coefficient, 'max_dc'),
-                 (metric_tree_avg_divergence_coefficient, 'avg_dc')]
+                 (metric_tree_min_div_coef, 'min_dc'),
+                 (metric_tree_max_div_coef, 'max_dc'),
+                 (metric_tree_avg_div_coef, 'avg_dc')]
         for (metric, metric_name) in modes:
             local_overshoots = test_case_points2d(ps, clusters_count,
                                                   metric = metric, metric_name = metric_name,
@@ -1444,6 +1411,82 @@ if __name__ == '__main__':
                         pic_size = (600, 600),
                         grid = (10.0, 10.0),
                         filename = 'points2d_overshoots_%d.png' % test_number)
+
+    elif run == RunType.Points2DAnalyze:
+
+        # Analyze points 2D scenario.
+        cases = 10
+        modes_names = ['dist1', 'dist2', 'dist4', 's', 'jm', 'dc']
+        submodes_names = ['min', 'max', 'avg']
+        extmodes_names = [mn + '_' + sn \
+                          for (mn, sn) in lst.descartes_product(modes_names, submodes_names)]
+        modes = len(modes_names)
+        submodes = len(submodes_names)
+        extmodes = modes * submodes
+
+        print(extmodes_names)
+        array = [1, 2, 2, 2, 1, 2, 0, 1, 1, 2,
+                 2, 0, 1, 1, 2, 1, 1, 3, 2, 1,
+                 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
+                 1, 2, 2, 2, 2, 2, 1, 1, 1, 2,
+                 2, 1, 0, 1, 2, 2, 2, 2, 2, 2,
+                 1, 2, 2, 2, 2, 1, 3, 2, 2, 1,
+                 1, 2, 2, 2, 1, 2, 0, 1, 1, 1,
+                 2, 2, 1, 2, 1, 2, 2, 1, 1, 1,
+                 2, 2, 3, 2, 2, 1, 3, 2, 2, 1,
+                 1, 2, 2, 2, 1, 2, 0, 1, 1, 1,
+                 1, 2, 1, 3, 1, 2, 1, 0, 1, 1,
+                 2, 2, 2, 2, 2, 1, 3, 2, 2, 2,
+                 1, 0, 1, 2, 1, 1, 0, 1, 0, 1,
+                 1, 1, 1, 2, 1, 2, 2, 2, 1, 2,
+                 2, 1, 2, 2, 2, 1, 2, 2, 2, 1,
+                 2, 0, 0, 2, 1, 0, 0, 0, 0, 0,
+                 2, 1, 0, 1, 1, 0, 1, 1, 0, 1,
+                 2, 0, 0, 1, 1, 0, 1, 1, 1, 1]
+
+        # Code for find bad case.
+        #for i in range(cases):
+        #    characteristic = mth.avg_arith(array[i::cases])
+        #    print(characteristic)
+
+        array = [1, 2, 2, 1, 2, 0, 1, 2,
+                 2, 0, 1, 2, 1, 1, 3, 1,
+                 1, 1, 1, 2, 2, 2, 2, 2,
+                 1, 2, 2, 2, 2, 1, 1, 2,
+                 2, 1, 0, 2, 2, 2, 2, 2,
+                 1, 2, 2, 2, 1, 3, 2, 1,
+                 1, 2, 2, 1, 2, 0, 1, 1,
+                 2, 2, 1, 1, 2, 2, 1, 1,
+                 2, 2, 3, 2, 1, 3, 2, 1,
+                 1, 2, 2, 1, 2, 0, 1, 1,
+                 1, 2, 1, 1, 2, 1, 0, 1,
+                 2, 2, 2, 2, 1, 3, 2, 2,
+                 1, 0, 1, 1, 1, 0, 1, 1,
+                 1, 1, 1, 1, 2, 2, 2, 2,
+                 2, 1, 2, 2, 1, 2, 2, 1,
+                 2, 0, 0, 1, 0, 0, 0, 0,
+                 2, 1, 0, 1, 0, 1, 1, 1,
+                 2, 0, 0, 1, 0, 1, 1, 1]
+
+        # Code for find bad case.
+        #for i in range(cases - 2):
+        #    characteristic = mth.avg_arith(array[i:: cases - 2])
+        #    print(characteristic)
+
+        matrix = lst.slice_rows(array, 8)
+        r = [mth.avg_arith(row) for row in matrix]
+
+        print('SUBMODES:')
+        for i in range(submodes):
+            print('submode %s : %f' % (submodes_names[i], mth.avg_arith(r[i::submodes])))
+
+        print('MODES (without min):')
+        for i in range(modes):
+            min_max_avg = r[i * submodes : (i + 1) * submodes]
+            print('mode %s : %f (%s)' \
+                  % (modes_names[i], mth.avg_arith(min_max_avg[1:]), str(min_max_avg[1:])))
+
+        pass
 
     elif run == RunType.Trajectory:
         ps = test_set_trajectory(0.03, 0.9)
