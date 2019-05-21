@@ -11,7 +11,6 @@ import numbers
 import math
 import fun
 import lst
-import operator
 import random
 import aggdraw
 import mth
@@ -342,12 +341,7 @@ def AllData(ht):
         Data as a list.
     """
 
-    if ht.IsLeaf():
-        return [ht.Data]
-    else:
-        return reduce(operator.__concat__,
-                      [AllData(ch) for ch in ht.Children],
-                      [])
+    return ht.MapLeafs(lambda t: [t.Data])
 
 #---------------------------------------------------------------------------------------------------
 
@@ -362,15 +356,7 @@ def OutlierData(ht):
         Outlier data.
     """
 
-    if ht.IsLeaf():
-        if ht.IsOutlier:
-            return [ht.Data]
-        else:
-            return []
-    else:
-        return reduce(operator.__concat__,
-                      [OutlierData(ch) for ch in ht.Children],
-                      [])
+    return ht.MapLeafs(lambda t: [t.Data] if t.IsOutlier else [])
 
 #---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.

@@ -7,6 +7,9 @@ Created on Tue May 21 16:40:37 2019
 @author: Rybakov
 """
 
+import operator
+from functools import reduce
+
 class HTree:
     """
     Hierarchical tree.
@@ -25,6 +28,8 @@ class HTree:
         self.Parent = None
         self.Children= []
 
+#---------------------------------------------------------------------------------------------------
+# Basic functions.
 #---------------------------------------------------------------------------------------------------
 
     def ChildrenCount(self):
@@ -175,7 +180,7 @@ class HTree:
         Get next leaf (left to right walk).
 
         Arguments:
-            leaf - leaf.
+            leaf -- leaf.
 
         Result:
             Next leaf or none.
@@ -199,5 +204,41 @@ class HTree:
                 for i in range(p.ChildrenCount()):
                     if cur == p.Children[i]:
                         return p.Children[i + 1].LeftLeaf()
+
+#---------------------------------------------------------------------------------------------------
+# Functional.
+#---------------------------------------------------------------------------------------------------
+
+    def Apply(self, fun):
+        """
+        Apply function to tree recursive.
+
+        Arguments:
+            fun -- function.
+        """
+
+        fun(self)
+        for ch in self.Children:
+            ch.Apply(fun)
+
+#---------------------------------------------------------------------------------------------------
+
+    def MapLeafs(self, fun):
+        """
+        Apply function to all leafs and return result in list.
+
+        Arguments:
+            fun -- map function.
+
+        Result:
+            Map result.
+        """
+
+        if self.IsLeaf():
+            return fun(self)
+        else:
+            return reduce(operator.__concat__,
+                          [ch.MapLeafs(fun) for ch in self.Children],
+                          [])
 
 #---------------------------------------------------------------------------------------------------
