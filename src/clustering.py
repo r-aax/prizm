@@ -13,519 +13,568 @@ import fun
 import lst
 import operator
 import random
-import numpy as np
 import aggdraw
-import itertools
 import mth
 import metrics
 from functools import reduce
 from draw import Drawer
 from enum import Enum
 from PIL import Image
+from htree import HTree
 
 #---------------------------------------------------------------------------------------------------
-# Hierarchical tree class.
-#---------------------------------------------------------------------------------------------------
 
-class HTree:
+def NewHTree(data = None):
     """
-    Hierarchical tree for clustering analysis.
+    Constructor.
+
+    Arguments:
+        data -- data.
     """
 
-#---------------------------------------------------------------------------------------------------
+    # Create tree.
+    ht = HTree()
 
-    def __init__(self, data = None):
-        """
-        Constructor.
+    # X coordinate for visualization.
+    ht.X = None
 
-        Arguments:
-            data -- data.
-        """
+    # Mark for additional purposes.
+    ht.Mark = False
 
-        # X coordinate for visualization.
-        self.X = None
+    # Cluster number.
+    ht.KN = -1
 
-        # Mark for additional purposes.
-        self.Mark = False
+    # Data.
+    ht.Data = data
 
-        # Cluster number.
-        self.KN = -1
+    # Outlier value.
+    ht.OutlierValue = None
 
-        # Data.
-        self.Data = data
+    # Is outlier.
+    ht.IsOutlier = False
 
-        # Links to parent and children.
-        self.Parent = None
-        self.Children= []
-
-        # Outlier value.
-        self.OutlierValue = None
-
-        # Is outlier.
-        self.IsOutlier = False
+    return ht
 
 #---------------------------------------------------------------------------------------------------
 
-    def IsRoot(self):
-        """
-        Root check.
+def IsRoot(ht):
+    """
+    Root check.
 
-        Result:
-            True -- if is a root,
-            False -- if is not a root.
-        """
+    Result:
+        ht -- hierarchical tree,
+        True -- if is a root,
+        False -- if is not a root.
+    """
 
-        return self.Parent == None
-
-#---------------------------------------------------------------------------------------------------
-
-    def IsLeaf(self):
-        """
-        Leaf check.
-
-        Result:
-            True -- if is a leaf,
-            False -- if is not a leaf.
-        """
-
-        return self.Children == []
+    return ht.Parent == None
 
 #---------------------------------------------------------------------------------------------------
 
-    def ChildrenCount(self):
-        """
-        Get children count.
+def IsLeaf(ht):
+    """
+    Leaf check.
 
-        Result:
-            Children count.
-        """
+    Result:
+        ht -- hierarchical tree,
+        True -- if is a leaf,
+        False -- if is not a leaf.
+    """
 
-        return len(self.Children)
+    return ht.Children == []
 
 #---------------------------------------------------------------------------------------------------
 
-    def Level(self):
-        """
+def ChildrenCount(ht):
+    """
+    Get children count.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        Children count.
+    """
+
+    return len(ht.Children)
+
+#---------------------------------------------------------------------------------------------------
+
+def Level(ht):
+    """
+    Level.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
         Level.
+    """
 
-        Result:
-            Level.
-        """
-
-        if self.IsRoot():
-            return 0
-        else:
-            return 1 + self.Parent.Level()
+    if IsRoot(ht):
+        return 0
+    else:
+        return 1 + Level(ht.Parent)
 
 #---------------------------------------------------------------------------------------------------
 
-    def Height(self):
-        """
-        Tree height (levels count).
+def Height(ht):
+    """
+    Tree height (levels count).
 
-        Result:
-            Height.
-        """
+    Arguments:
+        ht -- hierarchical tree.
 
-        if self.IsLeaf():
-            return 1
-        else:
-            hs = [ch.Height() for ch in self.Children]
-            return 1 + max(hs)
+    Result:
+        Height.
+    """
 
-#---------------------------------------------------------------------------------------------------
-
-    def Width(self):
-        """
-        Tree width (leafs count).
-
-        Result:
-            Width.
-        """
-
-        if self.IsLeaf():
-            return 1
-        else:
-            ws = [ch.Width() for ch in self.Children]
-            return sum(ws)
+    if IsLeaf(ht):
+        return 1
+    else:
+        hs = [Height(ch) for ch in ht.Children]
+        return 1 + max(hs)
 
 #---------------------------------------------------------------------------------------------------
 
-    def LeftChild(self):
-        """
-        Get left child.
+def Width(ht):
+    """
+    Tree width (leafs count).
 
-        Result:
-            Left child.
-        """
+    Arguments:
+        ht -- hierarchical tree.
 
-        if self.IsLeaf():
+    Result:
+        Width.
+    """
+
+    if IsLeaf(ht):
+        return 1
+    else:
+        ws = [Width(ch) for ch in ht.Children]
+        return sum(ws)
+
+#---------------------------------------------------------------------------------------------------
+
+def LeftChild(ht):
+    """
+    Get left child.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        Left child.
+    """
+
+    if IsLeaf(ht):
+        return None
+    else:
+        return ht.Children[0]
+
+#---------------------------------------------------------------------------------------------------
+
+def RightChild(ht):
+    """
+    Get right child.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        Right child.
+    """
+
+    if IsLeaf(ht):
+        return None
+    else:
+        return ht.Children[ChildrenCount(ht) - 1]
+
+#---------------------------------------------------------------------------------------------------
+
+def LeftLeaf(ht):
+    """
+    Get left leaf.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        Left leaf.
+    """
+
+    if IsLeaf(ht):
+        return ht
+    else:
+        return LeftLeaf(LeftChild(ht))
+
+#---------------------------------------------------------------------------------------------------
+
+def RightLeaf(ht):
+    """
+    Get right leaf.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        RIght leaf.
+    """
+
+    if IsLeaf(ht):
+        return ht
+    else:
+        return RightLeaf(RightChild(ht))
+
+#---------------------------------------------------------------------------------------------------
+
+def NextLeafLeftRoRight(ht, leaf):
+    """
+    Get next leaf (left to right walk).
+
+    Arguments:
+        ht -- hierarchical tree,
+        leaf - leaf.
+
+    Result:
+        Next leaf or none.
+    """
+
+    if not IsLeaf(leaf):
+        raise Exception('not a leaf')
+
+    # Find next leaf.
+    cur = leaf
+    while True:
+
+        if IsRoot(cur):
             return None
+
+        p = cur.Parent
+
+        if cur == RightChild(p):
+            cur = p
         else:
-            return self.Children[0]
+            for i in range(ChildrenCount(p)):
+                if cur == p.Children[i]:
+                    return LeftLeaf(p.Children[i + 1])
 
 #---------------------------------------------------------------------------------------------------
 
-    def RightChild(self):
-        """
-        Get right child.
+def ClusterNumber(ht):
+    """
+    Node cluster number.
 
-        Result:
-            Right child.
-        """
+    Arguments:
+        ht -- hierarchical tree.
 
-        if self.IsLeaf():
-            return None
+    Result:
+        Cluster number.
+    """
+
+    kn = ht.KN
+
+    if IsRoot(ht):
+        return kn
+    elif kn != -1:
+        return kn
+    else:
+        return ClusterNumber(ht.Parent)
+
+#---------------------------------------------------------------------------------------------------
+
+def Str(ht):
+    """
+    String representation.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        String.
+    """
+
+    ov_str = (', hd = ' + str(ht.OutlierValue)) if ht.OutlierValue != None else ''
+
+    if ht.Data == None:
+        return 'None'
+    elif isinstance(ht.Data, numbers.Number):
+        return 'x = %f, kn = %d, data = %f%s (1d)' \
+               % (ht.X, ht.KN, ht.Data, ov_str)
+    elif isinstance(ht.Data, tuple):
+        if len(ht.Data) == 2:
+            return 'x = %f, kn = %d, data = (%f, %f)%s (2d)' \
+                   % (ht.X, ht.KN, ht.Data[0], ht.Data[1], ov_str)
         else:
-            return self.Children[self.ChildrenCount() - 1]
+            raise Exception('wrong data for string representation')
+    else:
+        return 'str'
 
 #---------------------------------------------------------------------------------------------------
 
-    def LeftLeaf(self):
-        """
-        Get left leaf.
+def Print(ht):
+    """
+    Print tree.
 
-        Result:
-            Left leaf.
-        """
+    Arguments:
+        ht -- hierarchical tree.
+    """
 
-        if self.IsLeaf():
-            return self
-        else:
-            return self.LeftChild().LeftLeaf()
+    level = Level(ht)
+    indent = ' ' * level
+    print('%s [L%d] : %s' % (indent, level, Str(ht)))
 
-#---------------------------------------------------------------------------------------------------
-
-    def RightLeaf(self):
-        """
-        Get right leaf.
-
-        Result:
-            RIght leaf.
-        """
-
-        if self.IsLeaf():
-            return self
-        else:
-            return self.RightChild().RightLeaf()
+    # Print all children.
+    for c in ht.Children:
+        Print(c)
 
 #---------------------------------------------------------------------------------------------------
 
-    def NextLeafLeftRoRight(self, leaf):
-        """
-        Get next leaf (left to right walk).
+def TreeSizes(ht, deltas, margins):
+    """
+    Tree sizes.
 
-        Arguments:
-            leaf - leaf.
+    Arguments:
+        ht -- hierarchical tree,
+        deltas -- distances between nodes,
+        margins -- margins.
 
-        Result:
-            Next leaf or none.
-        """
-
-        if not leaf.IsLeaf():
-            raise Exception('not a leaf')
-
-        # Find next leaf.
-        cur = leaf
-        while True:
-
-            if cur.IsRoot():
-                return None
-
-            p = cur.Parent
-
-            if cur == p.RightChild():
-                cur = p
-            else:
-                for i in range(p.ChildrenCount()):
-                    if cur == p.Children[i]:
-                        return p.Children[i + 1].LeftLeaf()
-
-#---------------------------------------------------------------------------------------------------
-
-    def ClusterNumber(self):
-        """
-        Node cluster number.
-
-        Result:
-            Cluster number.
-        """
-
-        kn = self.KN
-
-        if self.IsRoot():
-            return kn
-        elif kn != -1:
-            return kn
-        else:
-            return self.Parent.ClusterNumber()
-
-#---------------------------------------------------------------------------------------------------
-
-    def Str(self):
-        """
-        String representation.
-
-        Result:
-            String.
-        """
-
-        ov_str = (', hd = ' + str(self.OutlierValue)) if self.OutlierValue != None else ''
-
-        if self.Data == None:
-            return 'None'
-        elif isinstance(self.Data, numbers.Number):
-            return 'x = %f, kn = %d, data = %f%s (1d)' \
-                   % (self.X, self.KN, self.Data, ov_str)
-        elif isinstance(self.Data, tuple):
-            if len(self.Data) == 2:
-                return 'x = %f, kn = %d, data = (%f, %f)%s (2d)' \
-                       % (self.X, self.KN, self.Data[0], self.Data[1], ov_str)
-            else:
-                raise Exception('wrong data for string representation')
-        else:
-            return 'str'
-
-#---------------------------------------------------------------------------------------------------
-
-    def Print(self):
-        """
-        Print tree.
-        """
-
-        level = self.Level()
-        indent = ' ' * level
-        print('%s [L%d] : %s' % (indent, level, self.Str()))
-
-        # Print all children.
-        for c in self.Children:
-            c.Print()
-
-#---------------------------------------------------------------------------------------------------
-
-    def TreeSizes(self, deltas, margins):
-        """
+    Result:
         Tree sizes.
+    """
 
-        Arguments:
-            deltas -- distances between nodes,
-            margins -- margins.
+    dx, dy = deltas
+    mx, my = margins
 
-        Result:
-            Tree sizes.
-        """
-
-        dx, dy = deltas
-        mx, my = margins
-
-        return (int((self.Width() - 1) * dx + 2 * mx), int((self.Height() - 1) * dy + 2 * my))
+    return (int((Width(ht) - 1) * dx + 2 * mx), int((Height(ht) - 1) * dy + 2 * my))
 
 #---------------------------------------------------------------------------------------------------
 
-    def NodeCoordinates(self, deltas, margins):
-        """
-        Coordinates of node.
+def NodeCoordinates(ht, deltas, margins):
+    """
+    Coordinates of node.
 
-        Arguments:
-            deltas -- distances between nodes,
-            margins -- margins.
+    Arguments:
+        ht -- hierarchical tree,
+        deltas -- distances between nodes,
+        margins -- margins.
 
-        Result:
-            Node coordinates.
-        """
+    Result:
+        Node coordinates.
+    """
 
-        dx, dy = deltas
-        mx, my = margins
+    dx, dy = deltas
+    mx, my = margins
 
-        return (int(self.X * dx + mx), int((self.Height() - 1) * dy + my))
+    return (int(ht.X * dx + mx), int((Height(ht) - 1) * dy + my))
 
 #---------------------------------------------------------------------------------------------------
 
-    def Merge(t1, t2):
-        """
-        Merge two trees.
+def Merge(t1, t2):
+    """
+    Merge two trees.
 
-        Arguments:
-            t1 -- first tree,
-            t2 -- second tree.
+    Arguments:
+        t1 -- first tree,
+        t2 -- second tree.
 
-        Result:
-            New tree.
-        """
+    Result:
+        New tree.
+    """
 
-        # New tree.
-        t = HTree()
+    # New tree.
+    t = NewHTree()
 
-        # Links.
-        t.Children = [t1, t2]
-        t1.Parent = t
-        t2.Parent = t
+    # Links.
+    t.Children = [t1, t2]
+    t1.Parent = t
+    t2.Parent = t
 
-        # Weights and mean function.
-        ws = [t1.Width(), t2.Width()]
+    # Weights and mean function.
+    ws = [Width(t1), Width(t2)]
 
-        # Data.
-        if isinstance(t1.Data, numbers.Number):
-            t.Data = mth.avg_weighted([t1.Data, t2.Data], ws)
-        elif isinstance(t1.Data, tuple):
-            if len(t1.Data) == 2:
-                t.Data = (mth.avg_weighted([t1.Data[0], t2.Data[0]], ws),
-                          mth.avg_weighted([t1.Data[1], t2.Data[1]], ws))
-            else:
-                raise Exception('wrong tuple len for data while merging')
+    # Data.
+    if isinstance(t1.Data, numbers.Number):
+        t.Data = mth.avg_weighted([t1.Data, t2.Data], ws)
+    elif isinstance(t1.Data, tuple):
+        if len(t1.Data) == 2:
+            t.Data = (mth.avg_weighted([t1.Data[0], t2.Data[0]], ws),
+                      mth.avg_weighted([t1.Data[1], t2.Data[1]], ws))
         else:
-            raise Exception('wrong data type for merge')
+            raise Exception('wrong tuple len for data while merging')
+    else:
+        raise Exception('wrong data type for merge')
 
-        # Coordinate X scaled by Width.
-        t.X = mth.avg_weighted([t1.X, t2.X], ws)
+    # Coordinate X scaled by Width.
+    t.X = mth.avg_weighted([t1.X, t2.X], ws)
 
-        return t
-
-#---------------------------------------------------------------------------------------------------
-
-    def CalculateOutlierValues(self):
-        """
-        Calculate outlier values.
-        """
-
-        # Calculate own heights difference.
-        if self.IsRoot():
-            self.OutlierValue = 0.0
-        elif self.ClusterNumber() == -1:
-            self.OutlierValue = 0.0
-        else:
-            self.OutlierValue = float(self.Parent.Height() - self.Height()) / self.Width()
-
-        # Calculate childrens' heights differences.
-        if not self.IsLeaf():
-            for ch in self.Children:
-                ch.CalculateOutlierValues()
+    return t
 
 #---------------------------------------------------------------------------------------------------
 
-    def MaxOutlierLeaf(self):
-        """
+def CalculateOutlierValues(ht):
+    """
+    Calculate outlier values.
+
+    Arguments:
+        ht -- hierarchical tree.
+    """
+
+    # Calculate own heights difference.
+    if IsRoot(ht):
+        ht.OutlierValue = 0.0
+    elif ClusterNumber(ht) == -1:
+        ht.OutlierValue = 0.0
+    else:
+        ht.OutlierValue = float(Height(ht.Parent) - Height(ht)) / Width(ht)
+
+    # Calculate childrens' heights differences.
+    if not IsLeaf(ht):
+        for ch in ht.Children:
+            CalculateOutlierValues(ch)
+
+#---------------------------------------------------------------------------------------------------
+
+def MaxOutlierLeaf(ht):
+    """
+    Maximum outlier leaf.
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
         Maximum outlier leaf.
+    """
 
-        Result:
-            Maximum outlier leaf.
-        """
+    if ht.IsOutlier:
+        return None
+    elif IsLeaf(ht):
+        return ht
+    else:
+        ms = [MaxOutlierLeaf(ch) for ch in ht.Children]
+        cur_m = ht
+        for m in ms:
+           if cur_m == None:
+               cur_m = m
+           elif m == None:
+               pass
+           elif m.OutlierValue > cur_m.OutlierValue:
+                cur_m = m
+           else:
+               pass
+        return cur_m
 
-        if self.IsOutlier:
-            return None
-        elif self.IsLeaf():
-            return self
+#---------------------------------------------------------------------------------------------------
+
+def SetOutlierRecursive(ht):
+    """"
+    Set outlier recursive.
+
+    Arguments:
+        ht -- hierarchical tree.
+    """
+
+    ht.IsOutlier = True
+
+    for ch in ht.Children:
+        SetOutlierRecursive(ch)
+
+#---------------------------------------------------------------------------------------------------
+
+def FindOutliers(ht, n):
+    """
+    Find outliers.
+
+    Arguments:
+        ht -- hierarchical tree,
+        n -- count.
+    """
+
+    for i in range(n):
+        m = MaxOutlierLeaf(ht)
+        SetOutlierRecursive(m)
+
+#---------------------------------------------------------------------------------------------------
+
+def SetLeafsXs(ht, start = 0):
+    """
+    Set X coordinates for leafs.
+
+    Arguments:
+        ht -- hierarchical tree,
+        start -- start position.
+    """
+
+    if IsLeaf(ht):
+        ht.X = start
+    else:
+        cur = start
+        for i in range(ChildrenCount(ht)):
+            ch = ht.Children[i]
+            SetLeafsXs(ch, cur)
+            cur = cur + Width(ch)
+
+#---------------------------------------------------------------------------------------------------
+
+def RefreshXs(ht):
+    """
+    Refresh Xs.
+
+    Arguments:
+        ht -- hierarchical tree.
+    """
+
+    if IsLeaf(ht):
+        pass
+    else:
+        for ch in ht.Children:
+            RefreshXs(ch)
+        xws = [(ch.X, Width(ch)) for ch in ht.Children]
+        (xs, ws) = fun.unzip(xws)
+        ht.X = mth.avg_weighted(xs, ws)
+
+#---------------------------------------------------------------------------------------------------
+
+def AllData(ht):
+    """
+    All data of tree (leafs).
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        Data as a list.
+    """
+
+    if IsLeaf(ht):
+        return [ht.Data]
+    else:
+        return reduce(operator.__concat__,
+                      [AllData(ch) for ch in ht.Children],
+                      [])
+
+#---------------------------------------------------------------------------------------------------
+
+def OutlierData(ht):
+    """
+    Outlierdata (leafs).
+
+    Arguments:
+        ht -- hierarchical tree.
+
+    Result:
+        Outlier data.
+    """
+
+    if IsLeaf(ht):
+        if ht.IsOutlier:
+            return [ht.Data]
         else:
-            ms = [ch.MaxOutlierLeaf() for ch in self.Children]
-            cur_m = self
-            for m in ms:
-                if cur_m == None:
-                    cur_m = m
-                elif m == None:
-                    pass
-                elif m.OutlierValue > cur_m.OutlierValue:
-                    cur_m = m
-                else:
-                    pass
-            return cur_m
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetOutlierRecursive(self):
-        """"
-        Set outlier recursive.
-        """
-
-        self.IsOutlier = True
-
-        for ch in self.Children:
-            ch.SetOutlierRecursive()
-
-#---------------------------------------------------------------------------------------------------
-
-    def FindOutliers(self, n):
-        """
-        Find outliers.
-
-        Arguments:
-            n -- count.
-        """
-
-        for i in range(n):
-            m = self.MaxOutlierLeaf()
-            m.SetOutlierRecursive()
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetLeafsXs(self, start = 0):
-        """
-        Set X coordinates for leafs.
-
-        Arguments:
-            start -- start position
-        """
-
-        if self.IsLeaf():
-            self.X = start
-        else:
-            cur = start
-            for i in range(self.ChildrenCount()):
-                ch = self.Children[i]
-                ch.SetLeafsXs(cur)
-                cur = cur + ch.Width()
-
-#---------------------------------------------------------------------------------------------------
-
-    def RefreshXs(self):
-        """
-        Refresh Xs.
-        """
-
-        if self.IsLeaf():
-            pass
-        else:
-            for ch in self.Children:
-                ch.RefreshXs()
-            xws = [(ch.X, ch.Width()) for ch in self.Children]
-            (xs, ws) = fun.unzip(xws)
-            self.X = mth.avg_weighted(xs, ws)
-
-#---------------------------------------------------------------------------------------------------
-
-    def AllData(self):
-        """
-        All data of tree (leafs).
-
-        Result:
-            Data as a list.
-        """
-
-        if self.IsLeaf():
-            return [self.Data]
-        else:
-            return reduce(operator.__concat__,
-                          [ch.AllData() for ch in self.Children],
-                          [])
-
-#---------------------------------------------------------------------------------------------------
-
-    def OutlierData(self):
-        """
-        Outlierdata (leafs).
-
-        Result:
-            Outlier data.
-        """
-
-        if self.IsLeaf():
-            if self.IsOutlier:
-                return [self.Data]
-            else:
-                return []
-        else:
-            return reduce(operator.__concat__,
-                          [ch.OutlierData() for ch in self.Children],
-                          [])
+            return []
+    else:
+        return reduce(operator.__concat__,
+                      [OutlierData(ch) for ch in ht.Children],
+                      [])
 
 #---------------------------------------------------------------------------------------------------
 # Clustering nearest finding type.
@@ -568,8 +617,8 @@ def lp_norm_list(t1, t2, r = 2.0):
         List of distances between nodes from two trees.
     """
 
-    d1 = t1.AllData()
-    d2 = t2.AllData()
+    d1 = AllData(t1)
+    d2 = AllData(t2)
     datas = lst.descartes_product(d1, d2)
 
     return [metrics.lp_norm(p1, p2, r) for (p1, p2) in datas]
@@ -588,8 +637,8 @@ def sup_norm_list(t1, t2):
         List of supreme norms.
     """
 
-    d1 = t1.AllData()
-    d2 = t2.AllData()
+    d1 = AllData(t1)
+    d2 = AllData(t2)
     datas = lst.descartes_product(d1, d2)
 
     return [metrics.sup_norm(p1, p2) for (p1, p2) in datas]
@@ -608,8 +657,8 @@ def jeffreys_matsushita_list(t1, t2):
         List of Jeffreys-Matsushita.
     """
 
-    d1 = t1.AllData()
-    d2 = t2.AllData()
+    d1 = AllData(t1)
+    d2 = AllData(t2)
     datas = lst.descartes_product(d1, d2)
 
     return [metrics.jeffreys_matsushita(p1, p2) for (p1, p2) in datas]
@@ -628,8 +677,8 @@ def div_coef_list(t1, t2):
         List of divergences coefficients.
     """
 
-    d1 = t1.AllData()
-    d2 = t2.AllData()
+    d1 = AllData(t1)
+    d2 = AllData(t2)
     datas = lst.descartes_product(d1, d2)
 
     return [metrics.div_coef(p1, p2) for (p1, p2) in datas]
@@ -847,7 +896,7 @@ def hierarchical_clustering(ps,
         Clustering tree.
     """
 
-    trees = [HTree(p) for p in ps]
+    trees = [NewHTree(p) for p in ps]
 
     # Now set pseudocoordinates and numbers.
     for i in range(len(trees)):
@@ -878,7 +927,7 @@ def hierarchical_clustering(ps,
             raise Exception('wrong nearest type for clustering')
 
         # Merge two trees.
-        new_tree = HTree.Merge(trees[fpi], trees[spi])
+        new_tree = Merge(trees[fpi], trees[spi])
         new_tree.N = next_n
         next_n = next_n + 1
         trees = trees[ : fpi] + [new_tree] + trees[fpi + 1 : spi] + trees[spi + 1 : ]
@@ -986,29 +1035,29 @@ def draw_data(tree,
 
     # Draw clusters lines.
     if draw_clusters:
-        leaf1 = tree.LeftLeaf()
+        leaf1 = LeftLeaf(tree)
         while leaf1 != None:
-            leaf2 = tree.NextLeafLeftRoRight(leaf1)
+            leaf2 = NextLeafLeftRoRight(tree, leaf1)
             while leaf2 != None:
 
                 # Draw.
                 d1 = leaf1.Data
                 d2 = leaf2.Data
-                kn1 = leaf1.ClusterNumber()
-                kn2 = leaf2.ClusterNumber()
+                kn1 = ClusterNumber(leaf1)
+                kn2 = ClusterNumber(leaf2)
                 is_not_outliers = (not leaf1.IsOutlier) and (not leaf2.IsOutlier)
                 if is_not_outliers and (kn1 != -1) and (kn1 == kn2):
                     D.Line(d1, d2, pen = aggdraw.Pen(pretty_color(kn1), 1.0))
 
-                leaf2 = tree.NextLeafLeftRoRight(leaf2)
-            leaf1 = tree.NextLeafLeftRoRight(leaf1)
+                leaf2 = NextLeafLeftRoRight(tree, leaf2)
+            leaf1 = NextLeafLeftRoRight(tree, leaf1)
 
     backcolor = D.Backcolor
     backcolor_pen = aggdraw.Pen(backcolor, 1.0)
     backcolor_brush = aggdraw.Brush(backcolor)
 
     # Draw points.
-    leaf = tree.LeftLeaf()
+    leaf = LeftLeaf(tree)
     while leaf != None:
 
         # Default colors and etc.
@@ -1017,7 +1066,7 @@ def draw_data(tree,
 
         # Define color if cluster number is set.
         if draw_clusters:
-            kn = leaf.ClusterNumber()
+            kn = ClusterNumber(leaf)
             if leaf.IsOutlier:
                 color = 'black'
                 point_radius = 5
@@ -1031,7 +1080,7 @@ def draw_data(tree,
         if draw_clusters:
             if not leaf.IsOutlier:
                 D.Point(leaf.Data, 1, pen = backcolor_pen, brush = backcolor_brush)
-        leaf = tree.NextLeafLeftRoRight(leaf)
+        leaf = NextLeafLeftRoRight(tree, leaf)
 
     # Flush save and show.
     D.FSS(filename = filename)
@@ -1111,7 +1160,7 @@ def draw_hierarchical_tree(ht,
     """
 
     # Create image.
-    img = Image.new('RGB', ht.TreeSizes(deltas, margins), color = (255, 255, 255))
+    img = Image.new('RGB', TreeSizes(ht, deltas, margins), color = (255, 255, 255))
     c = aggdraw.Draw(img)
     c.setantialias(True)
 
@@ -1148,11 +1197,11 @@ def draw_hierarchical_tree_on_img(ht, c, deltas, margins, pen, drawing_type):
         pen = aggdraw.Pen(pretty_color(ht.KN), 2.0)
 
     # Coordinates.
-    p = ht.NodeCoordinates(deltas, margins)
+    p = NodeCoordinates(ht, deltas, margins)
 
     # Draw children.
     for ch in ht.Children:
-        chp = ch.NodeCoordinates(deltas, margins)
+        chp = NodeCoordinates(ch, deltas, margins)
 
         # Define line pen.
         line_pen = pen
@@ -1322,12 +1371,12 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
 
     # Clustering and rearrange leafs Xs (because data is not ordered).
     tree = hierarchical_clustering(ps, k = k, metric = metric)
-    tree.SetLeafsXs()
-    tree.RefreshXs()
+    SetLeafsXs(tree)
+    RefreshXs(tree)
 
     # Find shoots_count.
-    tree.CalculateOutlierValues()
-    tree.FindOutliers(outliers_count)
+    CalculateOutlierValues(tree)
+    FindOutliers(tree, outliers_count)
 
     # Ierarchical tree.
     #tree.Print()
@@ -1343,7 +1392,7 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
               pic_size = (600, 600), grid = (10.0, 10.0),
               filename = 'points2d_%s_clusters_%d.png' % fmt)
 
-    return tree.OutlierData()
+    return OutlierData(tree)
 
 #---------------------------------------------------------------------------------------------------
 
