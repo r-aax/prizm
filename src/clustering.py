@@ -57,177 +57,6 @@ def NewHTree(data = None):
 
 #---------------------------------------------------------------------------------------------------
 
-def IsRoot(ht):
-    """
-    Root check.
-
-    Result:
-        ht -- hierarchical tree,
-        True -- if is a root,
-        False -- if is not a root.
-    """
-
-    return ht.Parent == None
-
-#---------------------------------------------------------------------------------------------------
-
-def IsLeaf(ht):
-    """
-    Leaf check.
-
-    Result:
-        ht -- hierarchical tree,
-        True -- if is a leaf,
-        False -- if is not a leaf.
-    """
-
-    return ht.Children == []
-
-#---------------------------------------------------------------------------------------------------
-
-def ChildrenCount(ht):
-    """
-    Get children count.
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Children count.
-    """
-
-    return len(ht.Children)
-
-#---------------------------------------------------------------------------------------------------
-
-def Level(ht):
-    """
-    Level.
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Level.
-    """
-
-    if IsRoot(ht):
-        return 0
-    else:
-        return 1 + Level(ht.Parent)
-
-#---------------------------------------------------------------------------------------------------
-
-def Height(ht):
-    """
-    Tree height (levels count).
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Height.
-    """
-
-    if IsLeaf(ht):
-        return 1
-    else:
-        hs = [Height(ch) for ch in ht.Children]
-        return 1 + max(hs)
-
-#---------------------------------------------------------------------------------------------------
-
-def Width(ht):
-    """
-    Tree width (leafs count).
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Width.
-    """
-
-    if IsLeaf(ht):
-        return 1
-    else:
-        ws = [Width(ch) for ch in ht.Children]
-        return sum(ws)
-
-#---------------------------------------------------------------------------------------------------
-
-def LeftChild(ht):
-    """
-    Get left child.
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Left child.
-    """
-
-    if IsLeaf(ht):
-        return None
-    else:
-        return ht.Children[0]
-
-#---------------------------------------------------------------------------------------------------
-
-def RightChild(ht):
-    """
-    Get right child.
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Right child.
-    """
-
-    if IsLeaf(ht):
-        return None
-    else:
-        return ht.Children[ChildrenCount(ht) - 1]
-
-#---------------------------------------------------------------------------------------------------
-
-def LeftLeaf(ht):
-    """
-    Get left leaf.
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        Left leaf.
-    """
-
-    if IsLeaf(ht):
-        return ht
-    else:
-        return LeftLeaf(LeftChild(ht))
-
-#---------------------------------------------------------------------------------------------------
-
-def RightLeaf(ht):
-    """
-    Get right leaf.
-
-    Arguments:
-        ht -- hierarchical tree.
-
-    Result:
-        RIght leaf.
-    """
-
-    if IsLeaf(ht):
-        return ht
-    else:
-        return RightLeaf(RightChild(ht))
-
-#---------------------------------------------------------------------------------------------------
-
 def NextLeafLeftRoRight(ht, leaf):
     """
     Get next leaf (left to right walk).
@@ -240,24 +69,24 @@ def NextLeafLeftRoRight(ht, leaf):
         Next leaf or none.
     """
 
-    if not IsLeaf(leaf):
+    if not leaf.IsLeaf():
         raise Exception('not a leaf')
 
     # Find next leaf.
     cur = leaf
     while True:
 
-        if IsRoot(cur):
+        if cur.IsRoot():
             return None
 
         p = cur.Parent
 
-        if cur == RightChild(p):
+        if cur == p.RightChild():
             cur = p
         else:
-            for i in range(ChildrenCount(p)):
+            for i in range(p.ChildrenCount()):
                 if cur == p.Children[i]:
-                    return LeftLeaf(p.Children[i + 1])
+                    return p.Children[i + 1].LeftLeaf()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -274,7 +103,7 @@ def ClusterNumber(ht):
 
     kn = ht.KN
 
-    if IsRoot(ht):
+    if ht.IsRoot():
         return kn
     elif kn != -1:
         return kn
@@ -320,7 +149,7 @@ def Print(ht):
         ht -- hierarchical tree.
     """
 
-    level = Level(ht)
+    level = ht.Level()
     indent = ' ' * level
     print('%s [L%d] : %s' % (indent, level, Str(ht)))
 
@@ -346,7 +175,7 @@ def TreeSizes(ht, deltas, margins):
     dx, dy = deltas
     mx, my = margins
 
-    return (int((Width(ht) - 1) * dx + 2 * mx), int((Height(ht) - 1) * dy + 2 * my))
+    return (int((ht.Width() - 1) * dx + 2 * mx), int((ht.Height() - 1) * dy + 2 * my))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -366,7 +195,7 @@ def NodeCoordinates(ht, deltas, margins):
     dx, dy = deltas
     mx, my = margins
 
-    return (int(ht.X * dx + mx), int((Height(ht) - 1) * dy + my))
+    return (int(ht.X * dx + mx), int((ht.Height() - 1) * dy + my))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -391,7 +220,7 @@ def Merge(t1, t2):
     t2.Parent = t
 
     # Weights and mean function.
-    ws = [Width(t1), Width(t2)]
+    ws = [t1.Width(), t2.Width()]
 
     # Data.
     if isinstance(t1.Data, numbers.Number):
@@ -421,15 +250,15 @@ def CalculateOutlierValues(ht):
     """
 
     # Calculate own heights difference.
-    if IsRoot(ht):
+    if ht.IsRoot():
         ht.OutlierValue = 0.0
     elif ClusterNumber(ht) == -1:
         ht.OutlierValue = 0.0
     else:
-        ht.OutlierValue = float(Height(ht.Parent) - Height(ht)) / Width(ht)
+        ht.OutlierValue = float(ht.Parent.Height() - ht.Height()) / ht.Width()
 
     # Calculate childrens' heights differences.
-    if not IsLeaf(ht):
+    if not ht.IsLeaf():
         for ch in ht.Children:
             CalculateOutlierValues(ch)
 
@@ -448,7 +277,7 @@ def MaxOutlierLeaf(ht):
 
     if ht.IsOutlier:
         return None
-    elif IsLeaf(ht):
+    elif ht.IsLeaf():
         return ht
     else:
         ms = [MaxOutlierLeaf(ch) for ch in ht.Children]
@@ -505,14 +334,14 @@ def SetLeafsXs(ht, start = 0):
         start -- start position.
     """
 
-    if IsLeaf(ht):
+    if ht.IsLeaf():
         ht.X = start
     else:
         cur = start
-        for i in range(ChildrenCount(ht)):
+        for i in range(ht.ChildrenCount()):
             ch = ht.Children[i]
             SetLeafsXs(ch, cur)
-            cur = cur + Width(ch)
+            cur = cur + ch.Width()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -524,12 +353,12 @@ def RefreshXs(ht):
         ht -- hierarchical tree.
     """
 
-    if IsLeaf(ht):
+    if ht.IsLeaf():
         pass
     else:
         for ch in ht.Children:
             RefreshXs(ch)
-        xws = [(ch.X, Width(ch)) for ch in ht.Children]
+        xws = [(ch.X, ch.Width()) for ch in ht.Children]
         (xs, ws) = fun.unzip(xws)
         ht.X = mth.avg_weighted(xs, ws)
 
@@ -546,7 +375,7 @@ def AllData(ht):
         Data as a list.
     """
 
-    if IsLeaf(ht):
+    if ht.IsLeaf():
         return [ht.Data]
     else:
         return reduce(operator.__concat__,
@@ -566,7 +395,7 @@ def OutlierData(ht):
         Outlier data.
     """
 
-    if IsLeaf(ht):
+    if ht.IsLeaf():
         if ht.IsOutlier:
             return [ht.Data]
         else:
@@ -1035,7 +864,7 @@ def draw_data(tree,
 
     # Draw clusters lines.
     if draw_clusters:
-        leaf1 = LeftLeaf(tree)
+        leaf1 = tree.LeftLeaf()
         while leaf1 != None:
             leaf2 = NextLeafLeftRoRight(tree, leaf1)
             while leaf2 != None:
@@ -1057,7 +886,7 @@ def draw_data(tree,
     backcolor_brush = aggdraw.Brush(backcolor)
 
     # Draw points.
-    leaf = LeftLeaf(tree)
+    leaf = tree.LeftLeaf()
     while leaf != None:
 
         # Default colors and etc.
@@ -1415,24 +1244,26 @@ if __name__ == '__main__':
         ps = test_set_points2d(points_count, k = clusters_count)
 
         outliers = []
-        modes = [(fun.partial_tail3(metric_tree_min_lp_norm, 1.0), 'min1'),
-                 (fun.partial_tail3(metric_tree_max_lp_norm, 1.0), 'max1'),
-                 (fun.partial_tail3(metric_tree_avg_lp_norm, 1.0), 'avg1'),
-                 (fun.partial_tail3(metric_tree_min_lp_norm, 2.0), 'min2'),
-                 (fun.partial_tail3(metric_tree_max_lp_norm, 2.0), 'max2'),
-                 (fun.partial_tail3(metric_tree_avg_lp_norm, 2.0), 'avg2'),
-                 (fun.partial_tail3(metric_tree_min_lp_norm, 4.0), 'min4'),
-                 (fun.partial_tail3(metric_tree_max_lp_norm, 4.0), 'max4'),
-                 (fun.partial_tail3(metric_tree_avg_lp_norm, 4.0), 'avg4'),
-                 (metric_tree_min_sup_norm, 'min_s'),
-                 (metric_tree_max_sup_norm, 'max_s'),
-                 (metric_tree_avg_sup_norm, 'avg_s'),
-                 (metric_tree_min_jeffreys_matsushita, 'min_jm'),
-                 (metric_tree_max_jeffreys_matsushita, 'max_jm'),
-                 (metric_tree_avg_jeffreys_matsushita, 'avg_jm'),
-                 (metric_tree_min_div_coef, 'min_dc'),
-                 (metric_tree_max_div_coef, 'max_dc'),
-                 (metric_tree_avg_div_coef, 'avg_dc')]
+        modes = [
+                 #(fun.partial_tail3(metric_tree_min_lp_norm, 1.0), 'min1'),
+                 #(fun.partial_tail3(metric_tree_max_lp_norm, 1.0), 'max1'),
+                 #(fun.partial_tail3(metric_tree_avg_lp_norm, 1.0), 'avg1'),
+                 #(fun.partial_tail3(metric_tree_min_lp_norm, 2.0), 'min2'),
+                 #(fun.partial_tail3(metric_tree_max_lp_norm, 2.0), 'max2'),
+                 #(fun.partial_tail3(metric_tree_avg_lp_norm, 2.0), 'avg2'),
+                 #(fun.partial_tail3(metric_tree_min_lp_norm, 4.0), 'min4'),
+                 #(fun.partial_tail3(metric_tree_max_lp_norm, 4.0), 'max4'),
+                 #(fun.partial_tail3(metric_tree_avg_lp_norm, 4.0), 'avg4'),
+                 #(metric_tree_min_sup_norm, 'min_s'),
+                 #(metric_tree_max_sup_norm, 'max_s'),
+                 #(metric_tree_avg_sup_norm, 'avg_s'),
+                 #(metric_tree_min_jeffreys_matsushita, 'min_jm'),
+                 #(metric_tree_max_jeffreys_matsushita, 'max_jm'),
+                 #(metric_tree_avg_jeffreys_matsushita, 'avg_jm'),
+                 #(metric_tree_min_div_coef, 'min_dc'),
+                 #(metric_tree_max_div_coef, 'max_dc'),
+                 (metric_tree_avg_div_coef, 'avg_dc')
+                 ]
         for (metric, metric_name) in modes:
             local_outliers = test_case_points2d(ps, clusters_count,
                                                 metric = metric, metric_name = metric_name,
