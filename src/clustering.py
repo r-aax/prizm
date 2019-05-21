@@ -24,12 +24,12 @@ from enum import Enum
 from PIL import Image
 
 #---------------------------------------------------------------------------------------------------
-# Ierarchical tree class.
+# Hierarchical tree class.
 #---------------------------------------------------------------------------------------------------
 
-class ITree:
+class HTree:
     """
-    Ierarchical tree for clustering analysis.
+    Hierarchical tree for clustering analysis.
     """
 
 #---------------------------------------------------------------------------------------------------
@@ -58,11 +58,11 @@ class ITree:
         self.Parent = None
         self.Children= []
 
-        # Overshoot value.
-        self.OvershootValue = None
+        # Outlier value.
+        self.OutlierValue = None
 
-        # Is overshoot.
-        self.IsOvershoot = False
+        # Is outlier.
+        self.IsOutlier = False
 
 #---------------------------------------------------------------------------------------------------
 
@@ -270,7 +270,7 @@ class ITree:
             String.
         """
 
-        ov_str = (', hd = ' + str(self.OvershootValue)) if self.OvershootValue != None else ''
+        ov_str = (', hd = ' + str(self.OutlierValue)) if self.OutlierValue != None else ''
 
         if self.Data == None:
             return 'None'
@@ -354,7 +354,7 @@ class ITree:
         """
 
         # New tree.
-        t = ITree()
+        t = HTree()
 
         # Links.
         t.Children = [t1, t2]
@@ -383,47 +383,47 @@ class ITree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def CalculateOvershootValues(self):
+    def CalculateOutlierValues(self):
         """
-        Calculate overshoot values.
+        Calculate outlier values.
         """
 
         # Calculate own heights difference.
         if self.IsRoot():
-            self.OvershootValue = 0.0
+            self.OutlierValue = 0.0
         elif self.ClusterNumber() == -1:
-            self.OvershootValue = 0.0
+            self.OutlierValue = 0.0
         else:
-            self.OvershootValue = float(self.Parent.Height() - self.Height()) / self.Width()
+            self.OutlierValue = float(self.Parent.Height() - self.Height()) / self.Width()
 
         # Calculate childrens' heights differences.
         if not self.IsLeaf():
             for ch in self.Children:
-                ch.CalculateOvershootValues()
+                ch.CalculateOutlierValues()
 
 #---------------------------------------------------------------------------------------------------
 
-    def MaxOvershootLeaf(self):
+    def MaxOutlierLeaf(self):
         """
-        Maximum overshoot leaf.
+        Maximum outlier leaf.
 
         Result:
-            Maximum overshoot leaf.
+            Maximum outlier leaf.
         """
 
-        if self.IsOvershoot:
+        if self.IsOutlier:
             return None
         elif self.IsLeaf():
             return self
         else:
-            ms = [ch.MaxOvershootLeaf() for ch in self.Children]
+            ms = [ch.MaxOutlierLeaf() for ch in self.Children]
             cur_m = self
             for m in ms:
                 if cur_m == None:
                     cur_m = m
                 elif m == None:
                     pass
-                elif m.OvershootValue > cur_m.OvershootValue:
+                elif m.OutlierValue > cur_m.OutlierValue:
                     cur_m = m
                 else:
                     pass
@@ -431,29 +431,29 @@ class ITree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def SetOvershootRecursive(self):
+    def SetOutlierRecursive(self):
         """"
-        Set overshoot recursive.
+        Set outlier recursive.
         """
 
-        self.IsOvershoot = True
+        self.IsOutlier = True
 
         for ch in self.Children:
-            ch.SetOvershootRecursive()
+            ch.SetOutlierRecursive()
 
 #---------------------------------------------------------------------------------------------------
 
-    def FindOvershoots(self, n):
+    def FindOutliers(self, n):
         """
-        Find overshoots.
+        Find outliers.
 
         Arguments:
             n -- count.
         """
 
         for i in range(n):
-            m = self.MaxOvershootLeaf()
-            m.SetOvershootRecursive()
+            m = self.MaxOutlierLeaf()
+            m.SetOutlierRecursive()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -509,22 +509,22 @@ class ITree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def OvershootData(self):
+    def OutlierData(self):
         """
-        Overshootdata (leafs).
+        Outlierdata (leafs).
 
         Result:
-            Overshoot data.
+            Outlier data.
         """
 
         if self.IsLeaf():
-            if self.IsOvershoot:
+            if self.IsOutlier:
                 return [self.Data]
             else:
                 return []
         else:
             return reduce(operator.__concat__,
-                          [ch.OvershootData() for ch in self.Children],
+                          [ch.OutlierData() for ch in self.Children],
                           [])
 
 #---------------------------------------------------------------------------------------------------
@@ -831,12 +831,12 @@ def metric_tree_avg_div_coef(t1, t2):
 
 #---------------------------------------------------------------------------------------------------
 
-def ierarchical_clustering(ps,
-                           k = 1,
-                           metric = metric_tree_avg_lp_norm,
-                           nearest_type = ClusteringNearestType.All):
+def hierarchical_clustering(ps,
+                            k = 1,
+                            metric = metric_tree_avg_lp_norm,
+                            nearest_type = ClusteringNearestType.All):
     """
-    Ierarchical clustering.
+    Hierarchical clustering.
 
     Arguments:
         ps -- array of points,
@@ -847,7 +847,7 @@ def ierarchical_clustering(ps,
         Clustering tree.
     """
 
-    trees = [ITree(p) for p in ps]
+    trees = [HTree(p) for p in ps]
 
     # Now set pseudocoordinates and numbers.
     for i in range(len(trees)):
@@ -878,7 +878,7 @@ def ierarchical_clustering(ps,
             raise Exception('wrong nearest type for clustering')
 
         # Merge two trees.
-        new_tree = ITree.Merge(trees[fpi], trees[spi])
+        new_tree = HTree.Merge(trees[fpi], trees[spi])
         new_tree.N = next_n
         next_n = next_n + 1
         trees = trees[ : fpi] + [new_tree] + trees[fpi + 1 : spi] + trees[spi + 1 : ]
@@ -996,8 +996,8 @@ def draw_data(tree,
                 d2 = leaf2.Data
                 kn1 = leaf1.ClusterNumber()
                 kn2 = leaf2.ClusterNumber()
-                is_not_overshoots = (not leaf1.IsOvershoot) and (not leaf2.IsOvershoot)
-                if is_not_overshoots and (kn1 != -1) and (kn1 == kn2):
+                is_not_outliers = (not leaf1.IsOutlier) and (not leaf2.IsOutlier)
+                if is_not_outliers and (kn1 != -1) and (kn1 == kn2):
                     D.Line(d1, d2, pen = aggdraw.Pen(pretty_color(kn1), 1.0))
 
                 leaf2 = tree.NextLeafLeftRoRight(leaf2)
@@ -1018,7 +1018,7 @@ def draw_data(tree,
         # Define color if cluster number is set.
         if draw_clusters:
             kn = leaf.ClusterNumber()
-            if leaf.IsOvershoot:
+            if leaf.IsOutlier:
                 color = 'black'
                 point_radius = 5
             elif kn != -1:
@@ -1029,7 +1029,7 @@ def draw_data(tree,
         point_brush = aggdraw.Brush(color)
         D.Point(leaf.Data, point_radius, pen = point_pen, brush = point_brush)
         if draw_clusters:
-            if not leaf.IsOvershoot:
+            if not leaf.IsOutlier:
                 D.Point(leaf.Data, 1, pen = backcolor_pen, brush = backcolor_brush)
         leaf = tree.NextLeafLeftRoRight(leaf)
 
@@ -1038,18 +1038,18 @@ def draw_data(tree,
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_overshoots(ps, overshoots, ok,
-                    pic_size = (640, 480),
-                    is_axis = True,
-                    grid = None,
-                    filename = None):
+def draw_outliers(ps, outliers, ok,
+                  pic_size = (640, 480),
+                  is_axis = True,
+                  grid = None,
+                  filename = None):
     """
-    Draw overshoots.
+    Draw outliers.
 
     Arguments:
         ps -- points,
-        overshoots -- list of overshoots,
-        ok -- overshoots count (leaders),
+        outliers -- list of outliers,
+        ok -- outliers count (leaders),
         pic_size -- picture size,
         is_axis -- need to draw axis,
         grid -- grid lines characteristics,
@@ -1077,14 +1077,14 @@ def draw_overshoots(ps, overshoots, ok,
     for p in ps:
         D.Point(p, 3, red_pen, red_brush)
 
-    # Draw overshoots.
+    # Draw outliers.
     black_pen = aggdraw.Pen('black', 2.0)
     steelblue_brush = aggdraw.Brush('steelblue')
-    for overshoot in overshoots[ok:]:
-        (r, p) = overshoot
+    for outlier in outliers[ok:]:
+        (r, p) = outlier
         D.Point(p, 3 * r, black_pen)
-    for overshoot in overshoots[:ok]:
-        (r, p) = overshoot
+    for outlier in outliers[:ok]:
+        (r, p) = outlier
         D.Point(p, 3 * r, black_pen, steelblue_brush)
         D.Point(p, 3, red_pen, red_brush)
 
@@ -1093,17 +1093,17 @@ def draw_overshoots(ps, overshoots, ok,
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree(it,
-                          deltas = (10, 40),
-                          margins = (12, 12),
-                          pen = aggdraw.Pen('orange', 2.0),
-                          drawing_type = ClusteringDrawingType.Orthogonal,
-                          filename = None):
+def draw_hierarchical_tree(ht,
+                           deltas = (10, 40),
+                           margins = (12, 12),
+                           pen = aggdraw.Pen('orange', 2.0),
+                           drawing_type = ClusteringDrawingType.Orthogonal,
+                           filename = None):
     """
-    Draw ierarchical tree.
+    Draw hierarchical tree.
 
     Arguments:
-        it -- ierarchical tree,
+        ht -- hierarchical tree,
         deltas -- distances between nodes,
         margins -- margins,
         pen -- pen,
@@ -1111,12 +1111,12 @@ def draw_ierarchical_tree(it,
     """
 
     # Create image.
-    img = Image.new('RGB', it.TreeSizes(deltas, margins), color = (255, 255, 255))
+    img = Image.new('RGB', ht.TreeSizes(deltas, margins), color = (255, 255, 255))
     c = aggdraw.Draw(img)
     c.setantialias(True)
 
     # Recursive draw.
-    draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type)
+    draw_hierarchical_tree_on_img(ht, c, deltas, margins, pen, drawing_type)
 
     # Flush, save and show.
     c.flush()
@@ -1126,12 +1126,12 @@ def draw_ierarchical_tree(it,
 
 #---------------------------------------------------------------------------------------------------
 
-def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
+def draw_hierarchical_tree_on_img(ht, c, deltas, margins, pen, drawing_type):
     """
-    Draw ierarchical tree on image.
+    Draw hierarchical tree on image.
 
     Arguments:
-        it -- ierarchical tree,
+        ht -- hierarchical tree,
         c -- canvas,
         deltas -- distances between nodes,
         margins -- margins,
@@ -1144,19 +1144,19 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
     brush = aggdraw.Brush('silver')
 
     # Change color for subtree.
-    if it.Mark:
-        pen = aggdraw.Pen(pretty_color(it.KN), 2.0)
+    if ht.Mark:
+        pen = aggdraw.Pen(pretty_color(ht.KN), 2.0)
 
     # Coordinates.
-    p = it.NodeCoordinates(deltas, margins)
+    p = ht.NodeCoordinates(deltas, margins)
 
     # Draw children.
-    for ch in it.Children:
+    for ch in ht.Children:
         chp = ch.NodeCoordinates(deltas, margins)
 
         # Define line pen.
         line_pen = pen
-        if it.IsOvershoot and ch.IsOvershoot:
+        if ht.IsOutlier and ch.IsOutlier:
             line_pen = aggdraw.Pen('black', 1.0)
 
         if drawing_type == ClusteringDrawingType.Lines:
@@ -1168,14 +1168,14 @@ def draw_ierarchical_tree_on_img(it, c, deltas, margins, pen, drawing_type):
         else:
             raise Exception('wrong drawing type : %s' % str(drawing_type))
 
-        draw_ierarchical_tree_on_img(ch, c, deltas, margins, pen, drawing_type)
+        draw_hierarchical_tree_on_img(ch, c, deltas, margins, pen, drawing_type)
 
     # Draw point.
-    if it.IsOvershoot:
+    if ht.IsOutlier:
         c.ellipse(expand_to_circle(p, 5), aggdraw.Pen('black', 2.0), aggdraw.Brush('black'))
     else:
         c.ellipse(expand_to_circle(p, 3), pen, brush)
-    if it.Mark:
+    if ht.Mark:
         c.ellipse(expand_to_circle(p, 10), mark_pen)
 
 #---------------------------------------------------------------------------------------------------
@@ -1256,13 +1256,13 @@ def test_set_points2d_circles(c, p):
 
 #---------------------------------------------------------------------------------------------------
 
-def test_set_trajectory(ripple, overshoot):
+def test_set_trajectory(ripple, outlier):
     """
     Test set Trajectory.
 
     Arguments:
         ripple -- ripple intensive,
-        overshoot -- overshoot value.
+        outlier -- outlier value.
 
     Result:
         Test set.
@@ -1277,11 +1277,11 @@ def test_set_trajectory(ripple, overshoot):
         dy = random.uniform(-ripple, ripple)
         ps[i] = (ps[i][0] + dx, ps[i][1] + dy)
 
-    # Overshoots.
+    # Outliers.
     for i in range(4):
         ind = 40 * (i + 1)
-        dx = random.uniform(-overshoot, overshoot)
-        dy = random.uniform(-overshoot, overshoot)
+        dx = random.uniform(-outlier, outlier)
+        dy = random.uniform(-outlier, outlier)
         ps[ind] = (ps[ind][0] + dx, ps[ind][1] + dy)
 
     return ps
@@ -1321,17 +1321,17 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
     fmt = (metric_name, test_number)
 
     # Clustering and rearrange leafs Xs (because data is not ordered).
-    tree = ierarchical_clustering(ps, k = k, metric = metric)
+    tree = hierarchical_clustering(ps, k = k, metric = metric)
     tree.SetLeafsXs()
     tree.RefreshXs()
 
     # Find shoots_count.
-    tree.CalculateOvershootValues()
-    tree.FindOvershoots(overshoots_count)
+    tree.CalculateOutlierValues()
+    tree.FindOutliers(outliers_count)
 
     # Ierarchical tree.
     #tree.Print()
-    draw_ierarchical_tree(tree, filename = 'points2d_%s_tree_%d.png' % fmt)
+    draw_hierarchical_tree(tree, filename = 'points2d_%s_tree_%d.png' % fmt)
 
     # Draw data.
     draw_data(tree,
@@ -1343,13 +1343,13 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
               pic_size = (600, 600), grid = (10.0, 10.0),
               filename = 'points2d_%s_clusters_%d.png' % fmt)
 
-    return tree.OvershootData()
+    return tree.OutlierData()
 
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
 
-    points_count, clusters_count, overshoots_count = 50, 6, 3
+    points_count, clusters_count, outliers_count = 50, 6, 3
     run = RunType.Points2D
 
     if run == RunType.Test:
@@ -1365,7 +1365,7 @@ if __name__ == '__main__':
         # Get test case.
         ps = test_set_points2d(points_count, k = clusters_count)
 
-        overshoots = []
+        outliers = []
         modes = [(fun.partial_tail3(metric_tree_min_lp_norm, 1.0), 'min1'),
                  (fun.partial_tail3(metric_tree_max_lp_norm, 1.0), 'max1'),
                  (fun.partial_tail3(metric_tree_avg_lp_norm, 1.0), 'avg1'),
@@ -1385,27 +1385,27 @@ if __name__ == '__main__':
                  (metric_tree_max_div_coef, 'max_dc'),
                  (metric_tree_avg_div_coef, 'avg_dc')]
         for (metric, metric_name) in modes:
-            local_overshoots = test_case_points2d(ps, clusters_count,
-                                                  metric = metric, metric_name = metric_name,
-                                                  test_number = test_number)
-            overshoots = overshoots + local_overshoots
-            overshoots.sort()
-            grouped_overshoots = lst.group(overshoots)
-            sorted_overshoots = sorted([(c, p) for (p, c) in grouped_overshoots])
-            sorted_overshoots.reverse()
-            print('Sorted local overshoots for name %s:' % metric_name)
-            print(sorted_overshoots)
+            local_outliers = test_case_points2d(ps, clusters_count,
+                                                metric = metric, metric_name = metric_name,
+                                                test_number = test_number)
+            outliers = outliers + local_outliers
+            outliers.sort()
+            grouped_outliers = lst.group(outliers)
+            sorted_outliers = sorted([(c, p) for (p, c) in grouped_outliers])
+            sorted_outliers.reverse()
+            print('Sorted local outliers for name %s:' % metric_name)
+            print(sorted_outliers)
 
         # Process statistics.
-        sorted_overshoots = [(c, p) for (c, p) in sorted_overshoots if c > 1]
-        print('Final sorted overshoots:')
-        print(sorted_overshoots)
-        draw_overshoots(ps,
-                        sorted_overshoots,
-                        overshoots_count,
+        sorted_outliers = [(c, p) for (c, p) in sorted_outliers if c > 1]
+        print('Final sorted outliers:')
+        print(sorted_outliers)
+        draw_outliers(ps,
+                        sorted_outliers,
+                        outliers_count,
                         pic_size = (600, 600),
                         grid = (10.0, 10.0),
-                        filename = 'points2d_overshoots_%d.png' % test_number)
+                        filename = 'points2d_outliers_%d.png' % test_number)
 
     elif run == RunType.Trajectory:
 
