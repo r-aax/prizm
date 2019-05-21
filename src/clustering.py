@@ -57,39 +57,6 @@ def NewHTree(data = None):
 
 #---------------------------------------------------------------------------------------------------
 
-def NextLeafLeftRoRight(ht, leaf):
-    """
-    Get next leaf (left to right walk).
-
-    Arguments:
-        ht -- hierarchical tree,
-        leaf - leaf.
-
-    Result:
-        Next leaf or none.
-    """
-
-    if not leaf.IsLeaf():
-        raise Exception('not a leaf')
-
-    # Find next leaf.
-    cur = leaf
-    while True:
-
-        if cur.IsRoot():
-            return None
-
-        p = cur.Parent
-
-        if cur == p.RightChild():
-            cur = p
-        else:
-            for i in range(p.ChildrenCount()):
-                if cur == p.Children[i]:
-                    return p.Children[i + 1].LeftLeaf()
-
-#---------------------------------------------------------------------------------------------------
-
 def ClusterNumber(ht):
     """
     Node cluster number.
@@ -866,7 +833,7 @@ def draw_data(tree,
     if draw_clusters:
         leaf1 = tree.LeftLeaf()
         while leaf1 != None:
-            leaf2 = NextLeafLeftRoRight(tree, leaf1)
+            leaf2 = tree.NextLeafLeftRoRight(leaf1)
             while leaf2 != None:
 
                 # Draw.
@@ -878,8 +845,8 @@ def draw_data(tree,
                 if is_not_outliers and (kn1 != -1) and (kn1 == kn2):
                     D.Line(d1, d2, pen = aggdraw.Pen(pretty_color(kn1), 1.0))
 
-                leaf2 = NextLeafLeftRoRight(tree, leaf2)
-            leaf1 = NextLeafLeftRoRight(tree, leaf1)
+                leaf2 = tree.NextLeafLeftRoRight(leaf2)
+            leaf1 = tree.NextLeafLeftRoRight(leaf1)
 
     backcolor = D.Backcolor
     backcolor_pen = aggdraw.Pen(backcolor, 1.0)
@@ -909,7 +876,7 @@ def draw_data(tree,
         if draw_clusters:
             if not leaf.IsOutlier:
                 D.Point(leaf.Data, 1, pen = backcolor_pen, brush = backcolor_brush)
-        leaf = NextLeafLeftRoRight(tree, leaf)
+        leaf = tree.NextLeafLeftRoRight(leaf)
 
     # Flush save and show.
     D.FSS(filename = filename)

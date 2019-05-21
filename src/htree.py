@@ -169,3 +169,35 @@ class HTree:
             return self.RightChild.RightLeaf()
 
 #---------------------------------------------------------------------------------------------------
+
+    def NextLeafLeftRoRight(self, leaf):
+        """
+        Get next leaf (left to right walk).
+
+        Arguments:
+            leaf - leaf.
+
+        Result:
+            Next leaf or none.
+        """
+
+        if not leaf.IsLeaf():
+            raise Exception('not a leaf')
+
+        # Find next leaf.
+        cur = leaf
+        while True:
+
+            if cur.IsRoot():
+                return None
+
+            p = cur.Parent
+
+            if cur == p.RightChild():
+                cur = p
+            else:
+                for i in range(p.ChildrenCount()):
+                    if cur == p.Children[i]:
+                        return p.Children[i + 1].LeftLeaf()
+
+#---------------------------------------------------------------------------------------------------
