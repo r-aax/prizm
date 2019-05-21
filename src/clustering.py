@@ -833,7 +833,7 @@ def metric_tree_avg_div_coef(t1, t2):
 
 def ierarchical_clustering(ps,
                            k = 1,
-                           metric = metric_tree_min_lp_norm,
+                           metric = metric_tree_avg_lp_norm,
                            nearest_type = ClusteringNearestType.All):
     """
     Ierarchical clustering.
@@ -1301,11 +1301,8 @@ class RunType(Enum):
     # Points 2D.
     Points2D = 1
 
-    # Analyze points 2d scenario.
-    Points2DAnalyze = 2
-
     # Trajectory test.
-    Trajectory = 3
+    Trajectory = 2
 
 #---------------------------------------------------------------------------------------------------
 
@@ -1352,8 +1349,8 @@ def test_case_points2d(ps, k, metric, metric_name, test_number = 1):
 
 if __name__ == '__main__':
 
-    clusters_count, overshoots_count = 12, 3
-    run = RunType.Test
+    points_count, clusters_count, overshoots_count = 50, 6, 3
+    run = RunType.Points2D
 
     if run == RunType.Test:
 
@@ -1366,9 +1363,7 @@ if __name__ == '__main__':
         test_number = 1
 
         # Get test case.
-        ps = test_set_points2d(200, k = clusters_count)
-        #ps = test_set_points2d_grid(10, 10)
-        #ps = test_set_points2d_circles(4, 50)
+        ps = test_set_points2d(points_count, k = clusters_count)
 
         overshoots = []
         modes = [(fun.partial_tail3(metric_tree_min_lp_norm, 1.0), 'min1'),
@@ -1412,95 +1407,11 @@ if __name__ == '__main__':
                         grid = (10.0, 10.0),
                         filename = 'points2d_overshoots_%d.png' % test_number)
 
-    elif run == RunType.Points2DAnalyze:
+    elif run == RunType.Trajectory:
 
-        # Analyze points 2D scenario.
-        cases = 10
-        modes_names = ['dist1', 'dist2', 'dist4', 's', 'jm', 'dc']
-        submodes_names = ['min', 'max', 'avg']
-        extmodes_names = [mn + '_' + sn \
-                          for (mn, sn) in lst.descartes_product(modes_names, submodes_names)]
-        modes = len(modes_names)
-        submodes = len(submodes_names)
-        extmodes = modes * submodes
-
-        print(extmodes_names)
-        array = [1, 2, 2, 2, 1, 2, 0, 1, 1, 2,
-                 2, 0, 1, 1, 2, 1, 1, 3, 2, 1,
-                 1, 1, 1, 2, 2, 2, 2, 2, 2, 2,
-                 1, 2, 2, 2, 2, 2, 1, 1, 1, 2,
-                 2, 1, 0, 1, 2, 2, 2, 2, 2, 2,
-                 1, 2, 2, 2, 2, 1, 3, 2, 2, 1,
-                 1, 2, 2, 2, 1, 2, 0, 1, 1, 1,
-                 2, 2, 1, 2, 1, 2, 2, 1, 1, 1,
-                 2, 2, 3, 2, 2, 1, 3, 2, 2, 1,
-                 1, 2, 2, 2, 1, 2, 0, 1, 1, 1,
-                 1, 2, 1, 3, 1, 2, 1, 0, 1, 1,
-                 2, 2, 2, 2, 2, 1, 3, 2, 2, 2,
-                 1, 0, 1, 2, 1, 1, 0, 1, 0, 1,
-                 1, 1, 1, 2, 1, 2, 2, 2, 1, 2,
-                 2, 1, 2, 2, 2, 1, 2, 2, 2, 1,
-                 2, 0, 0, 2, 1, 0, 0, 0, 0, 0,
-                 2, 1, 0, 1, 1, 0, 1, 1, 0, 1,
-                 2, 0, 0, 1, 1, 0, 1, 1, 1, 1]
-
-        # Code for find bad case.
-        #for i in range(cases):
-        #    characteristic = mth.avg_arith(array[i::cases])
-        #    print(characteristic)
-
-        array = [1, 2, 2, 1, 2, 0, 1, 2,
-                 2, 0, 1, 2, 1, 1, 3, 1,
-                 1, 1, 1, 2, 2, 2, 2, 2,
-                 1, 2, 2, 2, 2, 1, 1, 2,
-                 2, 1, 0, 2, 2, 2, 2, 2,
-                 1, 2, 2, 2, 1, 3, 2, 1,
-                 1, 2, 2, 1, 2, 0, 1, 1,
-                 2, 2, 1, 1, 2, 2, 1, 1,
-                 2, 2, 3, 2, 1, 3, 2, 1,
-                 1, 2, 2, 1, 2, 0, 1, 1,
-                 1, 2, 1, 1, 2, 1, 0, 1,
-                 2, 2, 2, 2, 1, 3, 2, 2,
-                 1, 0, 1, 1, 1, 0, 1, 1,
-                 1, 1, 1, 1, 2, 2, 2, 2,
-                 2, 1, 2, 2, 1, 2, 2, 1,
-                 2, 0, 0, 1, 0, 0, 0, 0,
-                 2, 1, 0, 1, 0, 1, 1, 1,
-                 2, 0, 0, 1, 0, 1, 1, 1]
-
-        # Code for find bad case.
-        #for i in range(cases - 2):
-        #    characteristic = mth.avg_arith(array[i:: cases - 2])
-        #    print(characteristic)
-
-        matrix = lst.slice_rows(array, 8)
-        r = [mth.avg_arith(row) for row in matrix]
-
-        print('SUBMODES:')
-        for i in range(submodes):
-            print('submode %s : %f' % (submodes_names[i], mth.avg_arith(r[i::submodes])))
-
-        print('MODES (without min):')
-        for i in range(modes):
-            min_max_avg = r[i * submodes : (i + 1) * submodes]
-            print('mode %s : %f (%s)' \
-                  % (modes_names[i], mth.avg_arith(min_max_avg[1:]), str(min_max_avg[1:])))
-
+        # Not implemented yet.
         pass
 
-    elif run == RunType.Trajectory:
-        ps = test_set_trajectory(0.03, 0.9)
-        tree = ierarchical_clustering(ps, k = clusters_count)
-        tree.CalculateHeightDifferences()
-        tree.FindOvershoots(overshoots_count)
-        tree.Print()
-        draw_ierarchical_tree(tree,
-                              filename = 'trajectory_tree.png')
-        draw_data(tree,
-                  draw_trajectory = True,
-                  pic_size = (1000, 600),
-                  grid = (1.0, 0.3),
-                  filename = 'trajectory_init.png')
     else:
         raise Exception('wrong test run type')
 
