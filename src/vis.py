@@ -15,7 +15,45 @@ import scipy.interpolate as spi
 # Graphics construction.
 #---------------------------------------------------------------------------------------------------
 
-def simple_graphic(xs, ys, title):
+def simple_graphic_ys(ys, title = 'title'):
+    """
+    Draw simple graphic by only Y coordinates.
+
+    Arguments:
+        ys -- array of Y coordinates,
+        title -- title.
+    """
+
+    simple_graphic(range(len(ys)), ys, title)
+
+#---------------------------------------------------------------------------------------------------
+
+def simple_graphic(xs, ys, title = 'title'):
+    """
+    Draw simple graphic.
+
+    Arguments:
+        xs -- array of X coordinates,
+        ys -- array of Y coordinates,
+        title -- title.
+    """
+    plt.figure(num=1, figsize=(10, 6))
+    plt.title(title, size=14)
+    plt.xlabel('x_label', size=14)
+    plt.ylabel('y_label', size=14)
+
+    # Draw.
+    plt.plot(xs, ys, color='r', linestyle='-', label='graphic')
+
+    # Legend.
+    plt.legend(loc='lower left')
+
+    # Save figure.
+    plt.savefig('simple_graphic.png', format='png')
+
+#---------------------------------------------------------------------------------------------------
+
+def interpolation_test(xs, ys, title):
     """
     Draw simple graphic.
 
@@ -33,7 +71,8 @@ def simple_graphic(xs, ys, title):
     # Draw.
     plt.plot(xs, [2.5] * len(xs), color='b', linestyle='-', label='постоянное значение')
     f = spi.interp1d(xs, ys, kind='nearest')
-    plt.plot(range(0, 374), f(range(0, 374)), color='y', linestyle='-', label='кусочно-постоянная интерполяция')
+    plt.plot(range(0, 374), f(range(0, 374)), color='y', linestyle='-',
+             label='кусочно-постоянная интерполяция')
     plt.plot(xs, ys, color='r', linestyle='-', marker='o', label='кусочно-линейная интерполяция')
     tck = spi.splrep(xs, ys, s=0)
     r = range(0, 375)
@@ -44,15 +83,25 @@ def simple_graphic(xs, ys, title):
     plt.legend(loc='lower left')
 
     # Save figure.
-    plt.savefig('simple_graphic.png', format='png')
+    plt.savefig('interpolation_test.png', format='png')
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    xs = [-50.0, 0.0, 10.0, 20.0, 30.0, 50.0, 70.0, 90.0, 100.0, 120.0, 150.0, 180.0, 200.0, 220.0, 250.0, 300.0, 350.0, 370.0, 374.0, 374.15, 500.0]
-    ys = [2.5, 2.5, 2.47, 2.45, 2.4, 2.38, 2.32, 2.28, 2.26, 2.2, 2.11, 2.01, 1.94, 1.86, 1.7, 1.4, 0.89, 0.44, 0.11, 0.0, 0.0]
-    simple_graphic(xs, ys, "Удельная теплота парообразования")
+
+    test_number = 2
+
+    if test_number == 1:
+        # Test 1.
+        xs = [-50.0, 0.0, 10.0, 20.0, 30.0, 50.0, 70.0, 90.0, 100.0, 120.0, 150.0, 180.0, 200.0,
+              220.0, 250.0, 300.0, 350.0, 370.0, 374.0, 374.15, 500.0]
+        ys = [2.5, 2.5, 2.47, 2.45, 2.4, 2.38, 2.32, 2.28, 2.26, 2.2, 2.11, 2.01, 1.94, 1.86,
+              1.7, 1.4, 0.89, 0.44, 0.11, 0.0, 0.0]
+        interpolation_test(xs, ys, 'удельная теплота парообразования')
+    elif test_number == 2:
+        # Test 2.
+        simple_graphic_ys([1, 3, 2, 4, 5, 6])
 
 #---------------------------------------------------------------------------------------------------
