@@ -79,7 +79,7 @@ def flip(f):
     """
     Flip function.
 
-    Argument:
+    Arguments:
         f -- function.
 
     Result:
@@ -89,11 +89,28 @@ def flip(f):
     return lambda x, y: f(y, x)
 
 #---------------------------------------------------------------------------------------------------
+
+def concat(f, g):
+    """
+    Concatenate two functions.
+
+    Arguments:
+        f -- first function,,
+        g -- second function.
+
+    Result:
+        Concatenated function.
+    """
+
+    return lambda x: g(f(x))
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
 
     assert partial_tail2(operator.add, 5)(10) == 15
+    assert concat(lambda x: x * x, lambda x: x + 5)(2) == 9
 
 #---------------------------------------------------------------------------------------------------
