@@ -1,24 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Functional tree realization.
-Tree consists of nodes linked by edges.
-Each node is dictionary.
+Functional tree.
 
-Main data:
-    - Type
-    - Name
-    - Descr
-    - Children
-    - Parent
-
-Other data is stored in Dict member.
-
-Created on Tue Jan 15 16:05:25 2019
+Created on Thu May 30 12:28:38 2019
 
 @author: Rybakov
 """
 
-class FTree:
+from ftree.edge import Edge
+
+class Tree:
     """
     Functional tree.
     """
@@ -27,7 +18,7 @@ class FTree:
 # Constructor.
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self, tp, nm, descr = ""):
+    def __init__(self, tp, nm, descr = ''):
         """
         Constructor from type and name.
 
@@ -37,12 +28,18 @@ class FTree:
             descr -- description.
         """
 
-        self.Dict = {}
         self.Type = tp
         self.Name = nm
         self.Descr = descr
-        self.Children = []
-        self.Parent = None
+
+        # Properties dictionary.
+        self.Dict = {}
+
+        # Array of children edges.
+        self.Succs = []
+
+        # Parent edge.
+        self.Pred = None
 
 #---------------------------------------------------------------------------------------------------
 # Maintenance.
@@ -50,7 +47,7 @@ class FTree:
 
     def __enter__(self):
         """
-        Function for "with ... as" context.
+        Function for 'with ... as' context.
         """
 
         return self
@@ -59,7 +56,7 @@ class FTree:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Method for "with ... as" context.
+        Method for 'with ... as' context.
 
         Arguments:
             exc_type -- exception type,
@@ -78,7 +75,7 @@ class FTree:
         Check if the element has given type.
 
         Arguments:
-            tp -- value of the field "type".
+            tp -- value of the field 'type'.
 
         Result:
             True -- if the element has given type,
@@ -94,7 +91,7 @@ class FTree:
         Check if the element has given name.
 
         Arguments:
-            nm -- value of the field "name".
+            nm -- value of the field 'name'.
 
         Result:
             True -- if the element has given name,
@@ -118,20 +115,6 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def SetOuter(self, ch, prop, val):
-        """
-        Set outer property for child.
-
-        Arguments:
-            ch -- child,
-            prop -- property name,
-            val -- value.
-        """
-
-        self.Set(ch.OuterPropertyStr(prop), val);
-
-#---------------------------------------------------------------------------------------------------
-
     def Has(self, prop):
         """
         Check if tree has the property with the given name.
@@ -145,23 +128,6 @@ class FTree:
         """
 
         return prop in self.Dict
-
-#---------------------------------------------------------------------------------------------------
-
-    def HasOuter(self, ch, prop):
-        """
-        Check if tree has the outer property with the given name.
-
-        Arguments:
-            ch -- child,
-            prop -- property.
-
-        Result:
-            True -- if the tree has the property,
-            False -- otherwise.
-        """
-
-        return self.Has(ch.OuterPropertyStr(prop))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -184,23 +150,6 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def GetOuterWithAlternate(self, ch, prop, alt):
-        """
-        Get outer property (in None case get alternate).
-
-        Arguments:
-            ch -- child,
-            prop -- property,
-            alt -- alternate.
-
-        Result:
-            Property value.
-        """
-
-        return self.GetWithAlternate(ch.OuterPropertyStr(prop), alt)
-
-#---------------------------------------------------------------------------------------------------
-
     def Get(self, prop):
         """
         Get property.
@@ -216,22 +165,6 @@ class FTree:
 
 #---------------------------------------------------------------------------------------------------
 
-    def GetOuter(self, ch, prop):
-        """
-        Get outer property.
-
-        Arguments:
-            ch -- child,
-            prop -- property.
-
-        Result:
-            Property value.
-        """
-
-        return self.Get(ch.OuterPropertyStr(prop))
-
-#---------------------------------------------------------------------------------------------------
-
     def Is(self, prop, val):
         """
         Check property.
@@ -241,29 +174,11 @@ class FTree:
             val -- value.
 
         Result:
-            True -- if property "prop" is equal to "val",
+            True -- if property 'prop' is equal to 'val',
             False -- otherwise.
         """
 
         return self.Get(prop) == val
-
-#---------------------------------------------------------------------------------------------------
-
-    def IsOuter(self, ch, prop, val):
-        """
-        Check outer property.
-
-        Arguments:
-            ch -- child,
-            prop -- property,
-            val -- value.
-
-        Result:
-            True -- if property "prop" is equal to "val",
-            False -- otherwise.
-        """
-
-        return self.Is(ch.OuterPropertyStr(prop), val)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -279,20 +194,7 @@ class FTree:
             self.Dict.pop(prop)
 
 #---------------------------------------------------------------------------------------------------
-
-    def DelOuter(self, ch, prop):
-        """
-        Delete property.
-
-        Arguments:
-            ch -- child,
-            prop -- property.
-        """
-
-        self.Del(ch.OuterPropertyStr(prop))
-
-#---------------------------------------------------------------------------------------------------
-# Properties.
+# Parent and children.
 #---------------------------------------------------------------------------------------------------
 
     def IsRoot(self):
@@ -304,7 +206,7 @@ class FTree:
             False -- if is not root.
         """
 
-        return self.Parent == None
+        return self.Pred == None
 
 #---------------------------------------------------------------------------------------------------
 
@@ -317,7 +219,88 @@ class FTree:
             False -- if is not leaf.
         """
 
-        return self.Children == []
+        return self.Succs == []
+
+#---------------------------------------------------------------------------------------------------
+
+    def ChildrenCount(self):
+        """
+        Count of children.
+
+        Result:
+            Count of children.
+        """
+
+        return len(self.Succs)
+
+#---------------------------------------------------------------------------------------------------
+
+    def Parent(self):
+        """
+        Parent tree.
+
+        Result:
+            Parent tree or None.
+        """
+
+        if self.IsRoot():
+            return None
+        else:
+            return self.Pred.Parent
+
+#---------------------------------------------------------------------------------------------------
+
+    def Children(self):
+        """
+        Get all children.
+
+        Result:
+            Children.
+        """
+
+        return [succ.Child for succ in self.Succs]
+
+#---------------------------------------------------------------------------------------------------
+
+    def Child(self, i):
+        """
+        Child with given number.
+
+        Arguments:
+            i -- number of the child.
+
+        Result:
+            Child tree or None.
+        """
+
+        if (i >= 0) and (i < self.ChildrenCount()):
+            return self.Succs[i].Child
+        else:
+            return None
+
+#---------------------------------------------------------------------------------------------------
+
+    def FirstChild(self):
+        """
+        Get first child.
+
+        Result:
+            First child tree or None.
+        """
+
+        return self.Child(0)
+
+#---------------------------------------------------------------------------------------------------
+
+    def LastChild(self):
+        """
+        Get last child.
+
+        Result:
+            Last child tree or None.
+        """
+
+        return self.Child(self.ChildrenCount() - 1)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -335,7 +318,7 @@ class FTree:
             return False;
 
         # Check.
-        return self == self.Parent.Children[0]
+        return self == self.Parent().FirstChild()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -353,20 +336,7 @@ class FTree:
             return False;
 
         # Check.
-        cnt = self.Parent.ChildrenCount()
-        return self == self.Parent.Children[cnt - 1]
-
-#---------------------------------------------------------------------------------------------------
-
-    def ChildrenCount(self):
-        """
-        Count of children.
-
-        Result:
-            Count of children.
-        """
-
-        return len(self.Children);
+        return self == self.Parent().LastChild()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -381,26 +351,28 @@ class FTree:
         if self.IsRoot():
             return 0
         else:
-            return 1 + self.Parent.Level()
+            return 1 + self.Parent().Level()
 
 #---------------------------------------------------------------------------------------------------
 # Elements management.
 #---------------------------------------------------------------------------------------------------
 
-    def AddChildTree(self, t):
+    def AddChild(self, t):
         """
-        Add new child with given type and name.
+        Add new child tree.
 
         Arguments:
-            t -- child FTree.
+            t -- child tree.
 
         Result:
             Added child.
         """
 
         # Links.
-        self.Children.append(t);
-        t.Parent = self;
+        edge = Edge(self, t)
+
+        self.Succs.append(edge);
+        t.Pred = edge;
 
         return t;
 
@@ -419,9 +391,9 @@ class FTree:
             Added child.
         """
 
-        t = FTree(tp, nm, descr);
+        t = Tree(tp, nm, descr);
 
-        return self.AddChildTree(t);
+        return self.AddChild(t);
 
 #---------------------------------------------------------------------------------------------------
 # Print.
@@ -435,27 +407,35 @@ class FTree:
             Basic string.
         """
 
-        s = "[" + self.Type + ":" + self.Name + "]"
+        s = '[' + self.Type + ':' + self.Name + ']'
 
-        if self.Descr != "":
-            s = s +" " + self.Descr
+        if self.Descr != '':
+            s = s + ' ' + self.Descr
 
         return s
 
 #---------------------------------------------------------------------------------------------------
 
-    def OuterPropertyStr(self, prop):
+    def BaseStrWithEdgePrefix(self):
         """
-        Generate outer property string.
-
-        Arguments:
-            prop -- property.
+        Base string with edge prefix.
 
         Result:
-            Ouuter property string.
+            String.
         """
 
-        return self.Type + "_" + self.Name + "_" + prop
+        if self.IsRoot():
+            pref = ''
+        else:
+            pred = self.Pred
+            pref = pred.ToString()
+
+        bs = self.BaseStr()
+
+        if pref == '':
+            return bs
+        else:
+            return pref + ' ' + bs
 
 #---------------------------------------------------------------------------------------------------
 
@@ -473,7 +453,7 @@ class FTree:
         for p in self.Dict:
             v = self.Get(p)
             if not (type(v) is type(lambda x: x)):
-                s.append(p + " = " + str(self.Get(p)))
+                s.append(p + ' = ' + str(self.Get(p)))
 
         return s
 
@@ -487,7 +467,7 @@ class FTree:
             First indentation.
         """
 
-        res = ""
+        res = ''
 
         # Init.
         is_arrow = True
@@ -499,26 +479,26 @@ class FTree:
 
             # Define indentation.
             if is_arrow:
-                ind = "--->"
+                ind = '--->'
                 is_arrow = False
-            elif res[:4] == "--->":
-                ind = "   |"
+            elif res[:4] == '--->':
+                ind = '   |'
             elif (pre != None) and pre.IsLastChild():
-                ind = "    "
+                ind = '    '
             else:
-                ind = "   |"
+                ind = '   |'
 
             # Grow.
             res = ind + res
 
             # Shift.
             pre = cur
-            cur = cur.Parent
+            cur = cur.Parent()
 
-        res = res[3:] + " "
+        res = res[3:] + ' '
 
         if self.IsRoot():
-            res = "#" + res[1:]
+            res = '#' + res[1:]
 
         return res
 
@@ -543,20 +523,20 @@ class FTree:
 
             # Define indentation.
             if cur.ChildrenCount() == 0:
-                ind = "    "
+                ind = '    '
             elif (pre != None) and pre.IsLastChild():
-                ind = "    "
+                ind = '    '
             else:
-                ind = "   |"
+                ind = '   |'
 
             # Grow.
             res = ind + res
 
             # Shift.
             pre = cur
-            cur = cur.Parent
+            cur = cur.Parent()
 
-        res = res[3:] + " "
+        res = res[3:] + ' '
 
         return res
 
@@ -568,8 +548,7 @@ class FTree:
 
         Arguments:
             level -- tree level,
-            is_recursive -- recursive print is needed or not,
-            pre -- prefix.
+            is_recursive -- recursive print is needed or not.
         """
 
         # Properties.
@@ -577,10 +556,10 @@ class FTree:
         cnt = len(props_strs)
 
         # Get indent strings.
-        extra_base_str = self.BaseStr()
+        extra_base_str = self.BaseStrWithEdgePrefix()
         if cnt > 0:
-            extra_base_str = extra_base_str + " ("
-        space_base_str = " " * len(extra_base_str)
+            extra_base_str = extra_base_str + ' ('
+        space_base_str = ' ' * len(extra_base_str)
 
         # Indentation.
         f_ind = self.FirstIndent()
@@ -590,16 +569,16 @@ class FTree:
         if cnt == 0:
             print(f_ind + extra_base_str)
         elif cnt == 1:
-            print(f_ind + extra_base_str + props_strs[0] + ")")
+            print(f_ind + extra_base_str + props_strs[0] + ')')
         else:
             print(f_ind + extra_base_str + props_strs[0])
             for prop_str in props_strs[1:-1]:
                 print(s_ind + space_base_str + prop_str)
-            print(s_ind + space_base_str + props_strs[cnt - 1] + ")")
+            print(s_ind + space_base_str + props_strs[cnt - 1] + ')')
 
         # Print all children.
         if is_recursive:
-            for ch in self.Children:
+            for ch in self.Children():
                 ch.Print(level + 1, True)
 
 #---------------------------------------------------------------------------------------------------
@@ -641,7 +620,7 @@ class FTree:
         else:
 
             # Check all children.
-            for c in self.Children:
+            for c in self.Children():
                 f = c.FindElement(fun)
                 if f != None:
                     return f
@@ -683,12 +662,12 @@ class FTree:
         return self.FindElement(lambda t: t.IsType(tp) and t.IsName(nm))
 
 #---------------------------------------------------------------------------------------------------
-# Main functional actions.
+# Funcional.
 #---------------------------------------------------------------------------------------------------
 
     def Apply(self, apply_fun, filter_fun = None, is_downward = True):
         """
-        Apply "apply_fun" function to all elements of the tree.
+        Apply 'apply_fun' function to all elements of the tree.
 
         Arguments:
             apply_fun -- apply function,
@@ -704,11 +683,11 @@ class FTree:
                 apply_fun(self)
 
             # Children.
-            for ch in self.Children:
+            for ch in self.Children():
                 ch.Apply(apply_fun, filter_fun, is_downward)
         else:
             # Children.
-            for ch in self.Children:
+            for ch in self.Children():
                 ch.Apply(apply_fun, filter_fun, is_downward)
 
             # Apply.
@@ -719,7 +698,7 @@ class FTree:
 
     def ApplyUpward(self, apply_fun, filter_fun = None):
         """
-        Apply "apply_fun" function to all elements of the tree.
+        Apply 'apply_fun' function to all elements of the tree.
 
         Arguments:
             apply_fun -- apply function,
@@ -732,7 +711,7 @@ class FTree:
 
     def ApplyDownward(self, apply_fun, filter_fun = None):
         """
-        Apply "apply_fun" function to all elements of the tree.
+        Apply 'apply_fun' function to all elements of the tree.
 
         Arguments:
             apply_fun -- apply function,
@@ -740,113 +719,6 @@ class FTree:
         """
 
         self.Apply(apply_fun, filter_fun, True)
-
-#---------------------------------------------------------------------------------------------------
-
-    def FoldDepth(self, fun, acc):
-        """
-        Fold tree while depth-first search.
-
-        Arguments:
-            fun -- function,
-            acc -- accumulator.
-
-        Result:
-            Accumulator value after fold.
-        """
-
-        v = fun(self, acc)
-
-        # Now add to accumulator all children results.
-        for c in self.Children:
-            v = c.FoldDepth(fun, v)
-
-        return v
-
-#---------------------------------------------------------------------------------------------------
-# Slices.
-#---------------------------------------------------------------------------------------------------
-
-    def SliceLevel(self, level):
-        """
-        Get level slice.
-
-        Arguments:
-            level -- number of level.
-
-        Result:
-            Slice.
-        """
-
-        return self.FoldDepth(lambda t, a: a + [t] if (t.Level() == level) else a, [])
-
-#---------------------------------------------------------------------------------------------------
-
-    def SliceChildNum(self, n):
-        """
-        Slice on child number.
-
-        Arguments:
-            n -- child number.
-
-        Result:
-            Slice.
-        """
-
-        s = [self]
-        children_len = len(self.Children)
-
-        if (n >= -children_len) and (n < children_len):
-            s = s + self.Children[n].SliceChildNum(n)
-
-        return s
-
-#---------------------------------------------------------------------------------------------------
-
-    def SliceLeft(self):
-        """
-        Slice left path.
-
-        Return:
-            Slice.
-        """
-
-        return self.SliceChildNum(0)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SliceRight(self):
-        """
-        Slice left path.
-
-        Return:
-            Slice.
-        """
-
-        return self.SliceChildNum(-1)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SliceChildrenNumbers(self, ns):
-        """
-        Slice on children numbers.
-
-        Arguments:
-            ns -- children numbers.
-
-        Result:
-            Slice.
-        """
-
-        s = [self]
-        children_len = len(self.Children)
-
-        if (ns != []):
-            h = ns[0]
-            if (h >= -children_len) and (h < children_len):
-                s = s + self.Children[h].SliceChildrenNumbers(ns[1:])
-
-        return s
 
 #---------------------------------------------------------------------------------------------------
 # Gather tactics.
@@ -862,106 +734,34 @@ class FTree:
         """
 
         if not self.Has(prop):
-            self.Set(prop,
-                     sum([ch.Get(prop) * self.GetOuterWithAlternate(ch, "count", 1.0)
-                          for ch in self.Children]))
 
-#---------------------------------------------------------------------------------------------------
+            vs = [succ.Child.Get(prop) * succ.GetWithAlternate('count', 1.0)
+                  for succ in self.Succs]
 
-    def GatherTacticSumOuterProperties(self, prop):
-        """
-        Sum outer properties.
-
-        Arguments:
-            prop -- property.
-        """
-
-        assert not self.Has(prop), self.BaseStr() + " must not to have property " + prop
-
-        r = sum([self.GetOuterWithAlternate(ch, prop, 0) for ch in self.Children])
-
-        # If there is some result.
-        if r > 0:
-            self.Set(prop, r)
+            self.Set(prop, sum(vs))
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 
-    print("ftree tests:")
+    test_number = 1
 
-    # Main tree.
-    earth = FTree("planet", "Earth")
-    
-    # Continents.
-    earth.AddChildTN("continent", "Eurasia")
-    earth.AddChildTN("continent", "North America")
-    earth.AddChildTN("continent", "South America")
-    earth.AddChildTN("continent", "Africa")
-    earth.AddChildTN("continent", "Australia")
-    earth.AddChildTN("continent", "Antarctica")
-
-    # Countries.
-    with earth.FindElementByTypeName("continent", "Eurasia") as n:
-        n.AddChildTN("country", "Russia")
-        n.AddChildTN("country", "China")
-        n.AddChildTN("country", "Germany")
-    with earth.FindElementByTypeName("continent", "North America") as n:
-        n.AddChildTN("country", "USA")
-        n.AddChildTN("country", "Canada")
-    with earth.FindElementByTypeName("continent", "South America") as n:
-        n.AddChildTN("country", "Brazil")
-        n.AddChildTN("country", "Argentina")
-        n.AddChildTN("country", "Venezuela")
-    with earth.FindElementByTypeName("continent", "Africa") as n:
-        n.AddChildTN("country", "Egypt")
-        n.AddChildTN("country", "RSA")
-        n.AddChildTN("country", "Nigeria")
-    with earth.FindElementByTypeName("continent", "Australia") as n:
-        n.AddChildTN("country", "Australia")
-    with earth.FindElementByTypeName("continent", "Antarctica") as n:
-        # No countries.
+    if test_number == 1:
+        car = Tree('car', 'Toyota', 'Land Cruiser')
+        car.Set('max_speed', 300.0)
+        car.Set('weight', 2000.0)
+        car.Set('color', 'white')
+        car.AddChildTN('wheel', 'Bridgestone')
+        with car.FindElementByTypeName('wheel', 'Bridgestone') as wheel:
+            wheel.Set('color', 'black')
+            wheel.Set('height', 5.0)
+            wheel.Set('radius', 40.0)
+            wheel.InEdge().Set('count', 4)
+        car.AddChildTN('engine', 'V8')
+        car.PrintTree()
+    else:
         pass
 
-    # Cities.
-    with earth.FindElementByTypeName("country", "Russia") as n:
-        n.AddChildTN("city", "Moscow")
-        n.AddChildTN("city", "St. Petersburg")
-        n.AddChildTN("city", "Kazan")
-    with earth.FindElementByTypeName("country", "China") as n:
-        n.AddChildTN("city", "Beijing")
-        n.AddChildTN("city", "Shanghai")
-    with earth.FindElementByTypeName("country", "Germany") as n:
-        n.AddChildTN("city", "Berlin")
-        n.AddChildTN("city", "Munich")
-        n.AddChildTN("city", "Dresden")
-    with earth.FindElementByTypeName("country", "USA") as n:
-        n.AddChildTN("city", "New York")
-        n.AddChildTN("city", "Los Angeles")
-        n.AddChildTN("city", "Chicago")
-    with earth.FindElementByTypeName("country", "Canada") as n:
-        n.AddChildTN("city", "Montreal")
-    with earth.FindElementByTypeName("country", "Brazil") as n:
-        n.AddChildTN("city", "Rio de Janeiro")
-        n.AddChildTN("city", "San Paulo")
-    with earth.FindElementByTypeName("country", "Argentina") as n:
-        n.AddChildTN("city", "Buenos Aires")
-    with earth.FindElementByTypeName("country", "Venezuela") as n:
-        n.AddChildTN("city", "Caracas")
-    with earth.FindElementByTypeName("country", "Egypt") as n:
-        n.AddChildTN("city", "Cairo")
-    with earth.FindElementByTypeName("country", "RSA") as n:
-        n.AddChildTN("city", "Cape Town")
-    with earth.FindElementByTypeName("country", "Nigeria") as n:
-        n.AddChildTN("city", "Abuja")
-    with earth.FindElementByTypeName("country", "Australia") as n:
-        n.AddChildTN("city", "Sydney")
-        n.AddChildTN("city", "Melbourne")
-
-    earth.PrintTree()
-
-    # Slices.
-    for el in earth.SliceChildrenNumbers([1, 0, 2]):
-        el.PrintOne()
+#---------------------------------------------------------------------------------------------------
