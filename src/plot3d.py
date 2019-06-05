@@ -7,7 +7,7 @@ Created on Wed Jun  5 11:18:22 2019
 @author: Rybakov
 """
 
-from gsu.grid import Grid
+from gsu import Grid
 
 #---------------------------------------------------------------------------------------------------
 # Functions.
@@ -67,69 +67,22 @@ def save_plot3d(peaces, filename):
         filename -- name of file.
     """
 
-    # Count nodes.
-    nodes_count = sum([len(ps) for (d1, d2, ps) in peaces])
-    nodes_count2 = sum([d1 * d2 for (d1, d2, ps) in peaces])
-    assert nodes_count == nodes_count2, 'wrong data in surface peaces file'
+    g = Grid()
 
-    # Count rectangles.
-    triangles_count = 0
+    # Construct grid.
     for peace in peaces:
         (d1, d2, ps) = peace
-        triangles_count += (d1 - 1) * (d2 - 1)
-    triangles_count = triangles_count * 2
+        g.ConstructFromVectorsFlatMatrix(d1, d2, ps)
 
-    f = open(filename, 'w')
-
-    f.write('TITLE = "FE Surface Data ASCII"\n')
-    f.write('VARIABLES = "X", "Y", "Z"\n')
-    f.write('ZONE T="TRIANGLES", NODES="%d", ELEMENTS="%d", DATAPACKING="BLOCK", ZONETYPE="FETRIANGLE"\n'
-            % (nodes_count, triangles_count))
-
-    # Collect coordinates.
-    xs = []
-    ys = []
-    zs = []
-    for peace in peaces:
-        (d1, d2, ps) = peace
-        xs = xs + [x for (x, y, z) in ps]
-        ys = ys + [y for (x, y, z) in ps]
-        zs = zs + [z for (x, y, z) in ps]
-
-    # Print coordinates.
-    for x in xs:
-        f.write('%f ' % x)
-    f.write('\n')
-    for y in ys:
-        f.write('%f ' % y)
-    f.write('\n')
-    for z in zs:
-        f.write('%f ' % z)
-    f.write('\n')
-
-    # Print links.
-    off = 0
-    for peace in peaces:
-        (d1, d2, ps) = peace
-        for i in range(d1 - 1):
-            for j in range(d2 - 1):
-                f.write('%d %d %d\n'
-                        % ((off + 1) + i * d2 + j,
-                           (off + 1) + (i + 1) * d2 + j,
-                           (off + 1) + i * d2 + (j + 1)))
-                f.write('%d %d %d\n'
-                        % ((off + 1) + (i + 1) * d2 + j + 1,
-                           (off + 1) + (i + 1) * d2 + j,
-                           (off + 1) + i * d2 + (j + 1)))
-        off = off + d1 * d2
-
-    f.close()
+    # Export.
+    g.ExportToTecplot(filename)
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    g = Grid()
+    peaces = load_surface_peaces('faces_from_gridmaster.txt')
+    save_plot3d(peaces, 'air_inlet_3.dat')
 
 #---------------------------------------------------------------------------------------------------
