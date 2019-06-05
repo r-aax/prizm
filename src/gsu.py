@@ -9,6 +9,7 @@ Created on Wed Jun  5 13:13:50 2019
 
 from geom import Vector
 import lst
+import fun
 
 #---------------------------------------------------------------------------------------------------
 # Class node.
@@ -28,10 +29,11 @@ class Node:
 
         self.Vector = v
         self.Index = -1
+        self.Ref = None
 
 #---------------------------------------------------------------------------------------------------
 
-    def ToString(self):
+    def __repr__(self):
         """
         Convert to string.
 
@@ -39,7 +41,37 @@ class Node:
             String.
         """
 
-        return self.Vector.ToString()
+        return str(self.Vector)
+
+#---------------------------------------------------------------------------------------------------
+
+    def __lt__(self, n):
+        """
+        Overload '<'
+
+        Arguments:
+            n -- node.
+
+        Result:
+            Boolean value.
+        """
+
+        return self.Vector < n.Vector
+
+#---------------------------------------------------------------------------------------------------
+
+    def GRef(self):
+        """
+        Global recurent reference.
+
+        Result:
+            Reference.
+        """
+
+        if self.Ref == None:
+            return self
+        else:
+            return self.Ref.GRef()
 
 #---------------------------------------------------------------------------------------------------
 # Class grid.
@@ -62,7 +94,7 @@ class Edge:
 
 #---------------------------------------------------------------------------------------------------
 
-    def ToString(self):
+    def __repr__(self):
         """
         Convert to string.
 
@@ -70,7 +102,7 @@ class Edge:
             String.
         """
 
-        return '[%s - %s]' % (self.Nodes[0].ToString(), self.Nodes[1].ToString())
+        return '[%s - %s]' % (str(self.Nodes[0]), str(self.Nodes[1]))
 
 #---------------------------------------------------------------------------------------------------
 # Class grid.
@@ -94,7 +126,7 @@ class Face:
 
 #---------------------------------------------------------------------------------------------------
 
-    def ToString(self):
+    def __repr__(self):
         """
         Convert to string.
 
@@ -102,9 +134,7 @@ class Face:
             String.
         """
 
-        return '<%s, %s, %s>' % (self.Nodes[0].ToString(),
-                                 self.Nodes[1].ToString(),
-                                 self.Nodes[2].ToString())
+        return '<%s, %s, %s>' % (str(self.Nodes[0]), str(self.Nodes[1]), str(self.Nodes[2]))
 
 #---------------------------------------------------------------------------------------------------
 # Class grid.
@@ -170,15 +200,15 @@ class Grid:
 
         print('Nodes (%d):' % self.NodesCount())
         for n in self.Nodes:
-            print('    %s' % n.ToString())
+            print('    %s' % str(n))
 
         print('Edges (%d):' % self.EdgesCount())
         for e in self.Edges:
-            print('    %s' % e.ToString())
+            print('    %s' % str(e))
 
-        print('Face (%d):' % self.FacesCount())
+        print('Faces (%d):' % self.FacesCount())
         for f in self.Faces:
-            print('    %s' % f.ToString())
+            print('    %s' % str(f))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -328,6 +358,79 @@ class Grid:
         f.close()
 
 #---------------------------------------------------------------------------------------------------
+
+    def FindPairsOfNearPoints(self, eps):
+        """
+        Find pairs of points near to each other.
+
+        Arguments:
+            eps -- epsilon (if distance between points is less than eps, then points are the same).
+        """
+
+        # Sort nodes.
+        ns = self.Nodes.copy()
+        ns.sort()
+
+        # Check each pair.
+        count = 0
+        for i in range(len(ns) - 1):
+            n1 = ns[i]
+            n2 = ns[i + 1]
+            if n1.Vector.DistTo(n2.Vector) < eps:
+                n2.Ref = n1
+                count = count + 1
+
+        # Report.
+        print('FindPairsOfNearPoints : %d pairs are found.' % count)
+
+#---------------------------------------------------------------------------------------------------
+
+    def MergeNodes(self):
+        """
+        Merge nodes.
+        """
+
+        # Redirect links from b node to a node.
+        for e in self.Edges:
+            for i in range(2):
+                if e.Nodes[i].Ref != None:
+                    e.Nodes[i] = e.Nodes[i].GRef()
+        for f in self.Faces:
+            for i in range(3):
+                if f.Nodes[i].Ref != None:
+                    f.Nodes[i] = f.Nodes[i].GRef()
+
+        # Refresh nodes.
+        self.Nodes = [n for n in self.Nodes if n.Ref == None]
+
+        # Restore nodes indices again.
+        self.SetNodesIndices();
+
+#---------------------------------------------------------------------------------------------------
+
+    def SewFaces(self, eps = 1.0e-6):
+        """
+        Sew faces.
+
+        Arguments:
+            eps -- epsilon for similarity detect.
+        """
+
+        # Prepare.
+        self.SetNodesIndices()
+        for n in self.Nodes:
+            n.Flag = False
+
+        # Find nodes pairs for merge.
+        self.FindPairsOfNearPoints(eps)
+
+        # And merge them.
+        self.MergeNodes()
+
+        # TODO:
+        # Delete extra edges.
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
@@ -335,7 +438,13 @@ if __name__ == '__main__':
     g = Grid()
     g.ConstructFromVectorsFlatMatrix(3, 3, [(0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 2.0, 0.0),
                                             (1.0, 0.0, 0.0), (1.0, 1.0, 0.0), (1.0, 2.0, 0.0),
-                                            (2.0, 0.0, 0.0), (2.0, 1.0, 0.0), (2.0, 2.0, 2.0)])
+                                            (2.0, 0.0, 0.0), (2.0, 1.0, 0.0), (2.0, 2.0, 0.0)])
+    g.ConstructFromVectorsFlatMatrix(2, 2, [(0.0, 0.0, 0.0), (0.0, 1.0, 0.0),
+                                            (-1.0, 0.0, 0.0), (-1.0, 1.0, 0.0)])
+    g.Print()
+    g.SewFaces()
+    g.Print()
+
     g.ExportToTecplot('air_inlet_2.dat')
 
 #---------------------------------------------------------------------------------------------------

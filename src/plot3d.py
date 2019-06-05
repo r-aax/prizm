@@ -74,6 +74,9 @@ def save_plot3d(peaces, filename):
         (d1, d2, ps) = peace
         g.ConstructFromVectorsFlatMatrix(d1, d2, ps)
 
+    # Sew grid.
+    g.SewFaces()
+
     # Export.
     g.ExportToTecplot(filename)
 
