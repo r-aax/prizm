@@ -86,6 +86,6 @@ def save_plot3d(peaces, filename):
 
 if __name__ == '__main__':
     peaces = load_surface_peaces('faces_from_gridmaster.txt')
-    save_plot3d(peaces, 'air_inlet_3.dat')
+    save_plot3d(peaces, 'air_inlet.dat')
 
 #---------------------------------------------------------------------------------------------------

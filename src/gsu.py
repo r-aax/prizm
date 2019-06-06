@@ -332,9 +332,18 @@ class Grid:
 
         f = open(filename, 'w')
 
+        f.write('# EXPORT MODE: CHECK_POINT\n')
         f.write('TITLE = "FE Surface Data ASCII"\n')
-        f.write('VARIABLES = "X", "Y", "Z"\n')
-        f.write('ZONE T="TRIANGLES", NODES="%d", ELEMENTS="%d", DATAPACKING="BLOCK", ZONETYPE="FETRIANGLE"\n'
+        f.write('VARIABLES = "X", "Y", "Z", '
+                '"Node_HTC", "Node_Beta", '
+                '"Node_TauX", "Node_TauY", "Node_TauZ", '
+                '"T", "Hw", "Hi"\n')
+        f.write('ZONE T="TRIANGLES", '
+                'NODES="%d", '
+                'ELEMENTS="%d", '
+                'DATAPACKING="BLOCK", '
+                'ZONETYPE="FETRIANGLE" '
+                'VARLOCATION=([9-11]=CELLCENTERED)\n'
                 % (self.NodesCount(), self.FacesCount()))
 
         # Print coordinates.
@@ -347,6 +356,16 @@ class Grid:
         for n in self.Nodes:
             f.write('%f ' % n.Vector.Z)
         f.write('\n')
+
+        # 8 zeroed values (5 in nodes, 3 in faces).
+        for iteration in range(5):
+            for n in self.Nodes:
+                f.write('0.0 ')
+            f.write('\n')
+        for iteration in range(3):
+            for fc in self.Faces:
+                f.write('0.0 ')
+            f.write('\n')
 
         # Print faces.
         self.SetNodesIndices()
@@ -445,6 +464,6 @@ if __name__ == '__main__':
     g.SewFaces()
     g.Print()
 
-    g.ExportToTecplot('air_inlet_2.dat')
+    g.ExportToTecplot('test.dat')
 
 #---------------------------------------------------------------------------------------------------
