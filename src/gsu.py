@@ -278,22 +278,32 @@ class Grid:
         # Add horizontal edges.
         for r in range(h):
             for c in range(w - 1):
-                self.AddEdgeFromNodesIndices(idx(r, c), idx(r, c + 1))
+                nul = idx(r, c)
+                nur = idx(r, c + 1)
+                self.AddEdgeFromNodesIndices(nul, nur)
         # Add vertical edges.
         for r in range(h - 1):
             for c in range(w):
-                self.AddEdgeFromNodesIndices(idx(r, c), idx(r + 1, c))
+                nul = idx(r, c)
+                ndl = idx(r + 1, c)
+                self.AddEdgeFromNodesIndices(nul, ndl)
 
         # Diagonal edges.
         for r in range(h - 1):
             for c in range(w - 1):
-                self.AddEdgeFromNodesIndices(idx(r, c + 1), idx(r + 1, c))
+                nur = idx(r, c + 1)
+                ndl = idx(r + 1, c)
+                self.AddEdgeFromNodesIndices(nur, ndl)
 
         # Add faces.
         for r in range(h - 1):
             for c in range(w - 1):
-                self.AddFaceFromNodesIndices(idx(r, c), idx(r, c + 1), idx(r + 1, c))
-                self.AddFaceFromNodesIndices(idx(r, c + 1), idx(r + 1, c), idx(r + 1, c + 1))
+                nul = idx(r, c)
+                nur = idx(r, c + 1)
+                ndl = idx(r + 1, c)
+                ndr = idx(r + 1, c + 1)
+                self.AddFaceFromNodesIndices(nul, ndl, nur)
+                self.AddFaceFromNodesIndices(ndr, nur, ndl)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -339,8 +349,8 @@ class Grid:
                 '"Node_TauX", "Node_TauY", "Node_TauZ", '
                 '"T", "Hw", "Hi"\n')
         f.write('ZONE T="TRIANGLES", '
-                'NODES="%d", '
-                'ELEMENTS="%d", '
+                'NODES=%d, '
+                'ELEMENTS=%d, '
                 'DATAPACKING="BLOCK", '
                 'ZONETYPE="FETRIANGLE" '
                 'VARLOCATION=([9-11]=CELLCENTERED)\n'
