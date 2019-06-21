@@ -10,6 +10,7 @@ Created on Fri Jun 21 11:35:26 2019
 import lst
 import mth
 import fun
+import time
 
 #---------------------------------------------------------------------------------------------------
 # Class settings.
@@ -34,16 +35,17 @@ class Node:
         Constructor.
         """
 
-        self.Id = 0
+        self.Id = None
         self.IEdges = []
         self.OEdges = []
         self.Signals = []
         self.SavedSignals = []
         self.Errors = []
         self.Bias = Settings.DefaultNodeBias
-        self.Z = 0.0
-        self.A = 0.0
-        self.E = 0.0
+        self.Z = None
+        self.A = None
+        self.E = None
+        self.Mark = False
 
 #---------------------------------------------------------------------------------------------------
 
@@ -55,7 +57,7 @@ class Node:
             String.
         """
 
-        return 'Node %d : Sg/Er/B/Z/A/E = %s/%s/%f/%f/%f/%f' % (self.Id,
+        return 'Node %s : Sg/Er/B/Z/A/E = %s/%s/%s/%s/%s/%s' % (self.Id,
                                                                 self.Signals,
                                                                 self.Errors,
                                                                 self.Bias,
@@ -135,11 +137,11 @@ class Edge:
         Constructor.
         """
 
-        self.Id = 0
+        self.Id = None
         self.Src = None
         self.Dst = None
-        self.OIndex = 0
-        self.IIndex = 0
+        self.OIndex = None
+        self.IIndex = None
         self.Weight = Settings.DefaultEdgeWeight
 
 #---------------------------------------------------------------------------------------------------
@@ -152,7 +154,7 @@ class Edge:
             String.
         """
 
-        return 'Edge %d : [n%d/o%d -> n%d/i%d] W = %f' % (self.Id,
+        return 'Edge %s : [n%s/o%s -> n%s/i%s] W = %s' % (self.Id,
                                                           self.Src.Id,
                                                           self.OIndex,
                                                           self.Dst.Id,
@@ -280,13 +282,74 @@ class Net:
             print(str(edge))
 
 #---------------------------------------------------------------------------------------------------
+
+    def SenseForward(self, x):
+        """
+        Sense neuronet forward.
+
+        Arguments:
+            x -- signal.
+
+        Result:
+            Response.
+        """
+
+        if len(x) != len(self.FirstLayer):
+            raise Exception('wrong input signal size')
+
+        # Clean old data.
+        for node in self.Nodes:
+            node.Z = None
+            node.A = None
+            node.E = None
+            node.Signals = [None] * len(node.Signals)
+            node.Errors = [None] * len(node.Errors)
+            node.Mark = False
+
+        # Propagate forward.
+        for i in range(len(x)):
+            node = self.FirstLayer[i]
+            node.Signals[0] = x[i]
+            node.Mark = True
+            
+        traversal = self.FirstLayer.copy()
+
+        # Propagate signal for all neuronet.
+        while traversal != []:
+
+            # Split list.
+            h, t = traversal[0], traversal[1:]
+
+            # Check for signals ready.
+            if not h.IsSignalsReady():
+                raise Exception('no signal on neuron')
+
+            # Forward propagation for head.
+            h.ForwardPropagation()
+
+            # Add all successors of head to the end of tail.
+            for oe in h.OEdges:
+                succ = oe.Dst
+                if not succ.Mark:
+                    t.append(succ)
+                    succ.Mark = True
+
+            # Shift traversal.
+            traversal = t
+
+        return [node.A for node in self.LastLayer]
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
 
     net = Net()
-    net.CreateMultilayer([2, 2, 2])
-    net.Print()
+    net.CreateMultilayer([800, 15, 10])
+    t0 = time.clock()
+    res = net.SenseForward([0.1] * 800)
+    t1 = time.clock()
+    print('res = %s, time = %s' % (str(res), t1 - t0))
 
 #---------------------------------------------------------------------------------------------------
