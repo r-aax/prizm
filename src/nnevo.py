@@ -47,6 +47,7 @@ class Node:
         self.SavedSignals = []
         self.Errors = []
         self.Bias = Settings.DefaultNodeBias
+        self.DBias = 0.0
         self.Z = None
         self.A = None
         self.E = None
@@ -150,6 +151,7 @@ class Edge:
         self.OIndex = None
         self.IIndex = None
         self.Weight = Settings.DefaultEdgeWeight
+        self.DWeight = 0.0
 
 #---------------------------------------------------------------------------------------------------
 
@@ -416,17 +418,42 @@ class Net:
 
 #---------------------------------------------------------------------------------------------------
 
-    def CorrectWeightsAndBiases(self):
+    def ZeroDWeightsAndDBiases(self):
         """
-        Correct weights and biases.
+        Set all DWeights and DBiases to zero.
         """
-
-        eta = Settings.DefaultLearningRate
 
         for node in self.Nodes:
-            node.Bias += eta * node.E
+            node.DBias = 0.0
+            for edge in node.IEdges:
+                edge.DWeight = 0.0
+
+#---------------------------------------------------------------------------------------------------
+
+    def StoreDWeightsAndDBiases(self):
+        """
+        Store all DWeigths and DBiases.
+        """
+
+        for node in self.Nodes:
+            node.DBias += node.E
             for i in range(len(node.IEdges)):
-                node.IEdges[i].Weight += eta * node.SavedSignals[i] * node.E
+                node.IEdges[i].DWeight += (node.SavedSignals[i] * node.E)
+
+#---------------------------------------------------------------------------------------------------
+
+    def CorrectWeightsAndBiases(self, eta):
+        """
+        Correct weights and biases.
+
+        Arguments:
+            Learning speed.
+        """
+
+        for node in self.Nodes:
+            node.Bias += eta * node.DBias
+            for i in range(len(node.IEdges)):
+                node.IEdges[i].Weight += eta * node.IEdges[i].DWeight
 
 #---------------------------------------------------------------------------------------------------
 
@@ -565,26 +592,40 @@ if __name__ == '__main__':
     net = Net()
     net.CreateMultilayer([784, 15, 10])
     net.SetNodesTraversalOrder()
-    print([node.Id for node in net.Nodes])
 
     # Create parser.
     par = MNISTParser()
 
-    # Run tests.
-    tests_count = 25
     t0 = time.clock()
-    for i in range(tests_count):
-        case = par.GetCase()
-        if case == None:
-            print('no more tests')
-            break
-        else:
-            (img, lab) = case
+
+    iterations = 500
+    tests = 3
+
+    # Iterations.
+    for iteration in range(iterations):
+
+        par.ResetPointer()
+        net.ZeroDWeightsAndDBiases()
+
+        # Tests.
+        for test in range(tests):
+
+            (img, lab) = par.GetCase()
             net.SenseForward(img)
             net.SenseBack(lab)
-            net.CorrectWeightsAndBiases()
+            net.StoreDWeightsAndDBiases()
+
+        net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / tests)
+
     t1 = time.clock()
     dt = t1 - t0
     print('time = %s' % dt)
+
+    # Check.
+    par.ResetPointer()
+    for test in range(tests):
+        (img, lab) = par.GetCase()
+        a = net.SenseForward(img)
+        print(lab, [round(ai, 1) for ai in a])
 
 #---------------------------------------------------------------------------------------------------
