@@ -571,18 +571,29 @@ class MNISTParser:
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    #net = Net()
-    #sf, sm, sl = 100, 15, 10
-    #net.CreateMultilayer([sf, sm, sl])
-    #x = [0.1] * sf
-    #y = [0.2] * sl
-    #net.SingleLearn(x, y)
-    #print(net.SenseForward(x))
 
+    # Create net.
+    net = Net()
+    net.CreateMultilayer([784, 15, 10])
+
+    # Create parser.
     par = MNISTParser()
-    case = par.GetCase()
-    while case != None:
-        print(case[1])
+
+    # Run tests.
+    tests_count = 25
+    t0 = time.clock()
+    for i in range(tests_count):
         case = par.GetCase()
+        if case == None:
+            print('no more tests')
+            break
+        else:
+            (img, lab) = case
+            net.SenseForward(img)
+            net.SenseBack(lab)
+            net.CorrectWeightsAndBiases()
+    t1 = time.clock()
+    dt = t1 - t0
+    print('time = %s' % dt)
 
 #---------------------------------------------------------------------------------------------------
