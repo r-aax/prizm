@@ -33,6 +33,8 @@ class Settings:
 
 class Node:
 
+#---------------------------------------------------------------------------------------------------
+
     def __init__(self):
         """
         Constructor.
@@ -135,6 +137,8 @@ class Node:
 
 class Edge:
 
+#---------------------------------------------------------------------------------------------------
+
     def __init__(self):
         """
         Constructor.
@@ -169,6 +173,8 @@ class Edge:
 #---------------------------------------------------------------------------------------------------
 
 class Net:
+
+#---------------------------------------------------------------------------------------------------
 
     def __init__(self):
         """
@@ -460,16 +466,123 @@ class Net:
                 print('cost = %s, iter time = %s' % (c, t1 - t0))
 
 #---------------------------------------------------------------------------------------------------
+# Class MNIST parser.
+#---------------------------------------------------------------------------------------------------
+
+class MNISTParser:
+
+#---------------------------------------------------------------------------------------------------
+
+    def __init__(self,
+                 img_file = '../data/mnist/t10k-images.idx3-ubyte',
+                 lab_file = '../data/mnist/t10k-labels.idx1-ubyte'):
+        """
+        Parser initialization.
+
+        Arguments:
+            img_file -- binary file of images,
+            lab_file -- binary file of labels.
+        """
+
+        with open(img_file, 'rb') as img_bf:
+            with open(lab_file, 'rb') as lab_bf:
+                self.ImgB = img_bf.read()
+                self.LabB = lab_bf.read()
+
+                # Cut first 4 bytes.
+                img_b_803 = self.ImgB[0:4]
+                img_v_803 = int.from_bytes(img_b_803, byteorder = 'big')
+                if img_v_803 != 0x803:
+                    raise Exception('img file is corrupted')
+                lab_b_801 = self.LabB[0:4]
+                lab_v_801 = int.from_bytes(lab_b_801, byteorder = 'big')
+                if lab_v_801 != 0x801:
+                    raise Exception('lab file is corrupted')
+
+                # Count.
+                img_b_count = self.ImgB[4:8]
+                self.ImgC = int.from_bytes(img_b_count, byteorder = 'big')
+                lab_b_count = self.LabB[4:8]
+                self.LabC = int.from_bytes(lab_b_count, byteorder = 'big')
+                if self.ImgC != self.LabC:
+                    raise Exception('data is corrupted')
+
+                # Correct binaries.
+                self.ImgB = self.ImgB[8:]
+                self.LabB = self.LabB[8:]
+
+                self.ResetPointer()
+
+#---------------------------------------------------------------------------------------------------
+
+    def ResetPointer(self):
+        """
+        Set pointer to begin.
+        """
+
+        # Set pointer to current.
+        self.CurImgB = self.ImgB;
+        self.CurLabB = self.LabB;
+        self.CurImgC = self.ImgC
+
+#---------------------------------------------------------------------------------------------------
+
+    def GetCount(self):
+        """
+        Get count of cases.
+
+        Result:
+            Count of cases.
+        """
+
+        return self.CurImgC
+
+#---------------------------------------------------------------------------------------------------
+
+    def GetCase(self):
+        """
+        Get next case.
+
+        Result:
+            Next case.
+        """
+
+        if self.GetCount() == 0:
+            return None
+        else:
+
+            # Get next.
+            img_v = list(self.CurImgB[0:784])
+            lab_v = self.CurLabB[0]
+            self.CurImgB = self.CurImgB[784:]
+            self.CurLabB = self.CurLabB[1:]
+            self.CurImgC -= 1
+
+            # Convert label to prob array.
+            if lab_v > 9:
+                raise Exception('wrong label value')
+            lab_a = [0.0] * 10
+            lab_a[lab_v] = 1.0
+
+            return (img_v, lab_a)
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    net = Net()
-    sf, sm, sl = 100, 15, 10
-    net.CreateMultilayer([sf, sm, sl])
-    x = [0.1] * sf
-    y = [0.2] * sl
-    net.SingleLearn(x, y)
-    print(net.SenseForward(x))
+    #net = Net()
+    #sf, sm, sl = 100, 15, 10
+    #net.CreateMultilayer([sf, sm, sl])
+    #x = [0.1] * sf
+    #y = [0.2] * sl
+    #net.SingleLearn(x, y)
+    #print(net.SenseForward(x))
+
+    par = MNISTParser()
+    case = par.GetCase()
+    while case != None:
+        print(case[1])
+        case = par.GetCase()
 
 #---------------------------------------------------------------------------------------------------
