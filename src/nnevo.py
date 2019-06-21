@@ -340,6 +340,83 @@ class Net:
         return [node.A for node in self.LastLayer]
 
 #---------------------------------------------------------------------------------------------------
+
+    def A(self):
+        """
+        Result value.
+
+        Result:
+            Result.
+        """
+
+        return [node.A for node in self.LastLayer]
+
+#---------------------------------------------------------------------------------------------------
+
+    def Cost(self, y):
+        """
+        Calculate cost function.
+
+        Arguments:
+            y -- true result.
+
+        Result:
+            Cost function value.
+        """
+
+        return 0.5 * sum(fun.zipwith(y, self.A(), lambda a, b: (a - b) * (a - b)))
+
+#---------------------------------------------------------------------------------------------------
+
+    def SenseBack(self, y):
+        """
+        Sense neuronet back.
+
+        Arguments:
+            y -- right answer.
+        """
+
+        # Clean old data.
+        for node in self.Nodes:
+            node.Z = None
+            #node.A = None
+            node.E = None
+            node.Signals = [None] * len(node.Signals)
+            node.Errors = [None] * len(node.Errors)
+            node.Mark = False
+
+        # Propagate back.
+        for i in range(len(self.LastLayer)):
+            node = self.LastLayer[i]
+            node.Errors[0] = y[i] - node.A
+            node.Mark = True
+            
+        traversal = self.LastLayer.copy()
+
+        # Propagate signal for all neuronet in back direction.
+        while traversal != []:
+
+            # Split list.
+            h, t = traversal[0], traversal[1:]
+
+            # Check for errors ready.
+            if not h.IsErrorsReady():
+                raise Exception('no signal on neuron')
+
+            # Forward propagation for head.
+            h.BackPropagation()
+
+            # Add all successors of head to the end of tail.
+            for ie in h.IEdges:
+                pred = ie.Src
+                if not pred.Mark:
+                    t.append(pred)
+                    pred.Mark = True
+
+            # Shift traversal.
+            traversal = t
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
@@ -349,6 +426,7 @@ if __name__ == '__main__':
     net.CreateMultilayer([800, 15, 10])
     t0 = time.clock()
     res = net.SenseForward([0.1] * 800)
+    net.SenseBack([0.2] * 10)
     t1 = time.clock()
     print('res = %s, time = %s' % (str(res), t1 - t0))
 
