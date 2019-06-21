@@ -137,8 +137,8 @@ class Money:
         if hi < 0:
             hi = -hi
 
-        chopped = ut.li_chop(str(hi), -3)
-        merged = ut.li_merge(chopped, [Money.Delim] * (len(chopped) - 1))
+        chopped = ut.chop(str(hi), -3)
+        merged = ut.merge(chopped, [Money.Delim] * (len(chopped) - 1))
         return sign + reduce(lambda a, b: a + b, merged)
 
 #---------------------------------------------------------------------------------------------------

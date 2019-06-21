@@ -7,9 +7,6 @@ Created on Tue May  7 09:58:45 2019
 @author: Rybakov
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.interpolate as spi
 import aggdraw
 from PIL import Image, ImageDraw, ImageFont
 

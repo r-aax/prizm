@@ -43,6 +43,9 @@ def hypot(x, y, z = 0.0):
         x -- X size,
         y -- Y size,
         z -- Z size.
+
+    Result:
+        Hypot value.
     """
 
     return math.sqrt(x * x + y * y + z * z)
@@ -57,6 +60,9 @@ def avg_arith(vs):
 
     Arguments:
         vs -- values.
+
+    Result:
+        Arithmetic average value.
     """
 
     return sum(vs) / len(vs)
@@ -70,6 +76,9 @@ def avg_weighted(vs, ws):
     Arguments:
         vs -- values,
         ws -- weights.
+
+    Result:
+        Weighted average value.
     """
 
     return sum(fun.zipwith(vs, ws, operator.mul)) / sum(ws)
@@ -121,4 +130,3 @@ def max_with_index(a):
     return (cm, ci)
 
 #---------------------------------------------------------------------------------------------------
-
