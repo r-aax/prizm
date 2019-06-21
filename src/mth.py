@@ -130,3 +130,33 @@ def max_with_index(a):
     return (cm, ci)
 
 #---------------------------------------------------------------------------------------------------
+
+def sigmoid(x):
+    """
+    Sigmoid function.
+
+    Arguments:
+        x -- argument.
+
+    Result:
+        Result.
+    """
+
+    return 1.0 / (1.0 + math.exp(-x))
+
+#---------------------------------------------------------------------------------------------------
+
+def sigmoid_der(x):
+    """
+    Derivative of sigmoid function.
+
+    Arguments:
+        x -- argument.
+
+    Result:
+        Result.
+    """
+
+    return sigmoid(x) * (1.0 - sigmoid(x))
+
+#---------------------------------------------------------------------------------------------------

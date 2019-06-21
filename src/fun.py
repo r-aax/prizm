@@ -95,7 +95,7 @@ def concat(f, g):
     Concatenate two functions.
 
     Arguments:
-        f -- first function,,
+        f -- first function,
         g -- second function.
 
     Result:
@@ -103,6 +103,44 @@ def concat(f, g):
     """
 
     return lambda x: g(f(x))
+
+#---------------------------------------------------------------------------------------------------
+
+def is_all(l, f):
+    """
+    Check if all elements of the list satisfy the predicate.
+
+    Arguments:
+        l -- list,
+        f -- predicate.
+
+    Result:
+        True - if all elements of the list satisfy the predicate,
+        Fasle - otherwise.
+    """
+
+    for e in l:
+        if not f(e):
+            return False
+
+    return True
+
+#---------------------------------------------------------------------------------------------------
+
+def is_any(l, f):
+    """
+    Chek if any element of the list satisty the predicate.
+
+    Arguments:
+        l -- list,
+        f -- predicate.
+
+    Result:
+        True - if any element of the list satisfy the predicate,
+        False - otherwise.
+    """
+
+    return not is_all(l, lambda x: not f(x))
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
