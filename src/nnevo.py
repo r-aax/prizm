@@ -24,6 +24,9 @@ class Settings:
     # Default bias.
     DefaultNodeBias = 0.0
 
+    # Default learning rate.
+    DefaultLearningRate = 0.01
+
 #---------------------------------------------------------------------------------------------------
 # Class Node (neuron).
 #---------------------------------------------------------------------------------------------------
@@ -417,17 +420,56 @@ class Net:
             traversal = t
 
 #---------------------------------------------------------------------------------------------------
+
+    def CorrectWeightsAndBiases(self):
+        """
+        Correct weights and biases.
+        """
+
+        eta = Settings.DefaultLearningRate
+
+        for node in self.Nodes:
+            node.Bias += eta * node.E
+            for i in range(len(node.IEdges)):
+                node.IEdges[i].Weight += eta * node.SavedSignals[i] * node.E
+
+#---------------------------------------------------------------------------------------------------
+
+    def SingleLearn(self, x, y):
+        """
+        Learn on single case.
+
+        Arguments:
+            x -- input,
+            y -- right output.
+        """
+
+        while True:
+
+            t0 = time.clock()
+            self.SenseForward(x)
+            c = self.Cost(y)
+
+            if c < 0.001:
+                print('single learn : learning is finished')
+                return
+            else:
+                self.SenseBack(y)
+                self.CorrectWeightsAndBiases()
+                t1 = time.clock()
+                print('cost = %s, iter time = %s' % (c, t1 - t0))
+
+#---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-
     net = Net()
-    net.CreateMultilayer([800, 15, 10])
-    t0 = time.clock()
-    res = net.SenseForward([0.1] * 800)
-    net.SenseBack([0.2] * 10)
-    t1 = time.clock()
-    print('res = %s, time = %s' % (str(res), t1 - t0))
+    sf, sm, sl = 100, 15, 10
+    net.CreateMultilayer([sf, sm, sl])
+    x = [0.1] * sf
+    y = [0.2] * sl
+    net.SingleLearn(x, y)
+    print(net.SenseForward(x))
 
 #---------------------------------------------------------------------------------------------------
