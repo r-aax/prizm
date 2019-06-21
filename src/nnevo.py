@@ -277,18 +277,64 @@ class Net:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Print(self):
+    def SetNodesTraversalOrder(self):
+        """
+        Set nodes to right traversal order.
+        """
+
+        # First remove all signals.
+        for node in self.Nodes:
+            node.Signals = [None] * len(node.Signals)
+            node.Mark = False
+
+        # Set 0.0 signal to first layer.
+        for node in self.FirstLayer:
+            node.Signals = [0.0]
+            node.Mark = True
+
+        # First layer to new order list.
+        order = self.FirstLayer.copy()
+
+        # Begin traversal.
+        i = 0
+        while i < len(order):
+            node = order[i]
+            for oe in node.OEdges:
+                succ = oe.Dst
+                succ.Signals[oe.IIndex] = 0.0
+                if succ.IsSignalsReady():
+                    order.append(succ)
+                    succ.Mark = True
+            i += 1
+
+        # Set new nodes order.
+        self.Nodes = order
+
+        # Clean.
+        for node in self.Nodes:
+            node.Signals = [None] * len(node.Signals)
+            node.Mark = False
+
+#---------------------------------------------------------------------------------------------------
+
+    def Print(self, is_print_nodes = True, is_print_edges = False):
         """
         Print neuronet.
+
+        Arguments:
+            is_print_nodes -- flag for nodes print,
+            is_print_edges -- flag for edges print.
         """
 
-        print('Nodes (%d):' % self.NodesCount())
-        for node in self.Nodes:
-            print(str(node))
+        if is_print_nodes:
+            print('Nodes (%d):' % self.NodesCount())
+            for node in self.Nodes:
+                print(str(node))
 
-        print('Edges (%d)' % self.EdgesCount())
-        for edge in self.Edges:
-            print(str(edge))
+        if is_print_edges:
+            print('Edges (%d)' % self.EdgesCount())
+            for edge in self.Edges:
+                print(str(edge))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -310,41 +356,13 @@ class Net:
         for node in self.Nodes:
             node.Z = None
             node.A = None
-            node.E = None
             node.Signals = [None] * len(node.Signals)
-            node.Errors = [None] * len(node.Errors)
-            node.Mark = False
 
         # Propagate forward.
-        for i in range(len(x)):
-            node = self.FirstLayer[i]
-            node.Signals[0] = x[i]
-            node.Mark = True
-            
-        traversal = self.FirstLayer.copy()
-
-        # Propagate signal for all neuronet.
-        while traversal != []:
-
-            # Split list.
-            h, t = traversal[0], traversal[1:]
-
-            # Check for signals ready.
-            if not h.IsSignalsReady():
-                raise Exception('no signal on neuron')
-
-            # Forward propagation for head.
-            h.ForwardPropagation()
-
-            # Add all successors of head to the end of tail.
-            for oe in h.OEdges:
-                succ = oe.Dst
-                if not succ.Mark:
-                    t.append(succ)
-                    succ.Mark = True
-
-            # Shift traversal.
-            traversal = t
+        for i in range(len(self.FirstLayer)):
+            self.FirstLayer[i].Signals[0] = x[i]
+        for node in self.Nodes:
+            node.ForwardPropagation()
 
         return [node.A for node in self.LastLayer]
 
@@ -387,43 +405,14 @@ class Net:
 
         # Clean old data.
         for node in self.Nodes:
-            node.Z = None
-            #node.A = None
             node.E = None
-            node.Signals = [None] * len(node.Signals)
             node.Errors = [None] * len(node.Errors)
-            node.Mark = False
 
         # Propagate back.
         for i in range(len(self.LastLayer)):
-            node = self.LastLayer[i]
-            node.Errors[0] = y[i] - node.A
-            node.Mark = True
-            
-        traversal = self.LastLayer.copy()
-
-        # Propagate signal for all neuronet in back direction.
-        while traversal != []:
-
-            # Split list.
-            h, t = traversal[0], traversal[1:]
-
-            # Check for errors ready.
-            if not h.IsErrorsReady():
-                raise Exception('no signal on neuron')
-
-            # Forward propagation for head.
-            h.BackPropagation()
-
-            # Add all successors of head to the end of tail.
-            for ie in h.IEdges:
-                pred = ie.Src
-                if not pred.Mark:
-                    t.append(pred)
-                    pred.Mark = True
-
-            # Shift traversal.
-            traversal = t
+            self.LastLayer[i].Errors[0] = y[i] - node.A
+        for node in self.Nodes.__reversed__():
+            node.BackPropagation()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -575,6 +564,8 @@ if __name__ == '__main__':
     # Create net.
     net = Net()
     net.CreateMultilayer([784, 15, 10])
+    net.SetNodesTraversalOrder()
+    print([node.Id for node in net.Nodes])
 
     # Create parser.
     par = MNISTParser()
