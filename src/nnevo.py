@@ -20,7 +20,7 @@ import random
 class Settings:
 
     # Default learning rate.
-    DefaultLearningRate = 10.0
+    DefaultLearningRate = 1.0
 
 #---------------------------------------------------------------------------------------------------
 # Class Node (neuron).
@@ -436,7 +436,7 @@ class Net:
 
         # Propagate back.
         for i in range(len(self.LastLayer)):
-            self.LastLayer[i].Errors[0] = y[i] - node.A
+            self.LastLayer[i].Errors[0] = (y[i] - node.A) * node.A * (1.0 - node.A)
         for node in self.Nodes.__reversed__():
             node.BackPropagation()
 
@@ -561,41 +561,18 @@ class MNISTTests:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Cut(self, n):
+    def MiniBatches(self, size = 30):
         """
-        Cur tests.
+        Return test in mini batches.
 
         Arguments:
-            n -- target tests count.
+            size -- mini batch size.
+
+        Return:
+            Mini batches array.
         """
 
-        if (self.Count > n):
-            self.Count = n
-            self.Cases = self.Cases[:n]
-
-#---------------------------------------------------------------------------------------------------
-
-    def RandomCase(self):
-        """
-        Get random case.
-
-        Result:
-            Random case.
-        """
-
-        return self.Cases[random.randrange(self.Count)]
-
-#---------------------------------------------------------------------------------------------------
-
-    def Batch(self, n):
-        """
-        Get test batch.
-
-        Arguments:
-            n -- batch size.
-        """
-
-        return [self.RandomCase() for i in range(n)]
+        return lst.chop(self.Cases, size)
 
 #---------------------------------------------------------------------------------------------------
 # Odd-even tests.
@@ -621,41 +598,90 @@ class XorTests:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Cut(self, n):
+    def MiniBatches(self, size = 4):
         """
-        Cur tests.
+        Return test in mini batches.
 
         Arguments:
-            n -- target tests count.
+            size -- mini batch size.
+
+        Return:
+            Mini batches array.
         """
 
-        if (self.Count > n):
-            self.Count = n
-            self.Cases = self.Cases[:n]
+        return [self.Cases]
+
+#---------------------------------------------------------------------------------------------------
+# Trainer.
+#---------------------------------------------------------------------------------------------------
+
+class Trainer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def RandomCase(self):
+    def __init__(self):
         """
-        Get random case.
-
-        Result:
-            Random case.
+        Constructor.
         """
 
-        return self.Cases[random.randrange(self.Count)]
+        pass
 
 #---------------------------------------------------------------------------------------------------
 
-    def Batch(self, n):
+    def Train(self,
+              net,
+              mini_batches,
+              max_epochs_count = 1000000,
+              min_total_cost = 0.0001,
+              print_step = -1):
         """
-        Get test batch.
+        Train.
 
         Arguments:
-            n -- batch size.
+            net -- neuronet to train,
+            mini_batches -- mini batches of tests,
+            max_epochs_count -- max epochs count for training,
+            min_total_cost -- total cost for training finish,
+            print_step -- step of epochs for print (if -1 - then print is forbidden).
         """
 
-        return [self.RandomCase() for i in range(n)]
+        epoch = 0
+
+        # Calculate total cost.
+        total_cost = sum([net.TotalCost(batch) for batch in mini_batches]) / len(mini_batches)
+
+        while True:
+
+            # Check max epochs count is reached.
+            if epoch >= max_epochs_count:
+                print('max epochs count is reached', max_epochs_count)
+                return (epoch, total_cost);
+
+            # The net if educated enough.
+            if total_cost <= min_total_cost:
+                print('min total cost is reached', min_total_cost)
+                return (epoch, total_cost);
+
+            t0 = time.clock()
+
+            # Studying.
+            for batch in mini_batches:
+                net.ZeroDWeightsAndDBiases()
+                for (x, y) in batch:
+                    net.SenseForward(x)
+                    net.SenseBack(y)
+                    net.StoreDWeightsAndDBiases()
+                net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / len(batch))
+
+            # Calculate total cost.
+            total_cost = sum([net.TotalCost(batch) for batch in mini_batches]) / len(mini_batches)
+
+            t1 = time.clock()
+            dt = t1 - t0
+
+            if epoch % print_step == 0:
+                print('Epoch %d : time = %f, total_cost = %f' % (epoch, dt, total_cost))
+            epoch += 1
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -665,47 +691,20 @@ if __name__ == '__main__':
 
     # Create net.
     net = Net()
-    net.CreateMultilayer([2, 4, 1])
+    net.CreateMultilayer([784, 15, 10])
     net.SetNodesTraversalOrder()
 
     # Create parser.
-    par = XorTests()
-    par.Cut(100)
+    par = MNISTTests()
 
-    #epochs = 10000
-    print_step = 1000
-    get_batch = lambda p: par.Cases[0:4]
+    # Train.
+    trainer = Trainer()
+    res = trainer.Train(net, par.MiniBatches(2)[:1],
+                        max_epochs_count = 1000, print_step = 1)
+    print('Result : ', res)
 
-    total_cost = 2.0
-    epoch = 0
-    while total_cost > 0.00001:
-
-        t0 = time.clock()
-
-        # Get batch.
-        batch = get_batch(par)
-
-        net.ZeroDWeightsAndDBiases()
-        for (x, y) in batch:
-            net.SenseForward(x)
-            net.SenseBack(y)
-            net.StoreDWeightsAndDBiases()
-        net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / len(batch))
-        
-        t1 = time.clock()
-        dt = t1 - t0
-
-        # Print information.
-        total_cost = net.TotalCost(batch)
-        if epoch % print_step == 0:
-            print('Epoch %d : time = %f, total_cost = %f' % (epoch, dt, total_cost))
-        epoch += 1
-
-    # Check.
-    print('Check:')
-    for (x, y) in batch:
+    for (x, y) in par.MiniBatches(2)[0]:
         a = net.SenseForward(x)
-        print('ch : %s -> %s (right %s)' % (x, [round(ai, 2) for ai in a], y))
-    net.Print(is_print_edges = True)
+        print(y, 'vs', [round(ai, 2) for ai in a])
 
 #---------------------------------------------------------------------------------------------------
