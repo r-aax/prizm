@@ -364,12 +364,13 @@ class Net:
             node.Signals = [None] * len(node.Signals)
 
         # Propagate forward.
-        for i in range(len(self.FirstLayer)):
-            self.FirstLayer[i].Signals[0] = x[i]
+        # First set signals to the first layer.
+        for i, node in enumerate(self.FirstLayer):
+            node.Signals = [x[i]]
         for node in self.Nodes:
             node.ForwardPropagation()
 
-        return [node.A for node in self.LastLayer]
+        return self.A()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -396,7 +397,7 @@ class Net:
             Cost function value.
         """
 
-        return 0.5 * sum(fun.zipwith(y, self.A(), lambda a, b: (a - b) * (a - b)))
+        return 0.5 * sum([(yi - ai) * (yi - ai) for yi, ai in zip(y, self.A())])
 
 #---------------------------------------------------------------------------------------------------
 
@@ -435,8 +436,8 @@ class Net:
             node.Errors = [None] * len(node.Errors)
 
         # Propagate back.
-        for i in range(len(self.LastLayer)):
-            self.LastLayer[i].Errors[0] = (y[i] - node.A) * node.A * (1.0 - node.A)
+        for i, node in enumerate(self.LastLayer):
+            node.Errors = [(y[i] - node.A) * node.A * (1.0 - node.A)]
         for node in self.Nodes.__reversed__():
             node.BackPropagation()
 
