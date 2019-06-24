@@ -19,14 +19,8 @@ import random
 
 class Settings:
 
-    # Default weight.
-    DefaultEdgeWeight = 0.01
-
-    # Default bias.
-    DefaultNodeBias = 0.0
-
     # Default learning rate.
-    DefaultLearningRate = 3.0
+    DefaultLearningRate = 10.0
 
 #---------------------------------------------------------------------------------------------------
 # Class Node (neuron).
@@ -47,7 +41,7 @@ class Node:
         self.Signals = []
         self.SavedSignals = []
         self.Errors = []
-        self.Bias = Settings.DefaultNodeBias
+        self.Bias = 0.0
         self.DBias = 0.0
         self.Z = None
         self.A = None
@@ -151,7 +145,7 @@ class Edge:
         self.Dst = None
         self.OIndex = None
         self.IIndex = None
-        self.Weight = Settings.DefaultEdgeWeight
+        self.Weight = 1.0
         self.DWeight = 0.0
 
 #---------------------------------------------------------------------------------------------------
@@ -279,6 +273,13 @@ class Net:
             for i in range(len(node.OEdges)):
                 node.OEdges[i].OIndex = i
 
+        # Correct nodes biases and edges weights.
+        for i in range(len(self.Nodes)):
+            if i >= len(self.FirstLayer):
+                self.Nodes[i].Bias = random.gauss(0.0, 1.0)
+        for edge in self.Edges:
+            edge.Weight = random.gauss(0.0, 1.0)
+
 #---------------------------------------------------------------------------------------------------
 
     def SetNodesTraversalOrder(self):
@@ -396,6 +397,27 @@ class Net:
         """
 
         return 0.5 * sum(fun.zipwith(y, self.A(), lambda a, b: (a - b) * (a - b)))
+
+#---------------------------------------------------------------------------------------------------
+
+    def TotalCost(self, batch):
+        """
+        Calculate total cost.
+
+        Arguments:
+            batch -- batch of tests.
+
+        Result:
+            Total cost.
+        """
+
+        c = 0.0
+
+        for (x, y) in batch:
+            self.SenseForward(x)
+            c += self.Cost(y)
+
+        return c / len(batch)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -591,10 +613,10 @@ class XorTests:
         self.Count = 4
         self.Cases = \
         [
-            ([0.0, 0.0], [1.0, 0.0]),
-            ([0.0, 1.0], [0.0, 1.0]),
-            ([1.0, 0.0], [0.0, 1.0]),
-            ([1.0, 1.0], [1.0, 0.0])
+            ([0.0, 0.0], [0.0]),
+            ([0.0, 1.0], [1.0]),
+            ([1.0, 0.0], [1.0]),
+            ([1.0, 1.0], [0.0])
         ]
 
 #---------------------------------------------------------------------------------------------------
@@ -643,44 +665,47 @@ if __name__ == '__main__':
 
     # Create net.
     net = Net()
-    net.CreateMultilayer([2, 2])
+    net.CreateMultilayer([2, 4, 1])
     net.SetNodesTraversalOrder()
 
     # Create parser.
     par = XorTests()
     par.Cut(100)
 
-    t0 = time.clock()
+    #epochs = 10000
+    print_step = 1000
+    get_batch = lambda p: par.Cases[0:4]
 
-    stages = 1
-    get_batch = lambda p: par.Cases[0:1]
-    iterations = 1000
+    total_cost = 2.0
+    epoch = 0
+    while total_cost > 0.00001:
 
-    for stage in range(stages):
+        t0 = time.clock()
 
         # Get batch.
         batch = get_batch(par)
 
-        for iteration in range(iterations):
-            net.ZeroDWeightsAndDBiases()
-            for (x, y) in batch:
-                net.SenseForward(x)
-                net.SenseBack(y)
-                net.StoreDWeightsAndDBiases()
-            net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / len(batch))
+        net.ZeroDWeightsAndDBiases()
+        for (x, y) in batch:
+            net.SenseForward(x)
+            net.SenseBack(y)
+            net.StoreDWeightsAndDBiases()
+        net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / len(batch))
         
         t1 = time.clock()
         dt = t1 - t0
-        print('time = %s' %dt)
 
-        # Check.
-        net.Print(is_print_edges = True)
-        for (x, y) in batch:
-            a = net.SenseForward(x)
-            print('check   : ', x, y, [round(ai, 2) for ai in a])
-        (x, y) = ([0.0, 0.0], [1.0, 0.0])
-        az = net.SenseForward(x)
-        print('check z : ', x, y, [round(ai, 2) for ai in az])
+        # Print information.
+        total_cost = net.TotalCost(batch)
+        if epoch % print_step == 0:
+            print('Epoch %d : time = %f, total_cost = %f' % (epoch, dt, total_cost))
+        epoch += 1
 
+    # Check.
+    print('Check:')
+    for (x, y) in batch:
+        a = net.SenseForward(x)
+        print('ch : %s -> %s (right %s)' % (x, [round(ai, 2) for ai in a], y))
+    net.Print(is_print_edges = True)
 
 #---------------------------------------------------------------------------------------------------
