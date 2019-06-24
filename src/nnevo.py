@@ -98,12 +98,13 @@ class Node:
             # If there is no in edges then the node belongs to the first layer.
             # Just sum all signals.
             self.Z = sum(self.Signals)
+            self.A = self.Z
         else:
             # Node from inner layer - sum with weigths from in edges.
             self.Z = sum(fun.zipwith(self.Signals,
                                      self.IEdges,
-                                     lambda s, e: s * e.Weight))
-        self.A = mth.sigmoid(self.Z)
+                                     lambda s, e: s * e.Weight)) + self.Bias
+            self.A = mth.sigmoid(self.Z)
 
         # Propagate.
         for oe in self.OEdges:
@@ -437,7 +438,8 @@ class Net:
 
         # Propagate back.
         for i, node in enumerate(self.LastLayer):
-            node.Errors = [(y[i] - node.A) * node.A * (1.0 - node.A)]
+            a = node.A
+            node.Errors = [(a - y[i]) * a * (1.0 - a)]
         for node in self.Nodes.__reversed__():
             node.BackPropagation()
 
@@ -450,8 +452,8 @@ class Net:
 
         for node in self.Nodes:
             node.DBias = 0.0
-            for edge in node.IEdges:
-                edge.DWeight = 0.0
+        for edge in self.Edges:
+            edge.DWeight = 0.0
 
 #---------------------------------------------------------------------------------------------------
 
@@ -475,36 +477,11 @@ class Net:
             Learning speed.
         """
 
-        for node in self.Nodes:
-            node.Bias += eta * node.DBias
-            for i in range(len(node.IEdges)):
-                node.IEdges[i].Weight += eta * node.IEdges[i].DWeight
-
-#---------------------------------------------------------------------------------------------------
-
-    def SingleLearn(self, x, y):
-        """
-        Learn on single case.
-
-        Arguments:
-            x -- input,
-            y -- right output.
-        """
-
-        while True:
-
-            t0 = time.clock()
-            self.SenseForward(x)
-            c = self.Cost(y)
-
-            if c < 0.001:
-                print('single learn : learning is finished')
-                return
-            else:
-                self.SenseBack(y)
-                self.CorrectWeightsAndBiases()
-                t1 = time.clock()
-                print('cost = %s, iter time = %s' % (c, t1 - t0))
+        for i, node in enumerate(self.Nodes):
+            if i >= len(self.FirstLayer):
+                node.Bias -= eta * node.DBias
+        for edge in self.Edges:
+            edge.Weight -= eta * edge.DWeight
 
 #---------------------------------------------------------------------------------------------------
 # Class MNIST tests.
@@ -700,11 +677,11 @@ if __name__ == '__main__':
 
     # Train.
     trainer = Trainer()
-    res = trainer.Train(net, par.MiniBatches(2)[:1],
+    res = trainer.Train(net, par.MiniBatches(5)[:1],
                         max_epochs_count = 1000, print_step = 1)
     print('Result : ', res)
 
-    for (x, y) in par.MiniBatches(2)[0]:
+    for (x, y) in par.MiniBatches(5)[0]:
         a = net.SenseForward(x)
         print(y, 'vs', [round(ai, 2) for ai in a])
 
