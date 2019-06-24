@@ -26,7 +26,7 @@ class Settings:
     DefaultNodeBias = 0.0
 
     # Default learning rate.
-    DefaultLearningRate = 0.1
+    DefaultLearningRate = 3.0
 
 #---------------------------------------------------------------------------------------------------
 # Class Node (neuron).
@@ -99,10 +99,16 @@ class Node:
         Forward propagation of the signal.
         """
 
-        # Calculate out signal.
-        self.Z = sum(fun.zipwith(self.Signals,
-                                 self.IEdges,
-                                 lambda s, e: s * e.Weight))
+        # Calculate complete input signal.
+        if (self.IEdges == []):
+            # If there is no in edges then the node belongs to the first layer.
+            # Just sum all signals.
+            self.Z = sum(self.Signals)
+        else:
+            # Node from inner layer - sum with weigths from in edges.
+            self.Z = sum(fun.zipwith(self.Signals,
+                                     self.IEdges,
+                                     lambda s, e: s * e.Weight))
         self.A = mth.sigmoid(self.Z)
 
         # Propagate.
@@ -585,10 +591,10 @@ class XorTests:
         self.Count = 4
         self.Cases = \
         [
-            ([0.0, 0.0], [0.0]),
-            ([0.0, 1.0], [1.0]),
-            ([1.0, 0.0], [1.0]),
-            ([1.0, 1.0], [0.0])
+            ([0.0, 0.0], [1.0, 0.0]),
+            ([0.0, 1.0], [0.0, 1.0]),
+            ([1.0, 0.0], [0.0, 1.0]),
+            ([1.0, 1.0], [1.0, 0.0])
         ]
 
 #---------------------------------------------------------------------------------------------------
@@ -637,7 +643,7 @@ if __name__ == '__main__':
 
     # Create net.
     net = Net()
-    net.CreateMultilayer([2, 1])
+    net.CreateMultilayer([2, 2])
     net.SetNodesTraversalOrder()
 
     # Create parser.
@@ -647,13 +653,13 @@ if __name__ == '__main__':
     t0 = time.clock()
 
     stages = 1
-    tests = 1
-    iterations = 5
+    get_batch = lambda p: par.Cases[0:1]
+    iterations = 1000
 
     for stage in range(stages):
 
         # Get batch.
-        batch = par.Cases[1:2] #par.Batch(tests)
+        batch = get_batch(par)
 
         for iteration in range(iterations):
             net.ZeroDWeightsAndDBiases()
@@ -661,7 +667,7 @@ if __name__ == '__main__':
                 net.SenseForward(x)
                 net.SenseBack(y)
                 net.StoreDWeightsAndDBiases()
-            net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / tests)
+            net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / len(batch))
         
         t1 = time.clock()
         dt = t1 - t0
@@ -672,7 +678,7 @@ if __name__ == '__main__':
         for (x, y) in batch:
             a = net.SenseForward(x)
             print('check   : ', x, y, [round(ai, 2) for ai in a])
-        (x, y) = ([0.0, 0.0], [0.0])
+        (x, y) = ([0.0, 0.0], [1.0, 0.0])
         az = net.SenseForward(x)
         print('check z : ', x, y, [round(ai, 2) for ai in az])
 
