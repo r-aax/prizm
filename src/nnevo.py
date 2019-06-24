@@ -11,6 +11,7 @@ import lst
 import mth
 import fun
 import time
+import random
 
 #---------------------------------------------------------------------------------------------------
 # Class settings.
@@ -25,7 +26,7 @@ class Settings:
     DefaultNodeBias = 0.0
 
     # Default learning rate.
-    DefaultLearningRate = 0.01
+    DefaultLearningRate = 0.1
 
 #---------------------------------------------------------------------------------------------------
 # Class Node (neuron).
@@ -63,13 +64,7 @@ class Node:
             String.
         """
 
-        return 'Node %s : Sg/Er/B/Z/A/E = %s/%s/%s/%s/%s/%s' % (self.Id,
-                                                                self.Signals,
-                                                                self.Errors,
-                                                                self.Bias,
-                                                                self.Z,
-                                                                self.A,
-                                                                self.E)
+        return 'Node %s : B = %s, dB = %s' % (self.Id, self.Bias, self.DBias)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -163,12 +158,13 @@ class Edge:
             String.
         """
 
-        return 'Edge %s : [n%s/o%s -> n%s/i%s] W = %s' % (self.Id,
-                                                          self.Src.Id,
-                                                          self.OIndex,
-                                                          self.Dst.Id,
-                                                          self.IIndex,
-                                                          self.Weight)
+        return 'Edge %s : [n%s/o%s -> n%s/i%s] : W = %s, dW = %s' % (self.Id,
+                                                                     self.Src.Id,
+                                                                     self.OIndex,
+                                                                     self.Dst.Id,
+                                                                     self.IIndex,
+                                                                     self.Weight,
+                                                                     self.DWeight)
 
 #---------------------------------------------------------------------------------------------------
 # Class Net.
@@ -482,105 +478,156 @@ class Net:
                 print('cost = %s, iter time = %s' % (c, t1 - t0))
 
 #---------------------------------------------------------------------------------------------------
-# Class MNIST parser.
+# Class MNIST tests.
 #---------------------------------------------------------------------------------------------------
 
-class MNISTParser:
+class MNISTTests:
 
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self,
-                 img_file = '../data/mnist/t10k-images.idx3-ubyte',
-                 lab_file = '../data/mnist/t10k-labels.idx1-ubyte'):
+                 imgs_file = '../data/mnist/t10k-images.idx3-ubyte',
+                 labs_file = '../data/mnist/t10k-labels.idx1-ubyte'):
         """
         Parser initialization.
 
         Arguments:
-            img_file -- binary file of images,
-            lab_file -- binary file of labels.
+            imgs_file -- binary file of images,
+            labs_file -- binary file of labels.
         """
 
-        with open(img_file, 'rb') as img_bf:
-            with open(lab_file, 'rb') as lab_bf:
-                self.ImgB = img_bf.read()
-                self.LabB = lab_bf.read()
+        with open(imgs_file, 'rb') as imgs_bf:
+            with open(labs_file, 'rb') as labs_bf:
+                imgs_b, labs_b = imgs_bf.read(), labs_bf.read()
 
                 # Cut first 4 bytes.
-                img_b_803 = self.ImgB[0:4]
-                img_v_803 = int.from_bytes(img_b_803, byteorder = 'big')
-                if img_v_803 != 0x803:
+                imgs_b_803, labs_b_801 = imgs_b[0:4], labs_b[0:4]
+                imgs_v_803 = int.from_bytes(imgs_b_803, byteorder = 'big')
+                labs_v_801 = int.from_bytes(labs_b_801, byteorder = 'big')
+                if imgs_v_803 != 0x803:
                     raise Exception('img file is corrupted')
-                lab_b_801 = self.LabB[0:4]
-                lab_v_801 = int.from_bytes(lab_b_801, byteorder = 'big')
-                if lab_v_801 != 0x801:
+                if labs_v_801 != 0x801:
                     raise Exception('lab file is corrupted')
 
                 # Count.
-                img_b_count = self.ImgB[4:8]
-                self.ImgC = int.from_bytes(img_b_count, byteorder = 'big')
-                lab_b_count = self.LabB[4:8]
-                self.LabC = int.from_bytes(lab_b_count, byteorder = 'big')
-                if self.ImgC != self.LabC:
+                imgs_b_count, labs_b_count = imgs_b[4:8], labs_b[4:8]
+                self.Count = int.from_bytes(imgs_b_count, byteorder = 'big')
+                labs_count = int.from_bytes(labs_b_count, byteorder = 'big')
+                if self.Count != labs_count:
                     raise Exception('data is corrupted')
 
                 # Correct binaries.
-                self.ImgB = self.ImgB[8:]
-                self.LabB = self.LabB[8:]
+                imgs_b, labs_b = imgs_b[8:], labs_b[8:]
 
-                self.ResetPointer()
-
-#---------------------------------------------------------------------------------------------------
-
-    def ResetPointer(self):
-        """
-        Set pointer to begin.
-        """
-
-        # Set pointer to current.
-        self.CurImgB = self.ImgB;
-        self.CurLabB = self.LabB;
-        self.CurImgC = self.ImgC
+                # Cut binaries.
+                s = 784
+                self.Cases = []
+                for i in range(self.Count):
+                    img_v = [v / 255.0 for v in list(imgs_b[i * s : (i + 1) * s])]
+                    lab_v = labs_b[i]
+                    if lab_v > 9:
+                        raise Exception('wrong label value')
+                    lab_a = [0.0] * 10
+                    lab_a[lab_v] = 1.0
+                    self.Cases.append((img_v, lab_a))
 
 #---------------------------------------------------------------------------------------------------
 
-    def GetCount(self):
+    def Cut(self, n):
         """
-        Get count of cases.
+        Cur tests.
+
+        Arguments:
+            n -- target tests count.
+        """
+
+        if (self.Count > n):
+            self.Count = n
+            self.Cases = self.Cases[:n]
+
+#---------------------------------------------------------------------------------------------------
+
+    def RandomCase(self):
+        """
+        Get random case.
 
         Result:
-            Count of cases.
+            Random case.
         """
 
-        return self.CurImgC
+        return self.Cases[random.randrange(self.Count)]
 
 #---------------------------------------------------------------------------------------------------
 
-    def GetCase(self):
+    def Batch(self, n):
         """
-        Get next case.
+        Get test batch.
+
+        Arguments:
+            n -- batch size.
+        """
+
+        return [self.RandomCase() for i in range(n)]
+
+#---------------------------------------------------------------------------------------------------
+# Odd-even tests.
+#---------------------------------------------------------------------------------------------------
+
+class XorTests:
+
+#---------------------------------------------------------------------------------------------------
+
+    def __init__(self):
+        """
+        Initialize tests.
+        """
+
+        self.Count = 4
+        self.Cases = \
+        [
+            ([0.0, 0.0], [0.0]),
+            ([0.0, 1.0], [1.0]),
+            ([1.0, 0.0], [1.0]),
+            ([1.0, 1.0], [0.0])
+        ]
+
+#---------------------------------------------------------------------------------------------------
+
+    def Cut(self, n):
+        """
+        Cur tests.
+
+        Arguments:
+            n -- target tests count.
+        """
+
+        if (self.Count > n):
+            self.Count = n
+            self.Cases = self.Cases[:n]
+
+#---------------------------------------------------------------------------------------------------
+
+    def RandomCase(self):
+        """
+        Get random case.
 
         Result:
-            Next case.
+            Random case.
         """
 
-        if self.GetCount() == 0:
-            return None
-        else:
+        return self.Cases[random.randrange(self.Count)]
 
-            # Get next.
-            img_v = list(self.CurImgB[0:784])
-            lab_v = self.CurLabB[0]
-            self.CurImgB = self.CurImgB[784:]
-            self.CurLabB = self.CurLabB[1:]
-            self.CurImgC -= 1
+#---------------------------------------------------------------------------------------------------
 
-            # Convert label to prob array.
-            if lab_v > 9:
-                raise Exception('wrong label value')
-            lab_a = [0.0] * 10
-            lab_a[lab_v] = 1.0
+    def Batch(self, n):
+        """
+        Get test batch.
 
-            return (img_v, lab_a)
+        Arguments:
+            n -- batch size.
+        """
+
+        return [self.RandomCase() for i in range(n)]
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
@@ -590,42 +637,44 @@ if __name__ == '__main__':
 
     # Create net.
     net = Net()
-    net.CreateMultilayer([784, 15, 10])
+    net.CreateMultilayer([2, 1])
     net.SetNodesTraversalOrder()
 
     # Create parser.
-    par = MNISTParser()
+    par = XorTests()
+    par.Cut(100)
 
     t0 = time.clock()
 
-    iterations = 500
-    tests = 3
+    stages = 1
+    tests = 1
+    iterations = 5
 
-    # Iterations.
-    for iteration in range(iterations):
+    for stage in range(stages):
 
-        par.ResetPointer()
-        net.ZeroDWeightsAndDBiases()
+        # Get batch.
+        batch = par.Cases[1:2] #par.Batch(tests)
 
-        # Tests.
-        for test in range(tests):
+        for iteration in range(iterations):
+            net.ZeroDWeightsAndDBiases()
+            for (x, y) in batch:
+                net.SenseForward(x)
+                net.SenseBack(y)
+                net.StoreDWeightsAndDBiases()
+            net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / tests)
+        
+        t1 = time.clock()
+        dt = t1 - t0
+        print('time = %s' %dt)
 
-            (img, lab) = par.GetCase()
-            net.SenseForward(img)
-            net.SenseBack(lab)
-            net.StoreDWeightsAndDBiases()
+        # Check.
+        net.Print(is_print_edges = True)
+        for (x, y) in batch:
+            a = net.SenseForward(x)
+            print('check   : ', x, y, [round(ai, 2) for ai in a])
+        (x, y) = ([0.0, 0.0], [0.0])
+        az = net.SenseForward(x)
+        print('check z : ', x, y, [round(ai, 2) for ai in az])
 
-        net.CorrectWeightsAndBiases(Settings.DefaultLearningRate / tests)
-
-    t1 = time.clock()
-    dt = t1 - t0
-    print('time = %s' % dt)
-
-    # Check.
-    par.ResetPointer()
-    for test in range(tests):
-        (img, lab) = par.GetCase()
-        a = net.SenseForward(img)
-        print(lab, [round(ai, 1) for ai in a])
 
 #---------------------------------------------------------------------------------------------------
