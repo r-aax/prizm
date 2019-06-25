@@ -38,8 +38,8 @@ class Node:
         self.Id = None
         self.IEdges = []
         self.OEdges = []
-        self.Bias = 0.0
-        self.DBias = 0.0
+        self.B = 0.0
+        self.dB = 0.0
         self.A = None
         self.E = None
         self.Mark = False
@@ -54,7 +54,7 @@ class Node:
             String.
         """
 
-        return 'Node %s : B = %s' % (self.Id, self.Bias)
+        return 'Node %s : B = %s' % (self.Id, self.B)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -114,17 +114,9 @@ class Node:
         Forward propagation of the signal.
         """
 
-        # Calculate complete input signal.
-        if (self.IEdges == []):
-
-            # First layer - no input signals.
-            # Output signal is already set to self.A.
-            pass
-
-        else:
-            # Node from inner layer - sum with weigths from in edges.
-            z = sum([e.S * e.Weight for e in self.IEdges]) + self.Bias
-            self.A = mth.sigmoid(z)
+        # We need calculate self.A only for work nodes.
+        if self.IEdges != []:
+            self.A = mth.sigmoid(sum([e.S * e.W for e in self.IEdges]) + self.B)
 
         # Propagate.
         for oe in self.OEdges:
@@ -137,15 +129,13 @@ class Node:
         Back propagation of the error.
         """
 
-        # Calculate total error.
-        if self.OEdges == []:
-            pass
-        else:
+        # Calculate error for nodes not from the last layer.
+        if self.OEdges != []:
             self.E = sum(self.Errors()) * self.A * (1.0 - self.A)
 
         # Propagate.
         for ie in self.IEdges:
-            ie.E = self.E * ie.Weight
+            ie.E = self.E * ie.W
 
 #---------------------------------------------------------------------------------------------------
 # Class Edge.
@@ -164,8 +154,8 @@ class Edge:
         self.Src = None
         self.Dst = None
         self.S = None
-        self.Weight = 1.0
-        self.DWeight = 0.0
+        self.W = 1.0
+        self.dW = 0.0
         self.E = None
 
 #---------------------------------------------------------------------------------------------------
@@ -178,7 +168,7 @@ class Edge:
             String.
         """
 
-        return 'Edge %s : [%s -> %s] : W = %s' % (self.Id, self.Src.Id, self.Dst.Id, self.Weight)
+        return 'Edge %s : [%s -> %s] : W = %s' % (self.Id, self.Src.Id, self.Dst.Id, self.W)
 
 #---------------------------------------------------------------------------------------------------
 # Class Net.
@@ -274,9 +264,9 @@ class Net:
 
         # Correct nodes biases and edges weights.
         for n in self.WorkNodes:
-            n.Bias = random.gauss(0.0, 1.0)
+            n.B = random.gauss(0.0, 1.0)
         for e in self.Edges:
-            e.Weight = random.gauss(0.0, 1.0)
+            e.W = random.gauss(0.0, 1.0)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -454,9 +444,9 @@ class Net:
         """
 
         for n in self.Nodes:
-            n.DBias = 0.0
+            n.dB = 0.0
         for e in self.Edges:
-            e.DWeight = 0.0
+            e.dW = 0.0
 
 #---------------------------------------------------------------------------------------------------
 
@@ -466,9 +456,9 @@ class Net:
         """
 
         for n in self.Nodes:
-            n.DBias += n.E
+            n.dB += n.E
             for i, e in enumerate(n.IEdges):
-                e.DWeight += (e.S * n.E)
+                e.dW += (e.S * n.E)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -481,9 +471,9 @@ class Net:
         """
 
         for n in self.WorkNodes:
-            n.Bias -= eta * n.DBias
+            n.B -= eta * n.dB
         for e in self.Edges:
-            e.Weight -= eta * e.DWeight
+            e.W -= eta * e.dW
 
 #---------------------------------------------------------------------------------------------------
 # Class MNIST tests.
