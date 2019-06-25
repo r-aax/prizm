@@ -38,7 +38,6 @@ class Node:
         self.Id = None
         self.IEdges = []
         self.OEdges = []
-        self.Errors = []
         self.Bias = 0.0
         self.DBias = 0.0
         self.A = None
@@ -61,13 +60,25 @@ class Node:
 
     def Signals(self):
         """
-        Signala vector.
+        Signals vector.
 
         Result:
             Signals.
         """
 
         return [e.S for e in self.IEdges]
+
+#---------------------------------------------------------------------------------------------------
+
+    def Errors(self):
+        """
+        Errors vector.
+
+        Result:
+            Errors.
+        """
+
+        return [e.E for e in self.OEdges]
 
 #---------------------------------------------------------------------------------------------------
 
@@ -94,7 +105,7 @@ class Node:
             False - otherwise.
         """
 
-        return fun.is_all(self.Errors, lambda x: x != None)
+        return fun.is_all(self.Errors(), lambda x: x != None)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -127,11 +138,14 @@ class Node:
         """
 
         # Calculate total error.
-        self.E = sum(self.Errors) * self.A * (1.0 - self.A)
+        if self.OEdges == []:
+            pass
+        else:
+            self.E = sum(self.Errors()) * self.A * (1.0 - self.A)
 
         # Propagate.
         for ie in self.IEdges:
-            ie.Src.Errors[ie.OIndex] = self.E * ie.Weight
+            ie.E = self.E * ie.Weight
 
 #---------------------------------------------------------------------------------------------------
 # Class Edge.
@@ -154,6 +168,7 @@ class Edge:
         self.S = None
         self.Weight = 1.0
         self.DWeight = 0.0
+        self.E = None
 
 #---------------------------------------------------------------------------------------------------
 
@@ -219,7 +234,6 @@ class Net:
         e.Src = src
         e.Dst = dst
         src.OEdges.append(e);
-        src.Errors.append(None);
         dst.IEdges.append(e);
         self.Edges.append(e);
 
@@ -251,10 +265,6 @@ class Net:
         self.HiddenNodes = nodes[first_layer_size:-last_layer_size]
         self.LastLayer = nodes[-last_layer_size:]
         self.WorkNodes = nodes[first_layer_size:]
-
-        # Last layer has errors.
-        for n in self.LastLayer:
-            n.Errors = [None]
 
         # Nodes ids.
         for i, node in enumerate(self.Nodes):
@@ -444,12 +454,10 @@ class Net:
         # Clean old data.
         for n in self.Nodes:
             n.E = None
-            n.Errors = [None] * len(n.Errors)
 
         # Propagate back.
         for i, n in enumerate(self.LastLayer):
-            a = n.A
-            n.Errors = [(a - y[i]) * a * (1.0 - a)]
+            n.E = (n.A - y[i]) * n.A * (1.0 - n.A)
         for n in self.Nodes.__reversed__():
             n.BackPropagation()
 
