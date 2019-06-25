@@ -20,7 +20,7 @@ import random
 class Settings:
 
     # Default learning rate.
-    DefaultLearningRate = 1.0
+    DefaultLearningRate = 3.0
 
 #---------------------------------------------------------------------------------------------------
 # Class Node (neuron).
@@ -43,7 +43,6 @@ class Node:
         self.Errors = []
         self.Bias = 0.0
         self.DBias = 0.0
-        self.Z = None
         self.A = None
         self.E = None
         self.Mark = False
@@ -97,14 +96,14 @@ class Node:
         if (self.IEdges == []):
             # If there is no in edges then the node belongs to the first layer.
             # Just sum all signals.
-            self.Z = sum(self.Signals)
-            self.A = self.Z
+            z = sum(self.Signals)
+            self.A = z
         else:
             # Node from inner layer - sum with weigths from in edges.
-            self.Z = sum(fun.zipwith(self.Signals,
-                                     self.IEdges,
-                                     lambda s, e: s * e.Weight)) + self.Bias
-            self.A = mth.sigmoid(self.Z)
+            z = sum(fun.zipwith(self.Signals,
+                                self.IEdges,
+                                lambda s, e: s * e.Weight)) + self.Bias
+            self.A = mth.sigmoid(z)
 
         # Propagate.
         for oe in self.OEdges:
@@ -360,7 +359,6 @@ class Net:
 
         # Clean old data.
         for node in self.Nodes:
-            node.Z = None
             node.A = None
             node.Signals = [None] * len(node.Signals)
 
@@ -677,11 +675,11 @@ if __name__ == '__main__':
 
     # Train.
     trainer = Trainer()
-    res = trainer.Train(net, par.MiniBatches(5)[:1],
+    res = trainer.Train(net, par.MiniBatches(10)[:1],
                         max_epochs_count = 1000, print_step = 1)
     print('Result : ', res)
 
-    for (x, y) in par.MiniBatches(5)[0]:
+    for (x, y) in par.MiniBatches(10)[0]:
         a = net.SenseForward(x)
         print(y, 'vs', [round(ai, 2) for ai in a])
 
