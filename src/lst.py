@@ -29,24 +29,6 @@ def rnd_01(n):
 
 #---------------------------------------------------------------------------------------------------
 
-def last(a):
-    """
-    Last element of the list.
-
-    Arguments:
-        a -- list.
-
-    Result:
-        Last element.
-    """
-
-    if a == []:
-        return None
-    else:
-        return a[len(a) - 1]
-
-#---------------------------------------------------------------------------------------------------
-
 def is_flat(a):
     """
     Check if a list is flat.
@@ -244,8 +226,6 @@ def descartes_product(a, b):
 
 if __name__ == '__main__':
 
-    assert last([1, 2, 3]) == 3
-    #
     assert is_flat([1, 2, 3])
     assert not is_flat([1, [2], 3])
     #

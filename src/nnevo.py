@@ -38,8 +38,6 @@ class Node:
         self.Id = None
         self.IEdges = []
         self.OEdges = []
-        self.Signals = []
-        self.SavedSignals = []
         self.Errors = []
         self.Bias = 0.0
         self.DBias = 0.0
@@ -61,6 +59,19 @@ class Node:
 
 #---------------------------------------------------------------------------------------------------
 
+    def Signals(self):
+        """
+        Signala vector.
+
+        Result:
+            Signals.
+        """
+
+        return [e.S for e in self.IEdges]
+
+#---------------------------------------------------------------------------------------------------
+
+
     def IsSignalsReady(self):
         """
         Check if signals are ready.
@@ -70,7 +81,7 @@ class Node:
             Faslse - otherwise.
         """
 
-        return fun.is_all(self.Signals, lambda x: x != None)
+        return fun.is_all(self.Signals(), lambda x: x != None)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -94,24 +105,19 @@ class Node:
 
         # Calculate complete input signal.
         if (self.IEdges == []):
-            # If there is no in edges then the node belongs to the first layer.
-            # Just sum all signals.
-            z = sum(self.Signals)
-            self.A = z
+
+            # First layer - no input signals.
+            # Output signal is already set to self.A.
+            pass
+
         else:
             # Node from inner layer - sum with weigths from in edges.
-            z = sum(fun.zipwith(self.Signals,
-                                self.IEdges,
-                                lambda s, e: s * e.Weight)) + self.Bias
+            z = sum([e.S * e.Weight for e in self.IEdges]) + self.Bias
             self.A = mth.sigmoid(z)
 
         # Propagate.
         for oe in self.OEdges:
-            oe.Dst.Signals[oe.IIndex] = self.A
-
-        # Save signals.
-        self.SavedSignals = self.Signals
-        self.Signals = [None] * len(self.SavedSignals)
+            oe.S = self.A
 
 #---------------------------------------------------------------------------------------------------
 
@@ -145,6 +151,7 @@ class Edge:
         self.Dst = None
         self.OIndex = None
         self.IIndex = None
+        self.S = None
         self.Weight = 1.0
         self.DWeight = 0.0
 
@@ -214,12 +221,11 @@ class Net:
         src.OEdges.append(e);
         src.Errors.append(None);
         dst.IEdges.append(e);
-        dst.Signals.append(None);
         self.Edges.append(e);
 
 #---------------------------------------------------------------------------------------------------
 
-    def CreateMultilayer(self, LayersSizes):
+    def CreateMultilayer(self, layers_sizes):
         """
         Create multilayer net.
 
@@ -228,16 +234,16 @@ class Net:
         """
 
         # Check the layers count.
-        if len(LayersSizes) < 2:
+        if len(layers_sizes) < 2:
             raise Exception('not enough layers (must be >= 2)')
 
         # Create all nodes.
-        layers = [[Node() for _ in range(LayerSize)] for LayerSize in LayersSizes]
+        layers = [[Node() for _ in range(layer_size)] for layer_size in layers_sizes]
         nodes = lst.flatten(layers)
 
         # First and last layers sizes.
-        first_layer_size = LayersSizes[0]
-        last_layer_size = LayersSizes[-1]
+        first_layer_size = layers_sizes[0]
+        last_layer_size = layers_sizes[-1]
 
         # Set links to nodes.
         self.Nodes = nodes
@@ -246,13 +252,9 @@ class Net:
         self.LastLayer = nodes[-last_layer_size:]
         self.WorkNodes = nodes[first_layer_size:]
 
-        # First layer has signals.
-        for node in self.FirstLayer:
-            node.Signals = [None]
-
         # Last layer has errors.
-        for node in self.LastLayer:
-            node.Errors = [None]
+        for n in self.LastLayer:
+            n.Errors = [None]
 
         # Nodes ids.
         for i, node in enumerate(self.Nodes):
@@ -265,21 +267,21 @@ class Net:
                     self.AddEdge(src, dst)
 
         # Edges ids.
-        for i, edge in enumerate(self.Edges):
-            edge.Id = i
+        for i, e in enumerate(self.Edges):
+            e.Id = i
 
         # Correct indices.
-        for node in self.Nodes:
-            for i, edge in enumerate(node.IEdges):
-                edge.IIndex = i
-            for i, edge in enumerate(node.OEdges):
-                edge.OIndex = i
+        for n in self.Nodes:
+            for i, e in enumerate(n.IEdges):
+                e.IIndex = i
+            for i, e in enumerate(n.OEdges):
+                e.OIndex = i
 
         # Correct nodes biases and edges weights.
-        for node in self.WorkNodes:
-            node.Bias = random.gauss(0.0, 1.0)
-        for edge in self.Edges:
-            edge.Weight = random.gauss(0.0, 1.0)
+        for n in self.WorkNodes:
+            n.Bias = random.gauss(0.0, 1.0)
+        for e in self.Edges:
+            e.Weight = random.gauss(0.0, 1.0)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -289,14 +291,16 @@ class Net:
         """
 
         # Set 0.0 signal to first layer.
-        for node in self.FirstLayer:
-            node.Signals = [0.0]
-            node.Mark = True
+        for n in self.FirstLayer:
+            n.Mark = True
 
         # First remove all signals.
-        for node in self.WorkNodes:
-            node.Signals = [None] * len(node.Signals)
-            node.Mark = False
+        for n in self.WorkNodes:
+            n.Mark = False
+
+        # Clean signals.
+        for e in self.Edges:
+            e.S = None
 
         # First layer to new order list.
         order = self.FirstLayer.copy()
@@ -304,10 +308,10 @@ class Net:
         # Begin traversal.
         i = 0
         while i < len(order):
-            node = order[i]
-            for oe in node.OEdges:
+            n = order[i]
+            for oe in n.OEdges:
+                oe.S = 0.0
                 succ = oe.Dst
-                succ.Signals[oe.IIndex] = 0.0
                 if succ.Mark == False:
                     if succ.IsSignalsReady():
                         order.append(succ)
@@ -317,10 +321,13 @@ class Net:
         # Set new nodes order.
         self.Nodes = order
 
+        # Clean signals.
+        for e in self.Edges:
+            e.S = None
+
         # Clean.
-        for node in self.Nodes:
-            node.Signals = [None] * len(node.Signals)
-            node.Mark = False
+        for n in self.Nodes:
+            n.Mark = False
 
 #---------------------------------------------------------------------------------------------------
 
@@ -359,17 +366,20 @@ class Net:
         if len(x) != len(self.FirstLayer):
             raise Exception('wrong input signal size')
 
+        # Clean signals.
+        for e in self.Edges:
+            e.S = None
+
         # Clean old data.
-        for node in self.Nodes:
-            node.A = None
-            node.Signals = [None] * len(node.Signals)
+        for n in self.Nodes:
+            n.A = None
 
         # Propagate forward.
         # First set signals to the first layer.
-        for i, node in enumerate(self.FirstLayer):
-            node.Signals = [x[i]]
-        for node in self.Nodes:
-            node.ForwardPropagation()
+        for i, n in enumerate(self.FirstLayer):
+            n.A = x[i]
+        for n in self.Nodes:
+            n.ForwardPropagation()
 
         return self.A()
 
@@ -383,7 +393,7 @@ class Net:
             Result.
         """
 
-        return [node.A for node in self.LastLayer]
+        return [n.A for n in self.LastLayer]
 
 #---------------------------------------------------------------------------------------------------
 
@@ -432,16 +442,16 @@ class Net:
         """
 
         # Clean old data.
-        for node in self.Nodes:
-            node.E = None
-            node.Errors = [None] * len(node.Errors)
+        for n in self.Nodes:
+            n.E = None
+            n.Errors = [None] * len(n.Errors)
 
         # Propagate back.
-        for i, node in enumerate(self.LastLayer):
-            a = node.A
-            node.Errors = [(a - y[i]) * a * (1.0 - a)]
-        for node in self.Nodes.__reversed__():
-            node.BackPropagation()
+        for i, n in enumerate(self.LastLayer):
+            a = n.A
+            n.Errors = [(a - y[i]) * a * (1.0 - a)]
+        for n in self.Nodes.__reversed__():
+            n.BackPropagation()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -450,10 +460,10 @@ class Net:
         Set all DWeights and DBiases to zero.
         """
 
-        for node in self.Nodes:
-            node.DBias = 0.0
-        for edge in self.Edges:
-            edge.DWeight = 0.0
+        for n in self.Nodes:
+            n.DBias = 0.0
+        for e in self.Edges:
+            e.DWeight = 0.0
 
 #---------------------------------------------------------------------------------------------------
 
@@ -462,10 +472,10 @@ class Net:
         Store all DWeigths and DBiases.
         """
 
-        for node in self.Nodes:
-            node.DBias += node.E
-            for i, edge in enumerate(node.IEdges):
-                edge.DWeight += (node.SavedSignals[i] * node.E)
+        for n in self.Nodes:
+            n.DBias += n.E
+            for i, e in enumerate(n.IEdges):
+                e.DWeight += (e.S * n.E)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -477,10 +487,10 @@ class Net:
             Learning speed.
         """
 
-        for node in self.WorkNodes:
-            node.Bias -= eta * node.DBias
-        for edge in self.Edges:
-            edge.Weight -= eta * edge.DWeight
+        for n in self.WorkNodes:
+            n.Bias -= eta * n.DBias
+        for e in self.Edges:
+            e.Weight -= eta * e.DWeight
 
 #---------------------------------------------------------------------------------------------------
 # Class MNIST tests.
