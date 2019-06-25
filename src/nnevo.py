@@ -197,6 +197,28 @@ class Net:
 
 #---------------------------------------------------------------------------------------------------
 
+    def AddEdge(self, src, dst):
+        """
+        Add edge between two nodes.
+
+        Arguments:
+            src -- source node,
+            dst -- destination node.
+        """
+
+        e = Edge()
+
+        # Links.
+        e.Src = src
+        e.Dst = dst
+        src.OEdges.append(e);
+        src.Errors.append(None);
+        dst.IEdges.append(e);
+        dst.Signals.append(None);
+        self.Edges.append(e);
+
+#---------------------------------------------------------------------------------------------------
+
     def CreateMultilayer(self, LayersSizes):
         """
         Create multilayer net.
@@ -238,24 +260,9 @@ class Net:
 
         # Create edges.
         for i in range(len(layers) - 1):
-
-            src_layer = layers[i]
-            dst_layer = layers[i + 1]
-
-            # Edges between i-th and (i + 1)-th layers.
-            for src in src_layer:
-                for dst in dst_layer:
-
-                    e = Edge()
-
-                    # Links.
-                    e.Src = src
-                    e.Dst = dst
-                    src.OEdges.append(e);
-                    src.Errors.append(None);
-                    dst.IEdges.append(e);
-                    dst.Signals.append(None);
-                    self.Edges.append(e);
+            for src in layers[i]:
+                for dst in layers[i + 1]:
+                    self.AddEdge(src, dst)
 
         # Edges ids.
         for i, edge in enumerate(self.Edges):
