@@ -35,7 +35,6 @@ class Node:
         Constructor.
         """
 
-        self.Id = None
         self.IEdges = []
         self.OEdges = []
         self.B = 0.0
@@ -54,7 +53,7 @@ class Node:
             String.
         """
 
-        return 'Node %s : B = %s' % (self.Id, self.B)
+        return 'Node : B = %s' % self.B
 
 #---------------------------------------------------------------------------------------------------
 
@@ -150,7 +149,6 @@ class Edge:
         Constructor.
         """
 
-        self.Id = None
         self.Src = None
         self.Dst = None
         self.S = None
@@ -168,7 +166,7 @@ class Edge:
             String.
         """
 
-        return 'Edge %s : [%s -> %s] : W = %s' % (self.Id, self.Src.Id, self.Dst.Id, self.W)
+        return 'Edge : W = %s' % self.W
 
 #---------------------------------------------------------------------------------------------------
 # Class Net.
@@ -248,19 +246,11 @@ class Net:
         self.LastLayer = nodes[-last_layer_size:]
         self.WorkNodes = nodes[first_layer_size:]
 
-        # Nodes ids.
-        for i, node in enumerate(self.Nodes):
-            node.Id = i
-
         # Create edges.
         for i in range(len(layers) - 1):
             for src in layers[i]:
                 for dst in layers[i + 1]:
                     self.AddEdge(src, dst)
-
-        # Edges ids.
-        for i, e in enumerate(self.Edges):
-            e.Id = i
 
         # Correct nodes biases and edges weights.
         for n in self.WorkNodes:
@@ -327,13 +317,16 @@ class Net:
 
         if is_print_nodes:
             print('Nodes (%d):' % len(self.Nodes))
-            for node in self.Nodes:
-                print(str(node))
+            for i, n in enumerate(self.Nodes):
+                print('[%d] : %s' % (i, str(n)))
 
         if is_print_edges:
             print('Edges (%d)' % len(self.Edges))
-            for edge in self.Edges:
-                print(str(edge))
+            for i, e in enumerate(self.Edges):
+                print('[%d] [%d - %d] : %s' % (i,
+                                               self.Nodes.index(e.Src),
+                                               self.Nodes.index(e.Dst),
+                                               str(e)))
 
 #---------------------------------------------------------------------------------------------------
 
