@@ -54,7 +54,7 @@ class Node:
             String.
         """
 
-        return 'Node %s : B = %s, dB = %s' % (self.Id, self.Bias, self.DBias)
+        return 'Node %s : B = %s' % (self.Id, self.Bias)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -163,8 +163,6 @@ class Edge:
         self.Id = None
         self.Src = None
         self.Dst = None
-        self.OIndex = None
-        self.IIndex = None
         self.S = None
         self.Weight = 1.0
         self.DWeight = 0.0
@@ -180,13 +178,7 @@ class Edge:
             String.
         """
 
-        return 'Edge %s : [n%s/o%s -> n%s/i%s] : W = %s, dW = %s' % (self.Id,
-                                                                     self.Src.Id,
-                                                                     self.OIndex,
-                                                                     self.Dst.Id,
-                                                                     self.IIndex,
-                                                                     self.Weight,
-                                                                     self.DWeight)
+        return 'Edge %s : [%s -> %s] : W = %s' % (self.Id, self.Src.Id, self.Dst.Id, self.Weight)
 
 #---------------------------------------------------------------------------------------------------
 # Class Net.
@@ -279,13 +271,6 @@ class Net:
         # Edges ids.
         for i, e in enumerate(self.Edges):
             e.Id = i
-
-        # Correct indices.
-        for n in self.Nodes:
-            for i, e in enumerate(n.IEdges):
-                e.IIndex = i
-            for i, e in enumerate(n.OEdges):
-                e.OIndex = i
 
         # Correct nodes biases and edges weights.
         for n in self.WorkNodes:
