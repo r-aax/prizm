@@ -179,34 +179,21 @@ class Net:
         Constructor.
         """
 
+        # Nodes - all nodes of the net.
+        #
+        # | FirstLayer |           HiddenNodes          |  LastLayer |
+        # + ---------- + ------------------------------ + ---------- +
+        # |            |                  WorkNodes                  |
+
+        # Nodes initialization.
         self.Nodes = []
         self.FirstLayer = []
+        self.HiddenNodes = []
         self.LastLayer = []
+        self.WorkNodes = []
+
+        # Edges initialization.
         self.Edges = []
-
-#---------------------------------------------------------------------------------------------------
-
-    def NodesCount(self):
-        """
-        Count of nodes.
-
-        Result:
-            Count of nodes.
-        """
-
-        return len(self.Nodes)
-
-#---------------------------------------------------------------------------------------------------
-
-    def EdgesCount(self):
-        """
-        Count of edges.
-
-        Result:
-            Count of edges.
-        """
-
-        return len(self.Edges)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -223,12 +210,19 @@ class Net:
             raise Exception('not enough layers (must be >= 2)')
 
         # Create all nodes.
-        nodes = [[Node() for i in range(LayerSize)] for LayerSize in LayersSizes]
+        layers = [[Node() for _ in range(LayerSize)] for LayerSize in LayersSizes]
+        nodes = lst.flatten(layers)
+
+        # First and last layers sizes.
+        first_layer_size = LayersSizes[0]
+        last_layer_size = LayersSizes[-1]
 
         # Set links to nodes.
-        self.Nodes = lst.flatten(nodes)
-        self.FirstLayer = nodes[0]
-        self.LastLayer = lst.last(nodes)
+        self.Nodes = nodes
+        self.FirstLayer = nodes[:first_layer_size]
+        self.HiddenNodes = nodes[first_layer_size:-last_layer_size]
+        self.LastLayer = nodes[-last_layer_size:]
+        self.WorkNodes = nodes[first_layer_size:]
 
         # First layer has signals.
         for node in self.FirstLayer:
@@ -239,23 +233,20 @@ class Net:
             node.Errors = [None]
 
         # Nodes ids.
-        for i in range(len(self.Nodes)):
-            self.Nodes[i].Id = i
+        for i, node in enumerate(self.Nodes):
+            node.Id = i
 
         # Create edges.
-        eid = 0
-        for i in range(len(nodes) - 1):
+        for i in range(len(layers) - 1):
 
-            src_layer = nodes[i]
-            dst_layer = nodes[i + 1]
+            src_layer = layers[i]
+            dst_layer = layers[i + 1]
 
             # Edges between i-th and (i + 1)-th layers.
             for src in src_layer:
                 for dst in dst_layer:
 
                     e = Edge()
-                    e.Id = eid
-                    eid = eid + 1
 
                     # Links.
                     e.Src = src
@@ -266,17 +257,20 @@ class Net:
                     dst.Signals.append(None);
                     self.Edges.append(e);
 
+        # Edges ids.
+        for i, edge in enumerate(self.Edges):
+            edge.Id = i
+
         # Correct indices.
         for node in self.Nodes:
-            for i in range(len(node.IEdges)):
-                node.IEdges[i].IIndex = i
-            for i in range(len(node.OEdges)):
-                node.OEdges[i].OIndex = i
+            for i, edge in enumerate(node.IEdges):
+                edge.IIndex = i
+            for i, edge in enumerate(node.OEdges):
+                edge.OIndex = i
 
         # Correct nodes biases and edges weights.
-        for i in range(len(self.Nodes)):
-            if i >= len(self.FirstLayer):
-                self.Nodes[i].Bias = random.gauss(0.0, 1.0)
+        for node in self.WorkNodes:
+            node.Bias = random.gauss(0.0, 1.0)
         for edge in self.Edges:
             edge.Weight = random.gauss(0.0, 1.0)
 
@@ -287,15 +281,15 @@ class Net:
         Set nodes to right traversal order.
         """
 
-        # First remove all signals.
-        for node in self.Nodes:
-            node.Signals = [None] * len(node.Signals)
-            node.Mark = False
-
         # Set 0.0 signal to first layer.
         for node in self.FirstLayer:
             node.Signals = [0.0]
             node.Mark = True
+
+        # First remove all signals.
+        for node in self.WorkNodes:
+            node.Signals = [None] * len(node.Signals)
+            node.Mark = False
 
         # First layer to new order list.
         order = self.FirstLayer.copy()
@@ -307,9 +301,10 @@ class Net:
             for oe in node.OEdges:
                 succ = oe.Dst
                 succ.Signals[oe.IIndex] = 0.0
-                if succ.IsSignalsReady():
-                    order.append(succ)
-                    succ.Mark = True
+                if succ.Mark == False:
+                    if succ.IsSignalsReady():
+                        order.append(succ)
+                        succ.Mark = True
             i += 1
 
         # Set new nodes order.
@@ -332,12 +327,12 @@ class Net:
         """
 
         if is_print_nodes:
-            print('Nodes (%d):' % self.NodesCount())
+            print('Nodes (%d):' % len(self.Nodes))
             for node in self.Nodes:
                 print(str(node))
 
         if is_print_edges:
-            print('Edges (%d)' % self.EdgesCount())
+            print('Edges (%d)' % len(self.Edges))
             for edge in self.Edges:
                 print(str(edge))
 
@@ -462,8 +457,8 @@ class Net:
 
         for node in self.Nodes:
             node.DBias += node.E
-            for i in range(len(node.IEdges)):
-                node.IEdges[i].DWeight += (node.SavedSignals[i] * node.E)
+            for i, edge in enumerate(node.IEdges):
+                edge.DWeight += (node.SavedSignals[i] * node.E)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -475,9 +470,8 @@ class Net:
             Learning speed.
         """
 
-        for i, node in enumerate(self.Nodes):
-            if i >= len(self.FirstLayer):
-                node.Bias -= eta * node.DBias
+        for node in self.WorkNodes:
+            node.Bias -= eta * node.DBias
         for edge in self.Edges:
             edge.Weight -= eta * edge.DWeight
 
