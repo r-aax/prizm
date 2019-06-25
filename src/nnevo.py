@@ -260,6 +260,16 @@ class Net:
 
 #---------------------------------------------------------------------------------------------------
 
+    def CleanSingals(self):
+        """
+        Clean signals.
+        """
+
+        for e in self.Edges:
+            e.S = None
+
+#---------------------------------------------------------------------------------------------------
+
     def SetNodesTraversalOrder(self):
         """
         Set nodes to right traversal order.
@@ -273,9 +283,7 @@ class Net:
         for n in self.WorkNodes:
             n.Mark = False
 
-        # Clean signals.
-        for e in self.Edges:
-            e.S = None
+        self.CleanSingals()
 
         # First layer to new order list.
         order = self.FirstLayer.copy()
@@ -296,9 +304,7 @@ class Net:
         # Set new nodes order.
         self.Nodes = order
 
-        # Clean signals.
-        for e in self.Edges:
-            e.S = None
+        self.CleanSingals()
 
         # Clean.
         for n in self.Nodes:
@@ -343,14 +349,6 @@ class Net:
 
         if len(x) != len(self.FirstLayer):
             raise Exception('wrong input signal size')
-
-        # Clean signals.
-        for e in self.Edges:
-            e.S = None
-
-        # Clean old data.
-        for n in self.Nodes:
-            n.A = None
 
         # Propagate forward.
         # First set signals to the first layer.
@@ -418,10 +416,6 @@ class Net:
         Arguments:
             y -- right answer.
         """
-
-        # Clean old data.
-        for n in self.Nodes:
-            n.E = None
 
         # Propagate back.
         for i, n in enumerate(self.LastLayer):
@@ -662,11 +656,11 @@ if __name__ == '__main__':
 
     # Train.
     trainer = Trainer()
-    res = trainer.Train(net, par.MiniBatches(10)[:1],
+    res = trainer.Train(net, par.MiniBatches(20)[:1],
                         max_epochs_count = 1000, print_step = 1)
     print('Result : ', res)
 
-    for (x, y) in par.MiniBatches(10)[0]:
+    for (x, y) in par.MiniBatches(20)[0]:
         a = net.SenseForward(x)
         print(y, 'vs', [round(ai, 2) for ai in a])
 
