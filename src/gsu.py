@@ -19,7 +19,7 @@ class Node:
 
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self, v = Vector()):
+    def __init__(self, v):
         """
         Constructor.
 
@@ -28,6 +28,9 @@ class Node:
         """
 
         self.Vector = v
+        self.HTC = 0.0
+        self.Beta = 0.0
+        self.Tau = Vector()
         self.Index = -1
         self.Ref = None
 
@@ -123,6 +126,9 @@ class Face:
         """
 
         self.Nodes = [a, b, c]
+        self.T = 0.0
+        self.Hw = 0.0
+        self.Hi = 0.0
 
 #---------------------------------------------------------------------------------------------------
 
@@ -134,7 +140,9 @@ class Face:
             String.
         """
 
-        return '<%s, %s, %s>' % (str(self.Nodes[0]), str(self.Nodes[1]), str(self.Nodes[2]))
+        return '<%s, %s, %s>' % (str(self.Nodes[0]),
+                                 str(self.Nodes[1]),
+                                 str(self.Nodes[2]))
 
 #---------------------------------------------------------------------------------------------------
 # Class grid.
@@ -318,7 +326,7 @@ class Grid:
         """
 
         assert w * h == len(m), 'wrong flat matrix sizes'
-        self.ConstructFromVectorsMatrix(lst.slice_rows(m, w))
+        self.ConstructFromVectorsMatrix(lst.chop(m, w))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -345,15 +353,15 @@ class Grid:
         f.write('# EXPORT MODE: CHECK_POINT\n')
         f.write('TITLE = "FE Surface Data ASCII"\n')
         f.write('VARIABLES = "X", "Y", "Z", '
+                '"T", "Hw", "Hi", '
                 '"Node_HTC", "Node_Beta", '
-                '"Node_TauX", "Node_TauY", "Node_TauZ", '
-                '"T", "Hw", "Hi"\n')
+                '"Node_TauX", "Node_TauY", "Node_TauZ"\n')
         f.write('ZONE T="TRIANGLES", '
                 'NODES=%d, '
                 'ELEMENTS=%d, '
-                'DATAPACKING="BLOCK", '
-                'ZONETYPE="FETRIANGLE" '
-                'VARLOCATION=([9-11]=CELLCENTERED)\n'
+                'DATAPACKING=BLOCK, '
+                'ZONETYPE=FETRIANGLE '
+                'VARLOCATION=([4-6]=CELLCENTERED)\n'
                 % (self.NodesCount(), self.FacesCount()))
 
         # Print coordinates.
@@ -367,15 +375,31 @@ class Grid:
             f.write('%f ' % n.Vector.Z)
         f.write('\n')
 
-        # 8 zeroed values (5 in nodes, 3 in faces).
-        for iteration in range(5):
-            for n in self.Nodes:
-                f.write('0.0 ')
-            f.write('\n')
-        for iteration in range(3):
-            for fc in self.Faces:
-                f.write('0.0 ')
-            f.write('\n')
+        # Values (3 in faces, 5 in nodes).
+        for fc in self.Faces:
+            f.write('%f ' % fc.T)
+        f.write('\n')
+        for fc in self.Faces:
+            f.write('%f ' % fc.Hw)
+        f.write('\n')
+        for fc in self.Faces:
+            f.write('%f ' % fc.Hi)
+        f.write('\n')
+        for n in self.Nodes:
+            f.write('%f ' % n.HTC)
+        f.write('\n')
+        for n in self.Nodes:
+            f.write('%f ' % n.Beta)
+        f.write('\n')
+        for n in self.Nodes:
+            f.write('%f ' % n.Tau.X)
+        f.write('\n')
+        for n in self.Nodes:
+            f.write('%f ' % n.Tau.Y)
+        f.write('\n')
+        for n in self.Nodes:
+            f.write('%f ' % n.Tau.Z)
+        f.write('\n')
 
         # Print faces.
         self.SetNodesIndices()
@@ -458,6 +482,142 @@ class Grid:
 
         # TODO:
         # Delete extra edges.
+
+#---------------------------------------------------------------------------------------------------
+
+    def ImportFromTecplot(self, filename):
+        """
+        Import from tecplot.
+
+        Arguments:
+            filename -- name of file.
+        """
+
+        is_zone_str = lambda s: 'ZONE' in s
+
+        with open(filename, 'r') as f:
+
+            # Comment.
+            mode_l = f.readline()
+            if mode_l != '# EXPORT MODE: CHECK_POINT\n':
+                raise Exception('wrong mode line : %s' % mode_l)
+
+            # Type.
+            title_l = f.readline()
+            if title_l != 'TITLE = "FE Surface Data ASCII"\n':
+                raise Exception('wrong title line : %s' % title_l)
+
+            # Variables.
+            variables_l = f.readline()
+            if variables_l != 'VARIABLES = "X", "Y", "Z", "T", "Hw", "Hi", "Node_HTC", "Node_Beta", "Node_TauX", "Node_TauY", "Node_TauZ"\n':
+                raise Exception('wrong variables line : %s' % variables_l)
+
+            l = f.readline()
+            while l:
+
+                if is_zone_str(l):
+                    zone_l_split = l.split()
+                    nodes_count = int(zone_l_split[2][6:-1])
+                    faces_count = int(zone_l_split[3][9:-1])
+                    print('imported block information : nodes_count = %d, faces_count = %d'
+                          % (nodes_count, faces_count))
+
+                    # Read nodes and faces data.
+                    x_s = f.readline().split()
+                    y_s = f.readline().split()
+                    z_s = f.readline().split()
+                    t_s = f.readline().split()
+                    hw_s = f.readline().split()
+                    hi_s = f.readline().split()
+                    node_htc_s = f.readline().split()
+                    node_beta_s = f.readline().split()
+                    node_tau_x_s = f.readline().split()
+                    node_tau_y_s = f.readline().split()
+                    node_tau_z_s = f.readline().split()
+
+                    # Add nodes.
+                    cur_nodes_count = self.NodesCount()
+                    cur_faces_count = self.FacesCount()
+                    for _ in range(nodes_count):
+                        self.AddNode(Vector())
+                    for i in range(nodes_count):
+                        node = self.Nodes[cur_nodes_count + i]
+                        node.Vector.X = float(x_s[i])
+                        node.Vector.Y = float(y_s[i])
+                        node.Vector.Z = float(z_s[i])
+                        node.HTC = float(node_htc_s[i])
+                        node.Beta = float(node_beta_s[i])
+                        node.Tau.X = float(node_tau_x_s[i])
+                        node.Tau.Y = float(node_tau_y_s[i])
+                        node.Tau.Z = float(node_tau_z_s[i])
+
+                    # Add faces.
+                    for _ in range(faces_count):
+                        l = f.readline()
+                        s = l.split()
+                        self.AddFaceFromNodesIndices(cur_nodes_count + int(s[0]) - 1,
+                                                     cur_nodes_count + int(s[1]) - 1,
+                                                     cur_nodes_count + int(s[2]) - 1)
+                    for i in range(faces_count):
+                        face = self.Faces[cur_faces_count + i]
+                        face.T = float(t_s[i])
+                        face.Hw = float(hw_s[i])
+                        face.Hi = float(hi_s[i])
+                
+                else:
+                    raise Exception('unexpected line : %s' % l)
+
+                l = f.readline()
+
+            f.close()
+
+#---------------------------------------------------------------------------------------------------
+
+    def NearestNodeInSortedNodes(self, x, y, z):
+        """
+        Find nearest node.
+
+        Arguments:
+            x -- x coordinate,
+            y -- y coordinate,
+            z -- z coordinate.
+
+        Result:
+            Nearest node.
+        """
+
+        eps = 0.001
+
+        # Search in x.
+        li = 0
+        hi = len(self.Nodes) - 1
+        while self.Nodes[hi].Vector.X - self.Nodes[li].Vector.X > eps:
+            mi = (li + hi) // 2
+            if x <= self.Nodes[mi].Vector.X:
+                if hi == mi:
+                    break
+                hi = mi
+            else:
+                if li == mi:
+                    break
+                li = mi
+
+        v = Vector((x, y, z))
+
+        # Total search.
+        i = li
+        res = self.Nodes[i]
+        dist = res.Vector.DistTo(v)
+        i += 1
+        while i <= hi:
+            node = self.Nodes[i]
+            new_dist = node.Vector.DistTo(v)
+            if new_dist < dist:
+                res = node
+                dist = new_dist
+            i += 1
+
+        return (res, dist)
 
 #---------------------------------------------------------------------------------------------------
 # Tests.

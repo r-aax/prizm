@@ -144,7 +144,7 @@ def group(a):
 
     for i in range(len(s)):
         si = s[i]
-        (gl, gc) = last(g)
+        (gl, gc) = g[-1]
         if gl == si:
             g[len(g) - 1] = (gl, gc + 1)
         else:
@@ -172,7 +172,23 @@ def usort(a):
     # First sort the list.
     s = sorted(a)
 
-    return reduce(lambda r, e: r if last(r) == e else r + [e], s[1:], [s[0]])
+    return reduce(lambda r, e: r if r[-1] == e else r + [e], s[1:], [s[0]])
+
+#---------------------------------------------------------------------------------------------------
+
+def mask(li, mask):
+    """
+    Mask list.
+
+    Arguments:
+        li -- list,
+        mask -- mask.
+
+    Result:
+        Masked list.
+    """
+
+    return [e for (e, m) in zip(li, mask) if m == 1]
 
 #---------------------------------------------------------------------------------------------------
 
@@ -241,6 +257,9 @@ if __name__ == '__main__':
     assert group([1, 3, 2, 1, 3, 2, 3, 1, 3]) == [(1, 3), (2, 2), (3, 4)]
     #
     assert usort([3, 2, 4, 1, 2, 5, 3, 2, 4]) == [1, 2, 3, 4, 5]
+    #
+    assert mask([1, 2, 3, 4, 5], [0, 0, 0, 0, 0]) == []
+    assert mask([1, 2, 3, 4, 5], [1, 1, 0, 0, 1]) == [1, 2, 5]
     #
     assert merge([1, 1], [2, 2]) == [1, 2, 1, 2]
     assert merge([1], [2, 2, 2]) == [1, 2, 2, 2]
