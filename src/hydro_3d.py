@@ -136,6 +136,44 @@ class U:
         self.E = D.r * (0.5 * D.V2() + D.e())
 
 #---------------------------------------------------------------------------------------------------
+
+    def __add__(self, u):
+        """
+        Add two U vectors.
+
+        Arguments:
+            u -- another U vector.
+
+        Result:
+            Sum of U-vectors.
+        """
+
+        return U(self.r + u.r,
+                 self.ru + u.ru,
+                 self.rv + u.rv,
+                 self.rw + u.rw,
+                 self.E + u.E)
+
+#---------------------------------------------------------------------------------------------------
+
+    def __mul__(self, k):
+        """
+        Multiply on number.
+
+        Arguments:
+            k -- number.
+
+        Result:
+            New U-vector.
+        """
+
+        return U(self.r * k,
+                 self.ru * k,
+                 self.rv * k,
+                 self.rw * k,
+                 self.E * k)
+
+#---------------------------------------------------------------------------------------------------
 # Cell class.
 #---------------------------------------------------------------------------------------------------
 
@@ -204,6 +242,54 @@ class Cell:
                 0.5 * (self.Back + self.Front))
 
 #---------------------------------------------------------------------------------------------------
+
+    def F(self):
+        """
+        F vector.
+
+        Result:
+            F vector.
+        """
+
+        return U(self.U.ru,
+                 self.U.ru * self.D.u + self.D.p,
+                 self.U.ru * self.D.v,
+                 self.U.ru * self.D.w,
+                 self.D.u * (self.U.E + self.D.p))
+
+#---------------------------------------------------------------------------------------------------
+
+    def G(self):
+        """
+        G vector.
+
+        Result:
+            G vector.
+        """
+
+        return U(self.U.rv,
+                 self.U.rv * self.D.u,
+                 self.U.rv * self.D.v + self.D.p,
+                 self.U.rv * self.D.w,
+                 self.D.v * (self.U.E + self.D.p))
+
+#---------------------------------------------------------------------------------------------------
+
+    def H(self):
+        """
+        H vector.
+
+        Result:
+            H vector.
+        """
+
+        return U(self.U.rw,
+                 self.U.rw * self.D.u,
+                 self.U.rw * self.D.v,
+                 self.U.rw * self.D.w + self.D.p,
+                 self.D.w * (self.U.E + self.D.p))
+
+#---------------------------------------------------------------------------------------------------
 # Face class.
 #---------------------------------------------------------------------------------------------------
 
@@ -226,6 +312,43 @@ class Face:
         self.FGH = U()
 
         self.Cells = []
+
+#---------------------------------------------------------------------------------------------------
+
+    def CalcFlow(self):
+        """
+        Calculate flow.
+        """
+
+        is_0_none = (self.Cells[0] == None)
+        is_1_none = (self.Cells[1] == None)
+
+        if is_0_none and is_1_none:
+            raise Exception('no incident cells for face')
+
+        if self.Dir == DirLR:
+            if is_0_none:
+                self.FGH = self.Cells[1].F()
+            elif is_1_none:
+                self.FGH = self.Cells[0].F()
+            else:
+                self.FGH = (self.Cells[0].F() + self.Cells[1].F()) * 0.5
+        elif self.Dir == DirDU:
+            if is_0_none:
+                self.FGH = self.Cells[1].G()
+            elif is_1_none:
+                self.FGH = self.Cells[0].G()
+            else:
+                self.FGH = (self.Cells[0].G() + self.Cells[1].G()) * 0.5
+        elif self.Dir == DirBF:
+            if is_0_none:
+                self.FGH = self.Cells[1].H()
+            elif is_1_none:
+                self.FGH = self.Cells[0].H()
+            else:
+                self.FGH = (self.Cells[0].H() + self.Cells[1].H()) * 0.5
+        else:
+            raise Exception('wrong face direction')
 
 #---------------------------------------------------------------------------------------------------
 # Grid class.
@@ -499,6 +622,10 @@ class Grid:
         """
 
         self.DtoU()
+
+        for face in self.Faces:
+            face.CalcFlow()
+
         self.UtoD()
 
 #---------------------------------------------------------------------------------------------------
