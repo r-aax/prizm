@@ -277,6 +277,23 @@ class Drawer:
             gy_cur = gy_cur - gy
 
 #---------------------------------------------------------------------------------------------------
+
+    def Rect(self, p1, p2,
+             pen = aggdraw.Pen('black', 1.0),
+             brush = aggdraw.Brush('white')):
+        """
+        Rectangle.
+
+        Arguments:
+            p1 -- first point,
+            p2 -- second point,
+            pen -- pen,
+            brish -- brush.
+        """
+
+        self.Canvas.rectangle(self.To(p1) + self.To(p2), pen, brush)
+
+#---------------------------------------------------------------------------------------------------
 # Other functions.
 #---------------------------------------------------------------------------------------------------
 
