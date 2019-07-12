@@ -12,8 +12,128 @@ import aggdraw
 # Constants.
 #---------------------------------------------------------------------------------------------------
 
+# Gamma for GAS condition.
+Gamma = 1.4
+
 # Count of rectangle faces.
 RectangleFacesCount = 6
+
+# Directions.
+DirLR = 0
+DirDU = 1
+DirBF = 2
+
+# Border conditons types.
+BorderConditionHard = 0
+BorderConditionFree = 1
+
+#---------------------------------------------------------------------------------------------------
+# Class DataD.
+#---------------------------------------------------------------------------------------------------
+
+class D:
+
+#---------------------------------------------------------------------------------------------------
+
+    def __init__(self, r = 0.0, u = 0.0, v = 0.0, w = 0.0, p = 0.0):
+        """
+        Constructor.
+
+        Arguments:
+            r -- density,
+            u -- velosity X,
+            v -- velosity Y,
+            w -- velosity Z,
+            p -- pressure.
+        """
+
+        self.r = r
+        self.u = u
+        self.v = v
+        self.w = w
+        self.p = p
+
+#---------------------------------------------------------------------------------------------------
+
+    def e(self):
+        """
+        Inner energy.
+
+        Result:
+            Inner energy.
+        """
+
+        return self.p / ((Gamma - 1.0) * self.r)
+
+#---------------------------------------------------------------------------------------------------
+
+    def V2(self):
+        """
+        Mod2 of velosity.
+
+        Result:
+            Mod2 of velosity.
+        """
+
+        return self.u * self.u + self.v * self.v + self.w * self.w
+
+#---------------------------------------------------------------------------------------------------
+
+    def FromU(self, U):
+        """
+        Set from U data.
+
+        Arguments:
+            U -- U data.
+        """
+
+        self.r = U.r
+        self.u = U.ru / U.r
+        self.v = U.rv / U.r
+        self.w = U.rw / U.r
+        self.p = (U.E / U.r - 0.5 * self.V2()) * ((Gamma - 1.0) * U.r)
+
+#---------------------------------------------------------------------------------------------------
+# Class U.
+#---------------------------------------------------------------------------------------------------
+
+class U:
+
+#---------------------------------------------------------------------------------------------------
+
+    def __init__(self, r = 0.0, ru = 0.0, rv = 0.0, rw = 0.0, E = 0.0):
+        """
+        Constructor.
+
+        Arguments:
+            r -- density,
+            ru -- density * velosity X,
+            rv -- density * velosity Y,
+            rw -- density * velosity Z,
+            E -- full energy.
+        """
+
+        self.r = r
+        self.ru = ru
+        self.rv = rv
+        self.rw = rw
+        self.E = E
+
+#---------------------------------------------------------------------------------------------------
+
+    def FromD(self, D):
+        """
+        Set from D.
+
+        Arguments:
+            D -- D data.
+        """
+
+        self.r = D.r
+        self.ru = D.r * D.u
+        self.rv = D.r * D.v
+        self.rw = D.r * D.w
+        self.E = D.r * (0.5 * D.V2() + D.e())
 
 #---------------------------------------------------------------------------------------------------
 # Cell class.
@@ -27,6 +147,10 @@ class Cell:
         """
         Constructor:
         """
+
+        # Physical data.
+        self.D = D()
+        self.U = U()
 
         self.Faces = []
 
@@ -87,36 +211,21 @@ class Face:
 
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self):
-        """
-        Constructor.
-        """
-
-        self.Cells = []
-
-#---------------------------------------------------------------------------------------------------
-# Boundary condition class.
-#---------------------------------------------------------------------------------------------------
-
-class BoundaryCondition:
-
-    # Hard border.
-    TypeHard = 0
-
-    # Free border.
-    TypуFree = 1
-
-#---------------------------------------------------------------------------------------------------
-
-    def __init__(self, t):
+    def __init__(self, d, bc_type = BorderConditionFree):
         """
         Constructor.
 
         Arguments:
-            type -- border type.
+            d -- direction.
         """
 
-        self.Type = t
+        self.Dir = d
+        self.BorderConditionType = bc_type
+
+        # Flow.
+        self.FGH = U()
+
+        self.Cells = []
 
 #---------------------------------------------------------------------------------------------------
 # Grid class.
@@ -143,116 +252,30 @@ class Grid:
 
         self.Cells = []
         self.Faces = []
-        self.BoundaryConditions = []
 
 #---------------------------------------------------------------------------------------------------
 
-    def SetBoundaryCondition(self, cell, cell_face_index, t):
-        """
-        Set boundary condition.
-
-        Arguments:
-            cell -- cell,
-            cell_face_index -- face index,
-            t -- type.
-        """
-
-        bc = BoundaryCondition(t)
-        self.BoundaryConditions.append(bc)
-        cell.Faces[cell_face_index] = bc
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionL(self, cell):
-        """
-        Set left boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.SetBoundaryCondition(cell, 0, BoundaryCondition.TypуFree)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionR(self, cell):
-        """
-        Set right boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.SetBoundaryCondition(cell, 1, BoundaryCondition.TypуFree)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionD(self, cell):
-        """
-        Set down boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.SetBoundaryCondition(cell, 2, BoundaryCondition.TypуFree)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionU(self, cell):
-        """
-        Set up boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.SetBoundaryCondition(cell, 3, BoundaryCondition.TypуFree)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionB(self, cell):
-        """
-        Set back boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.SetBoundaryCondition(cell, 4, BoundaryCondition.TypуFree)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionF(self, cell):
-        """
-        Set front boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.SetBoundaryCondition(cell, 5, BoundaryCondition.TypуFree)
-
-#---------------------------------------------------------------------------------------------------
-
-    def Link(self,
+    def Link(self, d,
              cell1, cell1_face_index,
              cell2, cell2_face_index):
         """
         Link two cells with face.
 
         Arguments:
+            d -- direction,
             cell1 -- first cell,
             cell1_face_index -- index of face in cell1 faces list,
             cell2 -- second face,
             cell2_face_index -- index of face in cell2 faces list.
         """
 
-        face = Face()
+        face = Face(d)
         face.Cells = [cell1, cell2]
         self.Faces.append(face)
-        cell1.Faces[cell1_face_index] = face
-        cell2.Faces[cell2_face_index] = face
+        if cell1_face_index >= 0:
+            cell1.Faces[cell1_face_index] = face
+        if cell2_face_index >= 0:
+            cell2.Faces[cell2_face_index] = face
 
 #---------------------------------------------------------------------------------------------------
 
@@ -265,7 +288,7 @@ class Grid:
             cell_r -- right cell.
         """
 
-        self.Link(cell_l, 1, cell_r, 0)
+        self.Link(DirLR, cell_l, 1, cell_r, 0)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -278,7 +301,7 @@ class Grid:
             cell_u -- upper cell.
         """
 
-        self.Link(cell_d, 3, cell_u, 2)
+        self.Link(DirDU, cell_d, 3, cell_u, 2)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -291,7 +314,79 @@ class Grid:
             cell_f -- front cell.
         """
 
-        self.Link(cell_b, 5, cell_f, 4)
+        self.Link(DirBF, cell_b, 5, cell_f, 4)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetBoundaryConditionL(self, cell):
+        """
+        Set left boundary condition.
+
+        Arguments:
+            cell -- cell.
+        """
+
+        self.Link(DirLR, None, -1, cell, 0)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetBoundaryConditionR(self, cell):
+        """
+        Set right boundary condition.
+
+        Arguments:
+            cell -- cell.
+        """
+
+        self.Link(DirLR, cell, 1, None, -1)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetBoundaryConditionD(self, cell):
+        """
+        Set down boundary condition.
+
+        Arguments:
+            cell -- cell.
+        """
+
+        self.Link(DirDU, None, -1, cell, 2)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetBoundaryConditionU(self, cell):
+        """
+        Set up boundary condition.
+
+        Arguments:
+            cell -- cell.
+        """
+
+        self.Link(DirDU, cell, 3, None, -1)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetBoundaryConditionB(self, cell):
+        """
+        Set back boundary condition.
+
+        Arguments:
+            cell -- cell.
+        """
+
+        self.Link(DirBF, None, -1, cell, 4)
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetBoundaryConditionF(self, cell):
+        """
+        Set front boundary condition.
+
+        Arguments:
+            cell -- cell.
+        """
+
+        self.Link(DirBF, cell, 5, None, -1)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -359,16 +454,52 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def SetPressure(self, pressure_fun):
+    def InitD(self):
         """
-        Set pressure.
-
-        Arguments:
-            pressure_fun -- function of pressure.
+        Init D data.
         """
 
         for cell in self.Cells:
-            cell.p = pressure_fun(cell.Center())
+            (x, y, z) = cell.Center()
+            D = cell.D
+            D.r = 200.0 / (x + y)
+            D.u = 0.0
+            D.v = 0.0
+            D.w = 0.0
+            D.p = 1.0
+
+#---------------------------------------------------------------------------------------------------
+
+    def DtoU(self):
+        """
+        Convert D to U.
+        """
+
+        for cell in self.Cells:
+            cell.U.FromD(cell.D)
+
+#---------------------------------------------------------------------------------------------------
+
+    def UtoD(self):
+        """
+        Convert U to D.
+        """
+
+        for cell in self.Cells:
+            cell.D.FromU(cell.U)
+
+#---------------------------------------------------------------------------------------------------
+
+    def Step(self, dt):
+        """
+        Step.
+
+        Arguments:
+            dt -- tie step.
+        """
+
+        self.DtoU()
+        self.UtoD()
 
 #---------------------------------------------------------------------------------------------------
 
@@ -377,8 +508,8 @@ class Grid:
         Print information.
         """
 
-        print('grid : %d cells, %d faces, %d boundary condidtions'
-              % (len(self.Cells), len(self.Faces), len(self.BoundaryConditions)))
+        print('grid : %d cells, %d faces'
+              % (len(self.Cells), len(self.Faces)))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -396,7 +527,6 @@ class Grid:
         # Draw cells.
         for cell in self.Cells:
             dv = int(cell_draw_value_fun(cell) * 255)
-            print(dv)
             color = (dv, dv, dv)
             pen = aggdraw.Pen(color, 1.0)
             brush = aggdraw.Brush(color)
@@ -409,24 +539,6 @@ class Grid:
 # Functions.
 #---------------------------------------------------------------------------------------------------
 
-def pressure_fun(point):
-    """
-    Set pressure function.
-
-    Arguments:
-        point -- point.
-
-    Return:
-        Pressure value.
-    """
-
-    (x, y, z) = point
-    p = x * x + y * y
-
-    return p
-
-#---------------------------------------------------------------------------------------------------
-
 def cell_draw_value(cell):
     """
     Cell draw value from 0.0 to 1.0.
@@ -435,15 +547,15 @@ def cell_draw_value(cell):
         Value for drawing.
     """
 
-    p = cell.p
-    limit = 10000.0
+    v = cell.D.r
+    limit = 2.0
 
-    if p < 0.0:
-        return 0.0
-    elif p > limit:
+    if v < 0.0:
         return 1.0
+    elif v > limit:
+        return 0.0
     else:
-        return p / limit
+        return 1.0 - v / limit
 
 #---------------------------------------------------------------------------------------------------
 # Main.
@@ -451,10 +563,19 @@ def cell_draw_value(cell):
 
 if __name__ == '__main__':
     print('HYDRO_2D:')
+
+    # Init.
     grid = Grid(100.0, 100.0, 1.0)
     grid.CreateUniformGrid(100, 100, 1)
-    grid.SetPressure(pressure_fun)
+    grid.InitD()
+
+    # Print.
     grid.PrintInfo()
+
+    # Calc.
+    grid.Step(0.001)
+
+    # Draw.
     grid.Draw(cell_draw_value)
 
 #---------------------------------------------------------------------------------------------------
