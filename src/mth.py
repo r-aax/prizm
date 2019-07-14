@@ -15,6 +15,21 @@ import math
 # Main fucntions.
 #---------------------------------------------------------------------------------------------------
 
+def frac(v):
+    """
+    Fractional part of float.
+
+    Arguments:
+        v -- value.
+
+    Result:
+        Fractional part.
+    """
+
+    return v - int(v)
+
+#---------------------------------------------------------------------------------------------------
+
 def sign(v):
     """
     Sign ov value.

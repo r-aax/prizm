@@ -7,46 +7,49 @@ Created on Fri Jul 12 11:26:02 2019
 
 import draw
 import aggdraw
+import mth
+import vis
 
 #---------------------------------------------------------------------------------------------------
 # Constants.
 #---------------------------------------------------------------------------------------------------
 
-# Gamma for GAS condition.
 Gamma = 1.4
 
-# Count of rectangle faces.
-RectangleFacesCount = 6
+#---------------------------------------------------------------------------------------------------
+# Utilitiees.
+#---------------------------------------------------------------------------------------------------
 
-# Directions.
-DirLR = 0
-DirDU = 1
-DirBF = 2
+def array_3d(x, y, z):
+    arr = [None] * x
+    for i in range(x):
+        arr[i] = [None] * y
+        for j in range(y):
+            arr[i][j] = [None] * z
+    return arr
 
-# Border conditons types.
-BorderConditionHard = 0
-BorderConditionFree = 1
+#---------------------------------------------------------------------------------------------------
+
+def convert_data_d_to_data_u(cell):
+    cell.U = cell.D.CreateDataU()
+
+#---------------------------------------------------------------------------------------------------
+
+def convert_data_u_to_data_d(cell):
+    cell.D = cell.U.CreateDataD()
 
 #---------------------------------------------------------------------------------------------------
 # Class DataD.
 #---------------------------------------------------------------------------------------------------
 
-class D:
+class DataD:
 
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self, r = 0.0, u = 0.0, v = 0.0, w = 0.0, p = 0.0):
-        """
-        Constructor.
-
-        Arguments:
-            r -- density,
-            u -- velosity X,
-            v -- velosity Y,
-            w -- velosity Z,
-            p -- pressure.
-        """
-
+    def __init__(self,
+                 r = 0.0,
+                 u = 0.0, v = 0.0, w = 0.0,
+                 p = 0.0):
         self.r = r
         self.u = u
         self.v = v
@@ -55,64 +58,82 @@ class D:
 
 #---------------------------------------------------------------------------------------------------
 
-    def e(self):
-        """
-        Inner energy.
+    def __add__(self, d):
+        return DataD(self.r + d.r, self.u + d.u, self.v + d.v, self.w + d.w, self.p + d.p)
 
-        Result:
-            Inner energy.
-        """
+#---------------------------------------------------------------------------------------------------
 
-        return self.p / ((Gamma - 1.0) * self.r)
+    def __mul__(self, k):
+        return DataD(self.r * k, self.u * k, self.v * k, self.w * k, self.p * k)
+
+#---------------------------------------------------------------------------------------------------
+
+    def __rmul__(self, k):
+        return self * k
 
 #---------------------------------------------------------------------------------------------------
 
     def V2(self):
-        """
-        Mod2 of velosity.
-
-        Result:
-            Mod2 of velosity.
-        """
-
         return self.u * self.u + self.v * self.v + self.w * self.w
 
 #---------------------------------------------------------------------------------------------------
 
-    def FromU(self, U):
-        """
-        Set from U data.
-
-        Arguments:
-            U -- U data.
-        """
-
-        self.r = U.r
-        self.u = U.ru / U.r
-        self.v = U.rv / U.r
-        self.w = U.rw / U.r
-        self.p = (U.E / U.r - 0.5 * self.V2()) * ((Gamma - 1.0) * U.r)
-
-#---------------------------------------------------------------------------------------------------
-# Class U.
-#---------------------------------------------------------------------------------------------------
-
-class U:
+    def e(self):
+        return self.p / ((Gamma - 1.0) * self.r)
 
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self, r = 0.0, ru = 0.0, rv = 0.0, rw = 0.0, E = 0.0):
-        """
-        Constructor.
+    def E(self):
+        return self.r * (0.5 * self.V2() + self.e())
 
-        Arguments:
-            r -- density,
-            ru -- density * velosity X,
-            rv -- density * velosity Y,
-            rw -- density * velosity Z,
-            E -- full energy.
-        """
+#---------------------------------------------------------------------------------------------------
 
+    def CreateDataU(self):
+        return DataU(self.r,
+                     self.r * self.u,
+                     self.r * self.v,
+                     self.r * self.w,
+                     self.E())
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowF(self):
+        return DataU(self.r * self.u,
+                     self.r * self.u * self.u + self.p,
+                     self.r * self.u * self.v,
+                     self.r * self.u * self.w,
+                     self.u * (self.E() + self.p))
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowG(self):
+        return DataU(self.r * self.v,
+                     self.r * self.u * self.v,
+                     self.r * self.v * self.v + self.p,
+                     self.r * self.v * self.w,
+                     self.v * (self.E() + self.p))
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowH(self):
+        return DataU(self.r * self.w,
+                     self.r * self.u * self.w,
+                     self.r * self.v * self.w,
+                     self.r * self.w * self.w + self.p,
+                     self.w * (self.E() + self.p))
+
+#---------------------------------------------------------------------------------------------------
+# Class DataU.
+#---------------------------------------------------------------------------------------------------
+
+class DataU:
+
+#---------------------------------------------------------------------------------------------------
+
+    def __init__(self,
+                 r = 0.0,
+                 ru = 0.0, rv = 0.0, rw = 0.0,
+                 E = 0.0):
         self.r = r
         self.ru = ru
         self.rv = rv
@@ -121,60 +142,37 @@ class U:
 
 #---------------------------------------------------------------------------------------------------
 
-    def FromD(self, D):
-        """
-        Set from D.
-
-        Arguments:
-            D -- D data.
-        """
-
-        self.r = D.r
-        self.ru = D.r * D.u
-        self.rv = D.r * D.v
-        self.rw = D.r * D.w
-        self.E = D.r * (0.5 * D.V2() + D.e())
+    def __add__(self, u):
+        return DataU(self.r + u.r, self.ru + u.ru, self.rv + u.rv, self.rw + u.rw, self.E + u.E)
 
 #---------------------------------------------------------------------------------------------------
 
-    def __add__(self, u):
-        """
-        Add two U vectors.
-
-        Arguments:
-            u -- another U vector.
-
-        Result:
-            Sum of U-vectors.
-        """
-
-        return U(self.r + u.r,
-                 self.ru + u.ru,
-                 self.rv + u.rv,
-                 self.rw + u.rw,
-                 self.E + u.E)
+    def __sub__(self, u):
+        return DataU(self.r - u.r, self.ru - u.ru, self.rv - u.rv, self.rw - u.rw, self.E - u.E)
 
 #---------------------------------------------------------------------------------------------------
 
     def __mul__(self, k):
-        """
-        Multiply on number.
-
-        Arguments:
-            k -- number.
-
-        Result:
-            New U-vector.
-        """
-
-        return U(self.r * k,
-                 self.ru * k,
-                 self.rv * k,
-                 self.rw * k,
-                 self.E * k)
+        return DataU(self.r * k, self.ru * k, self.rv * k, self.rw * k, self.E * k)
 
 #---------------------------------------------------------------------------------------------------
-# Cell class.
+
+    def __rmul__(self, k):
+        return self * k
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateDataD(self):
+        data_d = DataD(self.r,
+                       self.ru / self.r,
+                       self.rv / self.r,
+                       self.rw / self.r,
+                       0.0)
+        data_d.p = (self.E / self.r - 0.5 * data_d.V2()) * ((Gamma - 1.0) * self.r)
+        return data_d
+
+#---------------------------------------------------------------------------------------------------
+# Class Cell.
 #---------------------------------------------------------------------------------------------------
 
 class Cell:
@@ -182,176 +180,24 @@ class Cell:
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self):
-        """
-        Constructor:
-        """
-
-        # Physical data.
-        self.D = D()
-        self.U = U()
-
-        self.Faces = []
+        self.D = DataD()
+        self.U = DataU()
 
 #---------------------------------------------------------------------------------------------------
-
-    def SetSizes(self, dx, dy, dz):
-        """
-        Set cell sizes.
-
-        Arguments:
-            dx -- size in X direction,
-            dy -- size in Y direction,
-            dz -- size in Z direction.
-        """
-
-        self.dx = dx
-        self.dy = dy
-        self.dz = dz
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetCoordinates(self, left, down, back):
-        """
-        Set coordinates.
-
-        Arguments:
-            left -- left X,
-            down -- down Y,
-            back -- back Z.
-        """
-
-        self.Left = left
-        self.Right = self.Left + self.dx
-        self.Down = down
-        self.Up = self.Down + self.dy
-        self.Back = back
-        self.Front = self.Back + self.dz
-
-#---------------------------------------------------------------------------------------------------
-
-    def Center(self):
-        """
-        Get center.
-
-        Result:
-            Center point.
-        """
-
-        return (0.5 * (self.Left + self.Right),
-                0.5 * (self.Down + self.Up),
-                0.5 * (self.Back + self.Front))
-
-#---------------------------------------------------------------------------------------------------
-
-    def F(self):
-        """
-        F vector.
-
-        Result:
-            F vector.
-        """
-
-        return U(self.U.ru,
-                 self.U.ru * self.D.u + self.D.p,
-                 self.U.ru * self.D.v,
-                 self.U.ru * self.D.w,
-                 self.D.u * (self.U.E + self.D.p))
-
-#---------------------------------------------------------------------------------------------------
-
-    def G(self):
-        """
-        G vector.
-
-        Result:
-            G vector.
-        """
-
-        return U(self.U.rv,
-                 self.U.rv * self.D.u,
-                 self.U.rv * self.D.v + self.D.p,
-                 self.U.rv * self.D.w,
-                 self.D.v * (self.U.E + self.D.p))
-
-#---------------------------------------------------------------------------------------------------
-
-    def H(self):
-        """
-        H vector.
-
-        Result:
-            H vector.
-        """
-
-        return U(self.U.rw,
-                 self.U.rw * self.D.u,
-                 self.U.rw * self.D.v,
-                 self.U.rw * self.D.w + self.D.p,
-                 self.D.w * (self.U.E + self.D.p))
-
-#---------------------------------------------------------------------------------------------------
-# Face class.
+# Class Face.
 #---------------------------------------------------------------------------------------------------
 
 class Face:
 
 #---------------------------------------------------------------------------------------------------
 
-    def __init__(self, d, bc_type = BorderConditionFree):
-        """
-        Constructor.
-
-        Arguments:
-            d -- direction.
-        """
-
-        self.Dir = d
-        self.BorderConditionType = bc_type
-
-        # Flow.
-        self.FGH = U()
-
-        self.Cells = []
+    def __init__(self):
+        F = None
+        G = None
+        H = None
 
 #---------------------------------------------------------------------------------------------------
-
-    def CalcFlow(self):
-        """
-        Calculate flow.
-        """
-
-        is_0_none = (self.Cells[0] == None)
-        is_1_none = (self.Cells[1] == None)
-
-        if is_0_none and is_1_none:
-            raise Exception('no incident cells for face')
-
-        if self.Dir == DirLR:
-            if is_0_none:
-                self.FGH = self.Cells[1].F()
-            elif is_1_none:
-                self.FGH = self.Cells[0].F()
-            else:
-                self.FGH = (self.Cells[0].F() + self.Cells[1].F()) * 0.5
-        elif self.Dir == DirDU:
-            if is_0_none:
-                self.FGH = self.Cells[1].G()
-            elif is_1_none:
-                self.FGH = self.Cells[0].G()
-            else:
-                self.FGH = (self.Cells[0].G() + self.Cells[1].G()) * 0.5
-        elif self.Dir == DirBF:
-            if is_0_none:
-                self.FGH = self.Cells[1].H()
-            elif is_1_none:
-                self.FGH = self.Cells[0].H()
-            else:
-                self.FGH = (self.Cells[0].H() + self.Cells[1].H()) * 0.5
-        else:
-            raise Exception('wrong face direction')
-
-#---------------------------------------------------------------------------------------------------
-# Grid class.
+# Class Grid.
 #---------------------------------------------------------------------------------------------------
 
 class Grid:
@@ -359,350 +205,237 @@ class Grid:
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self,
-                 size_x, size_y, size_z):
-        """
-        Constructor:
+                 size_x, size_y, size_z,
+                 cells_x, cells_y, cells_z):
 
-        Arguments:
-            size_x -- size in X direction,
-            size_y -- size in Y direction,
-            size_z -- size in Z direction.
-        """
+        # Sizes.
+        self.SizeX, self.SizeY, self.SizeZ = size_x, size_y, size_z
+        self.CellsX, self.CellsY, self.CellsZ = cells_x, cells_y, cells_z
+        self.dx, self.dy, self.dz = size_x / cells_x, size_y / cells_y, size_z / cells_z
 
-        self.SizeX = size_x
-        self.SizeY = size_y
-        self.SizeZ = size_z
+        # Cells.
+        self.Cells = array_3d(cells_x, cells_y, cells_z)
+        for i in range(cells_x):
+            for j in range(cells_y):
+                for k in range(cells_z):
+                    self.Cells[i][j][k] = Cell()
 
-        self.Cells = []
-        self.Faces = []
-
-#---------------------------------------------------------------------------------------------------
-
-    def Link(self, d,
-             cell1, cell1_face_index,
-             cell2, cell2_face_index):
-        """
-        Link two cells with face.
-
-        Arguments:
-            d -- direction,
-            cell1 -- first cell,
-            cell1_face_index -- index of face in cell1 faces list,
-            cell2 -- second face,
-            cell2_face_index -- index of face in cell2 faces list.
-        """
-
-        face = Face(d)
-        face.Cells = [cell1, cell2]
-        self.Faces.append(face)
-        if cell1_face_index >= 0:
-            cell1.Faces[cell1_face_index] = face
-        if cell2_face_index >= 0:
-            cell2.Faces[cell2_face_index] = face
+        # Faces.
+        self.FacesX = array_3d(cells_x + 1, cells_y, cells_z)
+        for i in range(cells_x + 1):
+            for j in range(cells_y):
+                for k in range(cells_z):
+                    self.FacesX[i][j][k] = Face()
+        self.FacesY = array_3d(cells_x, cells_y + 1, cells_z)
+        for i in range(cells_x):
+            for j in range(cells_y + 1):
+                for k in range(cells_z):
+                    self.FacesY[i][j][k] = Face()
+        self.FacesZ = array_3d(cells_x, cells_y, cells_z + 1)
+        for i in range(cells_x):
+            for j in range(cells_y):
+                for k in range(cells_z + 1):
+                    self.FacesZ[i][j][k] = Face()
 
 #---------------------------------------------------------------------------------------------------
 
-    def LinkLR(self, cell_l, cell_r):
-        """
-        Link L-R cells.
-
-        Arguments:
-            cell_l -- left cell,
-            cell_r -- right cell.
-        """
-
-        self.Link(DirLR, cell_l, 1, cell_r, 0)
+    def CellsCount(self):
+        return self.CellsX * self.CellsY * self.CellsZ
 
 #---------------------------------------------------------------------------------------------------
 
-    def LinkDU(self, cell_d, cell_u):
-        """
-        Link D-U cells.
-
-        Arguments:
-            cell_d -- down cell,
-            cell_u -- upper cell.
-        """
-
-        self.Link(DirDU, cell_d, 3, cell_u, 2)
+    def FacesCount(self):
+        cx, cy, cz = self.CellsX, self.CellsY, self.CellsZ
+        return (cx + 1) * cy * cz + cx * (cy + 1) * cz + cx * cy * (cz + 1)
 
 #---------------------------------------------------------------------------------------------------
 
-    def LinkBF(self, cell_b, cell_f):
-        """
-        Link B-F cells.
-
-        Arguments:
-            cell_b -- back cell,
-            cell_f -- front cell.
-        """
-
-        self.Link(DirBF, cell_b, 5, cell_f, 4)
+    def Apply(self, fun):
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    fun(self.Cells[i][j][k])
 
 #---------------------------------------------------------------------------------------------------
 
-    def SetBoundaryConditionL(self, cell):
-        """
-        Set left boundary condition.
+    def Init(self, case):
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    cell = self.Cells[i][j][k]
+                    x = (i + 0.5) * self.dx
+                    y = (j + 0.5) * self.dy
 
-        Arguments:
-            cell -- cell.
-        """
-
-        self.Link(DirLR, None, -1, cell, 0)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionR(self, cell):
-        """
-        Set right boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.Link(DirLR, cell, 1, None, -1)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionD(self, cell):
-        """
-        Set down boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.Link(DirDU, None, -1, cell, 2)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionU(self, cell):
-        """
-        Set up boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.Link(DirDU, cell, 3, None, -1)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionB(self, cell):
-        """
-        Set back boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.Link(DirBF, None, -1, cell, 4)
-
-#---------------------------------------------------------------------------------------------------
-
-    def SetBoundaryConditionF(self, cell):
-        """
-        Set front boundary condition.
-
-        Arguments:
-            cell -- cell.
-        """
-
-        self.Link(DirBF, cell, 5, None, -1)
-
-#---------------------------------------------------------------------------------------------------
-
-    def CreateUniformGrid(self,
-                          cells_count_x, cells_count_y, cells_count_z):
-        """
-        Create uniform grid (cells with same sizes).
-
-        Arguments:
-            cells_count_x -- count of cells in X direction,
-            cells_count_y -- count of cells in Y direction,
-            cells_count_Z -- count of cells in Z direction.
-        """
-
-        # Create cells array.
-        cells_count = cells_count_x * cells_count_y * cells_count_z
-        self.Cells = [None] * cells_count
-
-        # Cell size.
-        dx = self.SizeX / cells_count_x
-        dy = self.SizeY / cells_count_y
-        dz = self.SizeZ / cells_count_z
-
-        # Create cells.
-        cur = 0
-        for k in range(cells_count_z):
-            for j in range(cells_count_y):
-                for i in range(cells_count_x):
-                    cell = Cell()
-                    cell.SetSizes(dx, dy, dz)
-                    cell.SetCoordinates(i * dx, j * dy, k * dz)
-                    cell.Faces = [None] * RectangleFacesCount
-                    self.Cells[cur] = cell
-                    cur += 1
-
-        # Link cells with faces.
-        cur = 0
-        for k in range(cells_count_z):
-            for j in range(cells_count_y):
-                for i in range(cells_count_x):
-
-                    if k == 0:
-                        self.SetBoundaryConditionB(self.Cells[cur])
-                    if k != cells_count_z - 1:
-                        self.LinkBF(self.Cells[cur],
-                                    self.Cells[cur + cells_count_x * cells_count_y])
-                    else:
-                        self.SetBoundaryConditionF(self.Cells[cur])
-
-                    if j == 0:
-                        self.SetBoundaryConditionD(self.Cells[cur])
-                    if j != cells_count_y - 1:
-                        self.LinkLR(self.Cells[cur], self.Cells[cur + cells_count_x])
-                    else:
-                        self.SetBoundaryConditionU(self.Cells[cur])
-
-                    if i == 0:
-                        self.SetBoundaryConditionL(self.Cells[cur])
-                    if i != cells_count_x - 1:
-                        self.LinkLR(self.Cells[cur], self.Cells[cur + 1])
-                    else:
-                        self.SetBoundaryConditionR(self.Cells[cur])
-
-                    cur += 1
-
-#---------------------------------------------------------------------------------------------------
-
-    def InitD(self):
-        """
-        Init D data.
-        """
-
-        for cell in self.Cells:
-            (x, y, z) = cell.Center()
-            D = cell.D
-            D.r = 200.0 / (x + y)
-            D.u = 0.0
-            D.v = 0.0
-            D.w = 0.0
-            D.p = 1.0
+                    if case == 1:
+                        # case 1
+                        if x < 0.5:
+                            cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        else:
+                            cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                    elif case == 2:
+                        # case 1
+                        if x < 0.5:
+                            cell.D = DataD(1.0, 0.75, 0.0, 0.0, 1.0)
+                        else:
+                            cell.D = DataD(0.125, 0.0, 0.0, 0.0, 0.1)
 
 #---------------------------------------------------------------------------------------------------
 
     def DtoU(self):
-        """
-        Convert D to U.
-        """
-
-        for cell in self.Cells:
-            cell.U.FromD(cell.D)
+        self.Apply(convert_data_d_to_data_u)
 
 #---------------------------------------------------------------------------------------------------
 
     def UtoD(self):
-        """
-        Convert U to D.
-        """
+        self.Apply(convert_data_u_to_data_d)
 
-        for cell in self.Cells:
-            cell.D.FromU(cell.U)
+#---------------------------------------------------------------------------------------------------
+
+    def CalcFlows(self):
+
+        cs = self.Cells
+
+        # X
+        for i in range(self.CellsX + 1):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    if i == 0:
+                        # L bc
+                        d = cs[i][j][k].D
+                    elif i == self.CellsX:
+                        # R bc
+                        d = cs[i - 1][j][k].D
+                    else:
+                        # LR
+                        d = 0.5 * (cs[i - 1][j][k].D + cs[i][j][k].D)
+                    self.FacesX[i][j][k].F = d.CreateFlowF()
+
+        # Y
+        for i in range(self.CellsX):
+            for j in range(self.CellsY + 1):
+                for k in range(self.CellsZ):
+                    if j == 0:
+                        # D bc
+                        d = cs[i][j][k].D
+                    elif j == self.CellsY:
+                        # U bc
+                        d = cs[i][j - 1][k].D
+                    else:
+                        # DU
+                        d = 0.5 * (cs[i][j - 1][k].D + cs[i][j][k].D)
+                    self.FacesY[i][j][k].G = d.CreateFlowG()
+
+        # Z
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ + 1):
+                    if k == 0:
+                        # B bc
+                        d = cs[i][j][k].D
+                    elif k == self.CellsZ:
+                        # F bc
+                        d = cs[i][j][k - 1].D
+                    else:
+                        # BF
+                        d = 0.5 * (cs[i][j][k - 1].D + cs[i][j][k].D)
+                    self.FacesZ[i][j][k].H = d.CreateFlowH()
+
+#---------------------------------------------------------------------------------------------------
+
+    def Renew(self, dt):
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    c = self.Cells[i][j][k]
+                    u = c.U
+                    nu = u \
+                         - (dt / self.dx) * (self.FacesX[i + 1][j][k].F - self.FacesX[i][j][k].F) \
+                         - (dt / self.dy) * (self.FacesY[i][j + 1][k].G - self.FacesY[i][j][k].G) \
+                         - (dt / self.dz) * (self.FacesZ[i][j][k + 1].H - self.FacesZ[i][j][k].H)
+                    c.U = nu
 
 #---------------------------------------------------------------------------------------------------
 
     def Step(self, dt):
-        """
-        Step.
-
-        Arguments:
-            dt -- tie step.
-        """
-
         self.DtoU()
-
-        for face in self.Faces:
-            face.CalcFlow()
-
+        self.CalcFlows()
+        self.Renew(dt)
         self.UtoD()
 
 #---------------------------------------------------------------------------------------------------
 
-    def PrintInfo(self):
-        """
-        Print information.
-        """
-
-        print('grid : %d cells, %d faces'
-              % (len(self.Cells), len(self.Faces)))
+    def Steps(self, n, dt):
+        for _ in range(n):
+            self.Step(dt)
 
 #---------------------------------------------------------------------------------------------------
 
-    def Draw(self, cell_draw_value_fun):
-        """
-        Draw grid.
 
-        Arguments:
-            cell_draw_value_fun -- function of draw value.
-        """
+    def Print(self):
+        print('Grid : %d cells, %d faces' % (self.CellsCount(), self.FacesCount()))
 
+#---------------------------------------------------------------------------------------------------
+
+    def FunInterval(self, fun):
+        inter = (0.0, -1.0)
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    v = fun(self.Cells[i][j][k])
+                    (mn, mx) = inter
+                    if mx < mn:
+                        inter = (v, v)
+                    else:
+                        if v < mn:
+                            inter = (v, mx)
+                        elif v > mx:
+                            inter = (mn, v)
+                        else:
+                            pass
+        return inter
+
+#---------------------------------------------------------------------------------------------------
+
+    def XValues(self, fun):
+        return [fun(self.Cells[i][0][0]) for i in range(self.CellsX)]
+
+#---------------------------------------------------------------------------------------------------
+
+    def Draw(self, fun):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
                         pic_size = (500, 500))
-
-        # Draw cells.
-        for cell in self.Cells:
-            dv = int(cell_draw_value_fun(cell) * 255)
-            color = (dv, dv, dv)
-            pen = aggdraw.Pen(color, 1.0)
-            brush = aggdraw.Brush(color)
-            d.Rect((cell.Left, cell.Down), (cell.Right, cell.Up),
-                   pen = pen, brush = brush)
-
+        (mn, mx) = self.FunInterval(fun)
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                factor = 255 - int((fun(cell) - mn) / (mx - mn) * 255)
+                color = (factor, factor, factor)
+                d.Rect((i * self.dx, j * self.dy), ((i + 1) * self.dx, (j + 1) * self.dy),
+                       aggdraw.Pen(color, 1.0), aggdraw.Brush(color))
+            d.Rect((0.0, 0.0), (self.SizeX, self.SizeY), aggdraw.Pen('blue', 1.0))
         d.FSS()
-
-#---------------------------------------------------------------------------------------------------
-# Functions.
-#---------------------------------------------------------------------------------------------------
-
-def cell_draw_value(cell):
-    """
-    Cell draw value from 0.0 to 1.0.
-
-    Return:
-        Value for drawing.
-    """
-
-    v = cell.D.r
-    limit = 2.0
-
-    if v < 0.0:
-        return 1.0
-    elif v > limit:
-        return 0.0
-    else:
-        return 1.0 - v / limit
 
 #---------------------------------------------------------------------------------------------------
 # Main.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    print('HYDRO_2D:')
+    print('HYDRO_3D')
+    case = 2
+    if case == 1:
+        g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
+    elif case == 2:
+        g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
+    else:
+        pass
+    g.Init(case)
 
-    # Init.
-    grid = Grid(100.0, 100.0, 1.0)
-    grid.CreateUniformGrid(100, 100, 1)
-    grid.InitD()
+    pics, n, dt = 10, 10, 0.001
+    fun = lambda cell: cell.D.p
 
-    # Print.
-    grid.PrintInfo()
-
-    # Calc.
-    grid.Step(0.001)
-
-    # Draw.
-    grid.Draw(cell_draw_value)
+    for _ in range(pics):
+        g.Steps(n, dt)
+        #g.Draw(fun)
+        vis.simple_graphic_ys(g.XValues(fun))
 
 #---------------------------------------------------------------------------------------------------

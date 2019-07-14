@@ -38,7 +38,7 @@ def simple_graphic(xs, ys, title = 'title'):
         ys -- array of Y coordinates,
         title -- title.
     """
-    plt.figure(num=1, figsize=(10, 6))
+    plt.figure(figsize=(10, 6))
     plt.title(title, size=14)
     plt.xlabel('x_label', size=14)
     plt.ylabel('y_label', size=14)

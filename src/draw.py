@@ -280,7 +280,7 @@ class Drawer:
 
     def Rect(self, p1, p2,
              pen = aggdraw.Pen('black', 1.0),
-             brush = aggdraw.Brush('white')):
+             brush = None):
         """
         Rectangle.
 
@@ -291,7 +291,10 @@ class Drawer:
             brish -- brush.
         """
 
-        self.Canvas.rectangle(self.To(p1) + self.To(p2), pen, brush)
+        if brush == None:
+            self.Canvas.rectangle(self.To(p1) + self.To(p2), pen)
+        else:
+            self.Canvas.rectangle(self.To(p1) + self.To(p2), pen, brush)
 
 #---------------------------------------------------------------------------------------------------
 # Other functions.
