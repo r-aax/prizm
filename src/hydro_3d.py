@@ -8,6 +8,7 @@ Created on Fri Jul 12 11:26:02 2019
 import draw
 import aggdraw
 import mth
+import math
 import vis
 
 #---------------------------------------------------------------------------------------------------
@@ -15,7 +16,6 @@ import vis
 #---------------------------------------------------------------------------------------------------
 
 Gamma = 1.4
-SoundSpeed = 343.3
 
 #---------------------------------------------------------------------------------------------------
 # Utilitiees.
@@ -41,8 +41,8 @@ def convert_data_u_to_data_d(cell):
 
 #---------------------------------------------------------------------------------------------------
 
-def l1(u):
-    return u - SoundSpeed
+def l1(u, a):
+    return u - a
 
 #---------------------------------------------------------------------------------------------------
 def l2(u):
@@ -50,8 +50,8 @@ def l2(u):
 
 #---------------------------------------------------------------------------------------------------
 
-def l5(u):
-    return u + SoundSpeed
+def l5(u, a):
+    return u + a
 
 #---------------------------------------------------------------------------------------------------
 
@@ -123,6 +123,11 @@ class DataD:
 
 #---------------------------------------------------------------------------------------------------
 
+    def a(self):
+        return math.sqrt((Gamma - 1.0) * (self.H() - 0.5 * self.V2()))
+
+#---------------------------------------------------------------------------------------------------
+
     def CreateDataU(self):
         return DataU(self.r,
                      self.r * self.u,
@@ -160,7 +165,7 @@ class DataD:
 #---------------------------------------------------------------------------------------------------
 
     def CreateFlowF_StegerWarming(self, l1, l2, l5):
-        a = SoundSpeed
+        a = self.a()
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
@@ -173,7 +178,7 @@ class DataD:
 #---------------------------------------------------------------------------------------------------
 
     def CreateFlowG_StegerWarming(self, l1, l2, l5):
-        a = SoundSpeed
+        a = self.a()
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
@@ -186,7 +191,7 @@ class DataD:
 #---------------------------------------------------------------------------------------------------
 
     def CreateFlowH_StegerWarming(self, l1, l2, l5):
-        a = SoundSpeed
+        a = self.a()
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
@@ -353,10 +358,24 @@ class Grid:
                             cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                     elif case == 2:
                         # case 1
+                        if y < 0.5:
+                            cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        else:
+                            cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                    elif case == 3:
+                        # case 3
                         if x < 0.5:
                             cell.D = DataD(1.0, 0.75, 0.0, 0.0, 1.0)
                         else:
                             cell.D = DataD(0.125, 0.0, 0.0, 0.0, 0.1)
+                    elif case == 4:
+                        # case 4
+                        if x * x + y * y < 0.64:
+                            cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        else:
+                            cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                    else:
+                        raise Exception('unknown case number')
 
 #---------------------------------------------------------------------------------------------------
 
@@ -441,18 +460,12 @@ class Grid:
                         # LR
                         dp = cs[i - 1][j][k].D
                         dm = cs[i][j][k].D
-                        lp1, lp2, lp5 = lp(l1(dp.u)), lp(l2(dp.u)), lp(l5(dp.u))
-                        lm1, lm2, lm5 = lm(l1(dm.u)), lm(l2(dm.u)), lm(l5(dm.u))
+                        ap = dp.a()
+                        am = dm.a()
+                        lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
+                        lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
                         fp = dp.CreateFlowF_StegerWarming(lp1, lp2, lp5)
                         fm = dm.CreateFlowF_StegerWarming(lm1, lm2, lm5)
-                        if i == 10:
-                            print(str(dp))
-                            print(str(dm))
-                            print(lp1, lp2, lp5, lm1, lm2, lm5)
-                            print(str(fp))
-                            print(str(fm))
-                            print(str(fp + fm))
-                            print('xxx')
                         self.FacesX[i][j][k].F = fp + fm
 
         # Y
@@ -471,10 +484,13 @@ class Grid:
                         # DU
                         dp = cs[i][j - 1][k].D
                         dm = cs[i][j][k].D
-                        lp1, lp2, lp5 = lp(l1(dp.v)), lp(l2(dp.v)), lp(l5(dp.v))
-                        lm1, lm2, lm5 = lm(l1(dm.v)), lm(l2(dm.v)), lm(l5(dm.v))
-                        self.FacesY[i][j][k].G = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5) \
-                                                 + dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
+                        ap = dp.a()
+                        am = dm.a()
+                        lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
+                        lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
+                        fp = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5)
+                        fm = dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
+                        self.FacesY[i][j][k].G = fp + fm
 
         # Z
         for i in range(self.CellsX):
@@ -492,10 +508,13 @@ class Grid:
                         # BF
                         dp = cs[i][j][k - 1].D
                         dm = cs[i][j][k].D
-                        lp1, lp2, lp5 = lp(l1(dp.w)), lp(l2(dp.w)), lp(l5(dp.w))
-                        lm1, lm2, lm5 = lm(l1(dm.w)), lm(l2(dm.w)), lm(l5(dm.w))
-                        self.FacesZ[i][j][k].H = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5) \
-                                                 + dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
+                        ap = dp.a()
+                        am = dm.a()
+                        lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
+                        lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
+                        fp = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5)
+                        fm = dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
+                        self.FacesZ[i][j][k].H = fp + fm
 
 #---------------------------------------------------------------------------------------------------
 
@@ -558,6 +577,11 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
+    def YValues(self, fun):
+        return [fun(self.Cells[0][j][0]) for j in range(self.CellsY)]
+
+#---------------------------------------------------------------------------------------------------
+
     def Draw(self, fun):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
                         pic_size = (500, 500))
@@ -582,17 +606,21 @@ if __name__ == '__main__':
     if case == 1:
         g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
     elif case == 2:
+        g = Grid(1.0, 1.0, 1.0, 1, 100, 1)
+    elif case == 3:
         g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
+    elif case == 4:
+        g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
     else:
-        pass
+        raise Exception('unknown case number')
     g.Init(case)
 
-    pics, n, dt = 1, 1, 0.0001
+    pics, n, dt = 10, 10, 0.001
     fun = lambda cell: cell.D.p
 
     for _ in range(pics):
         g.Steps(n, dt)
         #g.Draw(fun)
-        vis.simple_graphic_ys(g.XValues(fun))
+        vis.simple_graphic_ys(g.YValues(fun))
 
 #---------------------------------------------------------------------------------------------------
