@@ -15,6 +15,7 @@ import vis
 #---------------------------------------------------------------------------------------------------
 
 Gamma = 1.4
+SoundSpeed = 343.3
 
 #---------------------------------------------------------------------------------------------------
 # Utilitiees.
@@ -37,6 +38,30 @@ def convert_data_d_to_data_u(cell):
 
 def convert_data_u_to_data_d(cell):
     cell.D = cell.U.CreateDataD()
+
+#---------------------------------------------------------------------------------------------------
+
+def l1(u):
+    return u - SoundSpeed
+
+#---------------------------------------------------------------------------------------------------
+def l2(u):
+    return u
+
+#---------------------------------------------------------------------------------------------------
+
+def l5(u):
+    return u + SoundSpeed
+
+#---------------------------------------------------------------------------------------------------
+
+def lp(l):
+    return 0.5 * (l + abs(l))
+
+#---------------------------------------------------------------------------------------------------
+
+def lm(l):
+    return 0.5 * (l - abs(l))
 
 #---------------------------------------------------------------------------------------------------
 # Class DataD.
@@ -73,6 +98,11 @@ class DataD:
 
 #---------------------------------------------------------------------------------------------------
 
+    def __repr__(self):
+        return '%f / %f / %f / %f / %f' % (self.r, self.u, self.v, self.w, self.p)
+
+#---------------------------------------------------------------------------------------------------
+
     def V2(self):
         return self.u * self.u + self.v * self.v + self.w * self.w
 
@@ -85,6 +115,11 @@ class DataD:
 
     def E(self):
         return self.r * (0.5 * self.V2() + self.e())
+
+#---------------------------------------------------------------------------------------------------
+
+    def H(self):
+        return (self.E() + self.p) / self.r
 
 #---------------------------------------------------------------------------------------------------
 
@@ -123,6 +158,45 @@ class DataD:
                      self.w * (self.E() + self.p))
 
 #---------------------------------------------------------------------------------------------------
+
+    def CreateFlowF_StegerWarming(self, l1, l2, l5):
+        a = SoundSpeed
+        g = Gamma
+        g1 = g - 1.0
+        f = DataU(l1 + 2.0 * g1 * l2 + l5,
+                  (self.u - a) * l1 + 2.0 * g1 * self.u * l2 + (self.u + a) * l5,
+                  self.v * l1 + 2.0 * g1 * self.v * l2 + self.v * l5,
+                  self.w * l1 + 2.0 * g1 * self.w * l2 + self.w * l5,
+                  (self.H() - self.u * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.u * a) * l5)
+        return (self.r / (2.0 * g)) * f
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowG_StegerWarming(self, l1, l2, l5):
+        a = SoundSpeed
+        g = Gamma
+        g1 = g - 1.0
+        f = DataU(l1 + 2.0 * g1 * l2 + l5,
+                  self.u * l1 + 2.0 * g1 * self.u * l2 + self.v * l5,
+                  (self.v - a) * l1 + 2.0 * g1 * self.v * l2 + (self.v + a) * l5,
+                  self.w * l1 + 2.0 * g1 * self.w * l2 + self.w * l5,
+                  (self.H() - self.v * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.v * a) * l5)
+        return (self.r / (2.0 * g)) * f
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowH_StegerWarming(self, l1, l2, l5):
+        a = SoundSpeed
+        g = Gamma
+        g1 = g - 1.0
+        f = DataU(l1 + 2.0 * g1 * l2 + l5,
+                  self.u * l1 + 2.0 * g1 * self.u * l2 + self.u * l5,
+                  self.v * l1 + 2.0 * g1 * self.v * l2 + self.v * l5,
+                  (self.w - a) * l1 + 2.0 * g1 * self.w * l2 + (self.w + a) * l5,
+                  (self.H() - self.w * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.w * a) * l5)
+        return (self.r / (2.0 * g)) * f
+
+#---------------------------------------------------------------------------------------------------
 # Class DataU.
 #---------------------------------------------------------------------------------------------------
 
@@ -159,6 +233,11 @@ class DataU:
 
     def __rmul__(self, k):
         return self * k
+
+#---------------------------------------------------------------------------------------------------
+
+    def __repr__(self):
+        return '%f / %f / %f / %f / %f' % (self.r, self.ru, self.rv, self.rw, self.E)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -291,7 +370,7 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def CalcFlows(self):
+    def CalcFlowsTrivial(self):
 
         cs = self.Cells
 
@@ -342,6 +421,84 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
+    def CalcFlowsStegerWarming(self):
+
+        cs = self.Cells
+
+        # X
+        for i in range(self.CellsX + 1):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    if i == 0:
+                        # L bc
+                        d = cs[i][j][k].D
+                        self.FacesX[i][j][k].F = d.CreateFlowF()
+                    elif i == self.CellsX:
+                        # R bc
+                        d = cs[i - 1][j][k].D
+                        self.FacesX[i][j][k].F = d.CreateFlowF()
+                    else:
+                        # LR
+                        dp = cs[i - 1][j][k].D
+                        dm = cs[i][j][k].D
+                        lp1, lp2, lp5 = lp(l1(dp.u)), lp(l2(dp.u)), lp(l5(dp.u))
+                        lm1, lm2, lm5 = lm(l1(dm.u)), lm(l2(dm.u)), lm(l5(dm.u))
+                        fp = dp.CreateFlowF_StegerWarming(lp1, lp2, lp5)
+                        fm = dm.CreateFlowF_StegerWarming(lm1, lm2, lm5)
+                        if i == 10:
+                            print(str(dp))
+                            print(str(dm))
+                            print(lp1, lp2, lp5, lm1, lm2, lm5)
+                            print(str(fp))
+                            print(str(fm))
+                            print(str(fp + fm))
+                            print('xxx')
+                        self.FacesX[i][j][k].F = fp + fm
+
+        # Y
+        for i in range(self.CellsX):
+            for j in range(self.CellsY + 1):
+                for k in range(self.CellsZ):
+                    if j == 0:
+                        # D bc
+                        d = cs[i][j][k].D
+                        self.FacesY[i][j][k].G = d.CreateFlowG()
+                    elif j == self.CellsY:
+                        # U bc
+                        d = cs[i][j - 1][k].D
+                        self.FacesY[i][j][k].G = d.CreateFlowG()
+                    else:
+                        # DU
+                        dp = cs[i][j - 1][k].D
+                        dm = cs[i][j][k].D
+                        lp1, lp2, lp5 = lp(l1(dp.v)), lp(l2(dp.v)), lp(l5(dp.v))
+                        lm1, lm2, lm5 = lm(l1(dm.v)), lm(l2(dm.v)), lm(l5(dm.v))
+                        self.FacesY[i][j][k].G = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5) \
+                                                 + dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
+
+        # Z
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ + 1):
+                    if k == 0:
+                        # B bc
+                        d = cs[i][j][k].D
+                        self.FacesZ[i][j][k].H = d.CreateFlowH()
+                    elif k == self.CellsZ:
+                        # F bc
+                        d = cs[i][j][k - 1].D
+                        self.FacesZ[i][j][k].H = d.CreateFlowH()
+                    else:
+                        # BF
+                        dp = cs[i][j][k - 1].D
+                        dm = cs[i][j][k].D
+                        lp1, lp2, lp5 = lp(l1(dp.w)), lp(l2(dp.w)), lp(l5(dp.w))
+                        lm1, lm2, lm5 = lm(l1(dm.w)), lm(l2(dm.w)), lm(l5(dm.w))
+                        self.FacesZ[i][j][k].H = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5) \
+                                                 + dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
+
+#---------------------------------------------------------------------------------------------------
+
     def Renew(self, dt):
         for i in range(self.CellsX):
             for j in range(self.CellsY):
@@ -358,7 +515,7 @@ class Grid:
 
     def Step(self, dt):
         self.DtoU()
-        self.CalcFlows()
+        self.CalcFlowsStegerWarming()
         self.Renew(dt)
         self.UtoD()
 
@@ -421,7 +578,7 @@ class Grid:
 
 if __name__ == '__main__':
     print('HYDRO_3D')
-    case = 2
+    case = 1
     if case == 1:
         g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
     elif case == 2:
@@ -430,7 +587,7 @@ if __name__ == '__main__':
         pass
     g.Init(case)
 
-    pics, n, dt = 10, 10, 0.001
+    pics, n, dt = 1, 1, 0.0001
     fun = lambda cell: cell.D.p
 
     for _ in range(pics):
