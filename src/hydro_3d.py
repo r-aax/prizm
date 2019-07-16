@@ -73,14 +73,27 @@ class DataD:
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self,
-                 r = 0.0,
+                 r = 1.0,
                  u = 0.0, v = 0.0, w = 0.0,
-                 p = 0.0):
+                 p = 1.0):
+
+        # Basic values.
         self.r = r
         self.u = u
         self.v = v
         self.w = w
         self.p = p
+
+        self.CalculateDerivedVariables()
+
+#---------------------------------------------------------------------------------------------------
+
+    def CalculateDerivedVariables(self):
+        self.V2 = self.u * self.u + self.v * self.v + self.w * self.w
+        self.e = self.p / ((Gamma - 1.0) * self.r)
+        self.E = self.r * (0.5 * self.V2 + self.e)
+        self.H = (self.E + self.p) / self.r
+        self.a = math.sqrt((Gamma - 1.0) * (self.H - 0.5 * self.V2))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -104,37 +117,12 @@ class DataD:
 
 #---------------------------------------------------------------------------------------------------
 
-    def V2(self):
-        return self.u * self.u + self.v * self.v + self.w * self.w
-
-#---------------------------------------------------------------------------------------------------
-
-    def e(self):
-        return self.p / ((Gamma - 1.0) * self.r)
-
-#---------------------------------------------------------------------------------------------------
-
-    def E(self):
-        return self.r * (0.5 * self.V2() + self.e())
-
-#---------------------------------------------------------------------------------------------------
-
-    def H(self):
-        return (self.E() + self.p) / self.r
-
-#---------------------------------------------------------------------------------------------------
-
-    def a(self):
-        return math.sqrt((Gamma - 1.0) * (self.H() - 0.5 * self.V2()))
-
-#---------------------------------------------------------------------------------------------------
-
     def CreateDataU(self):
         return DataU(self.r,
                      self.r * self.u,
                      self.r * self.v,
                      self.r * self.w,
-                     self.E())
+                     self.E)
 
 #---------------------------------------------------------------------------------------------------
 
@@ -143,7 +131,7 @@ class DataD:
                      self.r * self.u * self.u + self.p,
                      self.r * self.u * self.v,
                      self.r * self.u * self.w,
-                     self.u * (self.E() + self.p))
+                     self.u * (self.E + self.p))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -152,7 +140,7 @@ class DataD:
                      self.r * self.u * self.v,
                      self.r * self.v * self.v + self.p,
                      self.r * self.v * self.w,
-                     self.v * (self.E() + self.p))
+                     self.v * (self.E + self.p))
 
 #---------------------------------------------------------------------------------------------------
 
@@ -161,45 +149,45 @@ class DataD:
                      self.r * self.u * self.w,
                      self.r * self.v * self.w,
                      self.r * self.w * self.w + self.p,
-                     self.w * (self.E() + self.p))
+                     self.w * (self.E + self.p))
 
 #---------------------------------------------------------------------------------------------------
 
     def CreateFlowF_StegerWarming(self, l1, l2, l5):
-        a = self.a()
+        a = self.a
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
                   (self.u - a) * l1 + 2.0 * g1 * self.u * l2 + (self.u + a) * l5,
                   self.v * l1 + 2.0 * g1 * self.v * l2 + self.v * l5,
                   self.w * l1 + 2.0 * g1 * self.w * l2 + self.w * l5,
-                  (self.H() - self.u * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.u * a) * l5)
+                  (self.H - self.u * a) * l1 + g1 * self.V2 * l2 + (self.H + self.u * a) * l5)
         return (self.r / (2.0 * g)) * f
 
 #---------------------------------------------------------------------------------------------------
 
     def CreateFlowG_StegerWarming(self, l1, l2, l5):
-        a = self.a()
+        a = self.a
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
                   self.u * l1 + 2.0 * g1 * self.u * l2 + self.u * l5,
                   (self.v - a) * l1 + 2.0 * g1 * self.v * l2 + (self.v + a) * l5,
                   self.w * l1 + 2.0 * g1 * self.w * l2 + self.w * l5,
-                  (self.H() - self.v * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.v * a) * l5)
+                  (self.H - self.v * a) * l1 + g1 * self.V2 * l2 + (self.H + self.v * a) * l5)
         return (self.r / (2.0 * g)) * f
 
 #---------------------------------------------------------------------------------------------------
 
     def CreateFlowH_StegerWarming(self, l1, l2, l5):
-        a = self.a()
+        a = self.a
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
                   self.u * l1 + 2.0 * g1 * self.u * l2 + self.u * l5,
                   self.v * l1 + 2.0 * g1 * self.v * l2 + self.v * l5,
                   (self.w - a) * l1 + 2.0 * g1 * self.w * l2 + (self.w + a) * l5,
-                  (self.H() - self.w * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.w * a) * l5)
+                  (self.H - self.w * a) * l1 + g1 * self.V2 * l2 + (self.H + self.w * a) * l5)
         return (self.r / (2.0 * g)) * f
 
 #---------------------------------------------------------------------------------------------------
@@ -248,13 +236,10 @@ class DataU:
 #---------------------------------------------------------------------------------------------------
 
     def CreateDataD(self):
-        data_d = DataD(self.r,
-                       self.ru / self.r,
-                       self.rv / self.r,
-                       self.rw / self.r,
-                       0.0)
-        data_d.p = (self.E / self.r - 0.5 * data_d.V2()) * ((Gamma - 1.0) * self.r)
-        return data_d
+        u, v, w, = self.ru / self.r, self.rv / self.r, self.rw / self.r
+        v2 = u * u + v * v + w * w
+        p = (self.E / self.r - 0.5 * v2) * ((Gamma - 1.0) * self.r)
+        return  DataD(self.r, u, v, w, p)
 
 #---------------------------------------------------------------------------------------------------
 # Class Cell.
@@ -424,8 +409,8 @@ class Grid:
                         # LR
                         dp = cs[i - 1][j][k].D
                         dm = cs[i][j][k].D
-                        ap = dp.a()
-                        am = dm.a()
+                        ap = dp.a
+                        am = dm.a
                         lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
                         lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
                         fp = dp.CreateFlowF_StegerWarming(lp1, lp2, lp5)
@@ -448,8 +433,8 @@ class Grid:
                         # DU
                         dp = cs[i][j - 1][k].D
                         dm = cs[i][j][k].D
-                        ap = dp.a()
-                        am = dm.a()
+                        ap = dp.a
+                        am = dm.a
                         lp1, lp2, lp5 = lp(l1(dp.v, ap)), lp(l2(dp.v)), lp(l5(dp.v, ap))
                         lm1, lm2, lm5 = lm(l1(dm.v, am)), lm(l2(dm.v)), lm(l5(dm.v, am))
                         fp = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5)
@@ -472,8 +457,8 @@ class Grid:
                         # BF
                         dp = cs[i][j][k - 1].D
                         dm = cs[i][j][k].D
-                        ap = dp.a()
-                        am = dm.a()
+                        ap = dp.a
+                        am = dm.a
                         lp1, lp2, lp5 = lp(l1(dp.w, ap)), lp(l2(dp.w)), lp(l5(dp.w, ap))
                         lm1, lm2, lm5 = lm(l1(dm.w, am)), lm(l2(dm.w)), lm(l5(dm.w, am))
                         fp = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5)
