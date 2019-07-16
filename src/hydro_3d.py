@@ -10,6 +10,7 @@ import aggdraw
 import mth
 import math
 import vis
+import time
 
 #---------------------------------------------------------------------------------------------------
 # Constants.
@@ -629,14 +630,17 @@ def create_and_init_grid(case):
 
 if __name__ == '__main__':
     print('HYDRO_3D')
-    g = create_and_init_grid(case = Case_1D_X)
+    g = create_and_init_grid(case = Case_2D_XY)
 
     pics, n, dt = 10, 10, 0.001
     fun = lambda cell: cell.D.p
 
+    ts = time.time()
     for _ in range(pics):
         g.Steps(n, dt)
-        #g.Draw(fun)
-        vis.simple_graphic_ys(g.XValues(fun))
+        g.Draw(fun)
+        #vis.simple_graphic_ys(g.XValues(fun))
+    tf = time.time()
+    print('total time : %f' % (tf - ts))
 
 #---------------------------------------------------------------------------------------------------
