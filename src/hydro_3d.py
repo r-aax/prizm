@@ -342,43 +342,6 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Init(self, case):
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                for k in range(self.CellsZ):
-                    cell = self.Cells[i][j][k]
-                    x = (i + 0.5) * self.dx
-                    y = (j + 0.5) * self.dy
-
-                    if case == 1:
-                        # case 1
-                        if x < 0.5:
-                            cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
-                        else:
-                            cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
-                    elif case == 2:
-                        # case 1
-                        if y < 0.5:
-                            cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
-                        else:
-                            cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
-                    elif case == 3:
-                        # case 3
-                        if x < 0.5:
-                            cell.D = DataD(1.0, 0.75, 0.0, 0.0, 1.0)
-                        else:
-                            cell.D = DataD(0.125, 0.0, 0.0, 0.0, 0.1)
-                    elif case == 4:
-                        # case 4
-                        if x * x + y * y < 0.64:
-                            cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
-                        else:
-                            cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
-                    else:
-                        raise Exception('unknown case number')
-
-#---------------------------------------------------------------------------------------------------
-
     def DtoU(self):
         self.Apply(convert_data_d_to_data_u)
 
@@ -582,6 +545,11 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
+    def ZValues(self, fun):
+        return [fun(self.Cells[0][0][k]) for k in range(self.CellsZ)]
+
+#---------------------------------------------------------------------------------------------------
+
     def Draw(self, fun):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
                         pic_size = (500, 500))
@@ -600,20 +568,68 @@ class Grid:
 # Main.
 #---------------------------------------------------------------------------------------------------
 
-if __name__ == '__main__':
-    print('HYDRO_3D')
-    case = 1
-    if case == 1:
+Case_1D_X = 1
+Case_1D_Y = 2
+Case_1D_Z = 3
+Case_2D_XY = 4
+Case_1D_SodMod = 5
+
+def create_and_init_grid(case):
+
+    if case == Case_1D_X:
         g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
-    elif case == 2:
+    elif case == Case_1D_Y:
         g = Grid(1.0, 1.0, 1.0, 1, 100, 1)
-    elif case == 3:
-        g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
-    elif case == 4:
+    elif case == Case_1D_Z:
+        g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
+    elif case == Case_2D_XY:
+        g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
+    elif case == Case_1D_SodMod:
         g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
     else:
         raise Exception('unknown case number')
-    g.Init(case)
+
+    for i in range(g.CellsX):
+        for j in range(g.CellsY):
+            for k in range(g.CellsZ):
+                cell = g.Cells[i][j][k]
+                x, y, z = (i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz
+
+                if case == Case_1D_X:
+                    if x < 0.5:
+                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                    else:
+                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                elif case == Case_1D_Y:
+                    if y < 0.5:
+                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                    else:
+                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                elif case == Case_1D_Z:
+                    if z < 0.5:
+                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                    else:
+                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                elif case == Case_2D_XY:
+                    if x * x + y * y < 0.64:
+                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                    else:
+                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                elif case == Case_1D_SodMod:
+                    if x < 0.5:
+                        cell.D = DataD(1.0, 0.75, 0.0, 0.0, 1.0)
+                    else:
+                        cell.D = DataD(0.125, 0.0, 0.0, 0.0, 0.1)
+                else:
+                    raise Exception('unknown case number')
+
+    return g
+
+#---------------------------------------------------------------------------------------------------
+
+if __name__ == '__main__':
+    print('HYDRO_3D')
+    g = create_and_init_grid(case = Case_1D_Y)
 
     pics, n, dt = 10, 10, 0.001
     fun = lambda cell: cell.D.p
