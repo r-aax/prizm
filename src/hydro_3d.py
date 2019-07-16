@@ -182,7 +182,7 @@ class DataD:
         g = Gamma
         g1 = g - 1.0
         f = DataU(l1 + 2.0 * g1 * l2 + l5,
-                  self.u * l1 + 2.0 * g1 * self.u * l2 + self.v * l5,
+                  self.u * l1 + 2.0 * g1 * self.u * l2 + self.u * l5,
                   (self.v - a) * l1 + 2.0 * g1 * self.v * l2 + (self.v + a) * l5,
                   self.w * l1 + 2.0 * g1 * self.w * l2 + self.w * l5,
                   (self.H() - self.v * a) * l1 + g1 * self.V2() * l2 + (self.H() + self.v * a) * l5)
@@ -449,8 +449,8 @@ class Grid:
                         dm = cs[i][j][k].D
                         ap = dp.a()
                         am = dm.a()
-                        lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
-                        lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
+                        lp1, lp2, lp5 = lp(l1(dp.v, ap)), lp(l2(dp.v)), lp(l5(dp.v, ap))
+                        lm1, lm2, lm5 = lm(l1(dm.v, am)), lm(l2(dm.v)), lm(l5(dm.v, am))
                         fp = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5)
                         fm = dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
                         self.FacesY[i][j][k].G = fp + fm
@@ -473,8 +473,8 @@ class Grid:
                         dm = cs[i][j][k].D
                         ap = dp.a()
                         am = dm.a()
-                        lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
-                        lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
+                        lp1, lp2, lp5 = lp(l1(dp.w, ap)), lp(l2(dp.w)), lp(l5(dp.w, ap))
+                        lm1, lm2, lm5 = lm(l1(dm.w, am)), lm(l2(dm.w)), lm(l5(dm.w, am))
                         fp = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5)
                         fm = dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
                         self.FacesZ[i][j][k].H = fp + fm
@@ -629,7 +629,7 @@ def create_and_init_grid(case):
 
 if __name__ == '__main__':
     print('HYDRO_3D')
-    g = create_and_init_grid(case = Case_1D_Y)
+    g = create_and_init_grid(case = Case_1D_X)
 
     pics, n, dt = 10, 10, 0.001
     fun = lambda cell: cell.D.p
@@ -637,6 +637,6 @@ if __name__ == '__main__':
     for _ in range(pics):
         g.Steps(n, dt)
         #g.Draw(fun)
-        vis.simple_graphic_ys(g.YValues(fun))
+        vis.simple_graphic_ys(g.XValues(fun))
 
 #---------------------------------------------------------------------------------------------------
