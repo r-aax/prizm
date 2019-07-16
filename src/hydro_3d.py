@@ -308,16 +308,16 @@ class Grid:
         # Borders.
         for i in range(cells_x):
             for j in range(cells_y):
-                self.Cells[i][j][0].Borders[BorderL] = BorderSoft
-                self.Cells[i][j][cells_z - 1].Borders[BorderR] = BorderSoft
+                self.Cells[i][j][0].Borders[BorderB] = BorderSoft
+                self.Cells[i][j][cells_z - 1].Borders[BorderF] = BorderSoft
         for i in range(cells_x):
             for k in range(cells_z):
                 self.Cells[i][0][k].Borders[BorderD] = BorderSoft
                 self.Cells[i][cells_y - 1][k].Borders[BorderU] = BorderSoft
         for j in range(cells_y):
             for k in range(cells_z):
-                self.Cells[0][j][k].Borders[BorderB] = BorderSoft
-                self.Cells[cells_x - 1][j][k].Borders[BorderF] = BorderSoft
+                self.Cells[0][j][k].Borders[BorderL] = BorderSoft
+                self.Cells[cells_x - 1][j][k].Borders[BorderR] = BorderSoft
 
 #---------------------------------------------------------------------------------------------------
 
@@ -393,56 +393,63 @@ class Grid:
 
         cs = self.Cells
 
-        # X
-        for i in range(self.CellsX + 1):
-            for j in range(self.CellsY):
-                for k in range(self.CellsZ):
-                    if i == 0:
-                        # L bc
-                        d = cs[i][j][k].D
-                        self.FacesX[i][j][k].F = d.CreateFlowF()
-                    elif i == self.CellsX:
-                        # R bc
-                        d = cs[i - 1][j][k].D
-                        self.FacesX[i][j][k].F = d.CreateFlowF()
-                    else:
-                        # LR
-                        self.CalcFlowF_StegerWarming(self.FacesX[i][j][k],
-                                                     cs[i - 1][j][k], cs[i][j][k])
-
-        # Y
-        for i in range(self.CellsX):
-            for j in range(self.CellsY + 1):
-                for k in range(self.CellsZ):
-                    if j == 0:
-                        # D bc
-                        d = cs[i][j][k].D
-                        self.FacesY[i][j][k].G = d.CreateFlowG()
-                    elif j == self.CellsY:
-                        # U bc
-                        d = cs[i][j - 1][k].D
-                        self.FacesY[i][j][k].G = d.CreateFlowG()
-                    else:
-                        # DU
-                        self.CalcFlowG_StegerWarming(self.FacesY[i][j][k],
-                                                     cs[i][j - 1][k], cs[i][j][k])
-
-        # Z
+        # Cells.
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                for k in range(self.CellsZ + 1):
-                    if k == 0:
-                        # B bc
-                        d = cs[i][j][k].D
-                        self.FacesZ[i][j][k].H = d.CreateFlowH()
-                    elif k == self.CellsZ:
-                        # F bc
-                        d = cs[i][j][k - 1].D
-                        self.FacesZ[i][j][k].H = d.CreateFlowH()
+                for k in range(self.CellsZ):
+
+                    c = cs[i][j][k]
+                    if c.IsGhost:
+                        continue
+                    bs = c.Borders
+
+                    # L
+                    if bs[BorderL] == BorderSoft:
+                        self.FacesX[i][j][k].F = c.D.CreateFlowF()
+                    elif bs[BorderL] == BorderHard:
+                        raise Exception('hard border is not implemented')
                     else:
-                        # BF
-                        self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k],
-                                                     cs[i][j][k - 1], cs[i][j][k])
+                        pass
+
+                    # R
+                    if bs[BorderR] == BorderSoft:
+                        self.FacesX[i + 1][j][k].F = c.D.CreateFlowF()
+                    elif bs[BorderR] == BorderHard:
+                        raise Exception('hard border is not implemented')
+                    else:
+                        self.CalcFlowF_StegerWarming(self.FacesX[i + 1][j][k], c, cs[i + 1][j][k])
+
+                    # D
+                    if bs[BorderD] == BorderSoft:
+                        self.FacesY[i][j][k].G = c.D.CreateFlowG()
+                    elif bs[BorderD] == BorderHard:
+                        raise Exception('hard border is not implemented')
+                    else:
+                        pass
+
+                    # U
+                    if bs[BorderU] == BorderSoft:
+                        self.FacesY[i][j + 1][k].G = c.D.CreateFlowG()
+                    elif bs[BorderU] == BorderHard:
+                        raise Exception('hard border is not implemented')
+                    else:
+                        self.CalcFlowG_StegerWarming(self.FacesY[i][j + 1][k], c, cs[i][j + 1][k])
+
+                    # B
+                    if bs[BorderB] == BorderSoft:
+                        self.FacesZ[i][j][k].H = c.D.CreateFlowH()
+                    elif bs[BorderB] == BorderHard:
+                        raise Exception('hard border is not implemented')
+                    else:
+                        pass
+
+                    # F
+                    if bs[BorderF] == BorderSoft:
+                        self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH()
+                    elif bs[BorderF] == BorderHard:
+                        raise Exception('hard border is not implemented')
+                    else:
+                        self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k + 1], c, cs[i][j][k + 1])
 
 #---------------------------------------------------------------------------------------------------
 
