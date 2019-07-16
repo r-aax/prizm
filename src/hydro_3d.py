@@ -42,20 +42,6 @@ def convert_data_u_to_data_d(cell):
 
 #---------------------------------------------------------------------------------------------------
 
-def l1(u, a):
-    return u - a
-
-#---------------------------------------------------------------------------------------------------
-def l2(u):
-    return u
-
-#---------------------------------------------------------------------------------------------------
-
-def l5(u, a):
-    return u + a
-
-#---------------------------------------------------------------------------------------------------
-
 def lp(l):
     return 0.5 * (l + abs(l))
 
@@ -409,10 +395,10 @@ class Grid:
                         # LR
                         dp = cs[i - 1][j][k].D
                         dm = cs[i][j][k].D
-                        ap = dp.a
-                        am = dm.a
-                        lp1, lp2, lp5 = lp(l1(dp.u, ap)), lp(l2(dp.u)), lp(l5(dp.u, ap))
-                        lm1, lm2, lm5 = lm(l1(dm.u, am)), lm(l2(dm.u)), lm(l5(dm.u, am))
+                        up, um = dp.u, dm.u
+                        ap, am = dp.a, dm.a
+                        lp1, lp2, lp5 = lp(up - ap), lp(up), lp(up + ap)
+                        lm1, lm2, lm5 = lm(um - am), lm(um), lm(um + am)
                         fp = dp.CreateFlowF_StegerWarming(lp1, lp2, lp5)
                         fm = dm.CreateFlowF_StegerWarming(lm1, lm2, lm5)
                         self.FacesX[i][j][k].F = fp + fm
@@ -433,10 +419,10 @@ class Grid:
                         # DU
                         dp = cs[i][j - 1][k].D
                         dm = cs[i][j][k].D
-                        ap = dp.a
-                        am = dm.a
-                        lp1, lp2, lp5 = lp(l1(dp.v, ap)), lp(l2(dp.v)), lp(l5(dp.v, ap))
-                        lm1, lm2, lm5 = lm(l1(dm.v, am)), lm(l2(dm.v)), lm(l5(dm.v, am))
+                        vp, vm = dp.v, dm.v
+                        ap, am = dp.a, dm.a
+                        lp1, lp2, lp5 = lp(vp - ap), lp(vp), lp(vp + ap)
+                        lm1, lm2, lm5 = lm(vm - am), lm(vm), lm(vm + am)
                         fp = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5)
                         fm = dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
                         self.FacesY[i][j][k].G = fp + fm
@@ -457,10 +443,10 @@ class Grid:
                         # BF
                         dp = cs[i][j][k - 1].D
                         dm = cs[i][j][k].D
-                        ap = dp.a
-                        am = dm.a
-                        lp1, lp2, lp5 = lp(l1(dp.w, ap)), lp(l2(dp.w)), lp(l5(dp.w, ap))
-                        lm1, lm2, lm5 = lm(l1(dm.w, am)), lm(l2(dm.w)), lm(l5(dm.w, am))
+                        wp, wm = dp.w, dm.w
+                        ap, am = dp.a, dm.a
+                        lp1, lp2, lp5 = lp(wp - ap), lp(wp), lp(wp + ap)
+                        lm1, lm2, lm5 = lm(wm - am), lm(wm), lm(wm + am)
                         fp = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5)
                         fm = dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
                         self.FacesZ[i][j][k].H = fp + fm
