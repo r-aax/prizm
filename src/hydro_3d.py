@@ -231,6 +231,16 @@ class DataU:
 # Class Cell.
 #---------------------------------------------------------------------------------------------------
 
+BorderL = 0
+BorderR = 1
+BorderD = 2
+BorderU = 3
+BorderB = 4
+BorderF = 5
+BorderNone = 0
+BorderSoft = 1
+BorderHard = 2
+
 class Cell:
 
 #---------------------------------------------------------------------------------------------------
@@ -238,6 +248,8 @@ class Cell:
     def __init__(self):
         self.D = DataD()
         self.U = DataU()
+        self.IsGhost = False
+        self.Borders = [BorderNone] * 6
 
 #---------------------------------------------------------------------------------------------------
 # Class Face.
@@ -293,6 +305,20 @@ class Grid:
                 for k in range(cells_z + 1):
                     self.FacesZ[i][j][k] = Face()
 
+        # Borders.
+        for i in range(cells_x):
+            for j in range(cells_y):
+                self.Cells[i][j][0].Borders[BorderL] = BorderSoft
+                self.Cells[i][j][cells_z - 1].Borders[BorderR] = BorderSoft
+        for i in range(cells_x):
+            for k in range(cells_z):
+                self.Cells[i][0][k].Borders[BorderD] = BorderSoft
+                self.Cells[i][cells_y - 1][k].Borders[BorderU] = BorderSoft
+        for j in range(cells_y):
+            for k in range(cells_z):
+                self.Cells[0][j][k].Borders[BorderB] = BorderSoft
+                self.Cells[cells_x - 1][j][k].Borders[BorderF] = BorderSoft
+
 #---------------------------------------------------------------------------------------------------
 
     def CellsCount(self):
@@ -324,54 +350,42 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def CalcFlowsTrivial(self):
+    def CalcFlowF_StegerWarming(self, face, cp, cm):
+        dp = cp.D
+        dm = cm.D
+        up, um = dp.u, dm.u
+        ap, am = dp.a, dm.a
+        lp1, lp2, lp5 = lp(up - ap), lp(up), lp(up + ap)
+        lm1, lm2, lm5 = lm(um - am), lm(um), lm(um + am)
+        fp = dp.CreateFlowF_StegerWarming(lp1, lp2, lp5)
+        fm = dm.CreateFlowF_StegerWarming(lm1, lm2, lm5)
+        face.F = fp + fm
 
-        cs = self.Cells
+#---------------------------------------------------------------------------------------------------
 
-        # X
-        for i in range(self.CellsX + 1):
-            for j in range(self.CellsY):
-                for k in range(self.CellsZ):
-                    if i == 0:
-                        # L bc
-                        d = cs[i][j][k].D
-                    elif i == self.CellsX:
-                        # R bc
-                        d = cs[i - 1][j][k].D
-                    else:
-                        # LR
-                        d = 0.5 * (cs[i - 1][j][k].D + cs[i][j][k].D)
-                    self.FacesX[i][j][k].F = d.CreateFlowF()
+    def CalcFlowG_StegerWarming(self, face, cp, cm):
+        dp = cp.D
+        dm = cm.D
+        vp, vm = dp.v, dm.v
+        ap, am = dp.a, dm.a
+        lp1, lp2, lp5 = lp(vp - ap), lp(vp), lp(vp + ap)
+        lm1, lm2, lm5 = lm(vm - am), lm(vm), lm(vm + am)
+        fp = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5)
+        fm = dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
+        face.G = fp + fm
 
-        # Y
-        for i in range(self.CellsX):
-            for j in range(self.CellsY + 1):
-                for k in range(self.CellsZ):
-                    if j == 0:
-                        # D bc
-                        d = cs[i][j][k].D
-                    elif j == self.CellsY:
-                        # U bc
-                        d = cs[i][j - 1][k].D
-                    else:
-                        # DU
-                        d = 0.5 * (cs[i][j - 1][k].D + cs[i][j][k].D)
-                    self.FacesY[i][j][k].G = d.CreateFlowG()
+#---------------------------------------------------------------------------------------------------
 
-        # Z
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                for k in range(self.CellsZ + 1):
-                    if k == 0:
-                        # B bc
-                        d = cs[i][j][k].D
-                    elif k == self.CellsZ:
-                        # F bc
-                        d = cs[i][j][k - 1].D
-                    else:
-                        # BF
-                        d = 0.5 * (cs[i][j][k - 1].D + cs[i][j][k].D)
-                    self.FacesZ[i][j][k].H = d.CreateFlowH()
+    def CalcFlowH_StegerWarming(self, face, cp, cm):
+        dp = cp.D
+        dm = cm.D
+        wp, wm = dp.w, dm.w
+        ap, am = dp.a, dm.a
+        lp1, lp2, lp5 = lp(wp - ap), lp(wp), lp(wp + ap)
+        lm1, lm2, lm5 = lm(wm - am), lm(wm), lm(wm + am)
+        fp = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5)
+        fm = dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
+        face.H = fp + fm
 
 #---------------------------------------------------------------------------------------------------
 
@@ -393,15 +407,8 @@ class Grid:
                         self.FacesX[i][j][k].F = d.CreateFlowF()
                     else:
                         # LR
-                        dp = cs[i - 1][j][k].D
-                        dm = cs[i][j][k].D
-                        up, um = dp.u, dm.u
-                        ap, am = dp.a, dm.a
-                        lp1, lp2, lp5 = lp(up - ap), lp(up), lp(up + ap)
-                        lm1, lm2, lm5 = lm(um - am), lm(um), lm(um + am)
-                        fp = dp.CreateFlowF_StegerWarming(lp1, lp2, lp5)
-                        fm = dm.CreateFlowF_StegerWarming(lm1, lm2, lm5)
-                        self.FacesX[i][j][k].F = fp + fm
+                        self.CalcFlowF_StegerWarming(self.FacesX[i][j][k],
+                                                     cs[i - 1][j][k], cs[i][j][k])
 
         # Y
         for i in range(self.CellsX):
@@ -417,15 +424,8 @@ class Grid:
                         self.FacesY[i][j][k].G = d.CreateFlowG()
                     else:
                         # DU
-                        dp = cs[i][j - 1][k].D
-                        dm = cs[i][j][k].D
-                        vp, vm = dp.v, dm.v
-                        ap, am = dp.a, dm.a
-                        lp1, lp2, lp5 = lp(vp - ap), lp(vp), lp(vp + ap)
-                        lm1, lm2, lm5 = lm(vm - am), lm(vm), lm(vm + am)
-                        fp = dp.CreateFlowG_StegerWarming(lp1, lp2, lp5)
-                        fm = dm.CreateFlowG_StegerWarming(lm1, lm2, lm5)
-                        self.FacesY[i][j][k].G = fp + fm
+                        self.CalcFlowG_StegerWarming(self.FacesY[i][j][k],
+                                                     cs[i][j - 1][k], cs[i][j][k])
 
         # Z
         for i in range(self.CellsX):
@@ -441,15 +441,8 @@ class Grid:
                         self.FacesZ[i][j][k].H = d.CreateFlowH()
                     else:
                         # BF
-                        dp = cs[i][j][k - 1].D
-                        dm = cs[i][j][k].D
-                        wp, wm = dp.w, dm.w
-                        ap, am = dp.a, dm.a
-                        lp1, lp2, lp5 = lp(wp - ap), lp(wp), lp(wp + ap)
-                        lm1, lm2, lm5 = lm(wm - am), lm(wm), lm(wm + am)
-                        fp = dp.CreateFlowH_StegerWarming(lp1, lp2, lp5)
-                        fm = dm.CreateFlowH_StegerWarming(lm1, lm2, lm5)
-                        self.FacesZ[i][j][k].H = fp + fm
+                        self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k],
+                                                     cs[i][j][k - 1], cs[i][j][k])
 
 #---------------------------------------------------------------------------------------------------
 
@@ -458,6 +451,8 @@ class Grid:
             for j in range(self.CellsY):
                 for k in range(self.CellsZ):
                     c = self.Cells[i][j][k]
+                    if c.IsGhost:
+                        continue
                     u = c.U
                     nu = u \
                          - (dt / self.dx) * (self.FacesX[i + 1][j][k].F - self.FacesX[i][j][k].F) \
@@ -555,9 +550,9 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
+        g = Grid(1.0, 1.0, 1.0, 30, 30, 1)
     elif case == Case_1D_SodMod:
-        g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
+        g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
     else:
         raise Exception('unknown case number')
 
@@ -603,7 +598,7 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 10, 10, 0.001
+    pics, n, dt = 10, 10, 0.005
     fun = lambda cell: cell.D.p
 
     ts = time.time()
