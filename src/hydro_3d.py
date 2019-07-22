@@ -139,6 +139,21 @@ class DataD:
 
 #---------------------------------------------------------------------------------------------------
 
+    def CreateFlowF_Zero(self):
+        return DataU(0.0, self.p, 0.0, 0.0, 0.0)
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowG_Zero(self):
+        return DataU(0.0, 0.0, self.p, 0.0, 0.0)
+
+#---------------------------------------------------------------------------------------------------
+
+    def CreateFlowH_Zero(self):
+        return DataU(0.0, 0.0, 0.0, self.p, 0.0)
+
+#---------------------------------------------------------------------------------------------------
+
     def CreateFlowF_StegerWarming(self, l1, l2, l5):
         a = self.a
         g = Gamma
@@ -240,6 +255,11 @@ BorderF = 5
 BorderNone = 0
 BorderSoft = 1
 BorderHard = 2
+TypeCommon = 0
+TypeBorder = 1
+TypeGhost = 2
+TypePhantom = 3
+TypeInner = 4
 
 class Cell:
 
@@ -248,7 +268,7 @@ class Cell:
     def __init__(self):
         self.D = DataD()
         self.U = DataU()
-        self.IsGhost = False
+        self.Type = TypeCommon
         self.Borders = [BorderNone] * 6
 
 #---------------------------------------------------------------------------------------------------
@@ -399,15 +419,13 @@ class Grid:
                 for k in range(self.CellsZ):
 
                     c = cs[i][j][k]
-                    if c.IsGhost:
-                        continue
                     bs = c.Borders
 
                     # L
                     if bs[BorderL] == BorderSoft:
                         self.FacesX[i][j][k].F = c.D.CreateFlowF()
                     elif bs[BorderL] == BorderHard:
-                        raise Exception('hard border is not implemented')
+                        self.FacesX[i][j][k].F = c.D.CreateFlowF_Zero()
                     else:
                         pass
 
@@ -415,7 +433,7 @@ class Grid:
                     if bs[BorderR] == BorderSoft:
                         self.FacesX[i + 1][j][k].F = c.D.CreateFlowF()
                     elif bs[BorderR] == BorderHard:
-                        raise Exception('hard border is not implemented')
+                        self.FacesX[i + 1][j][k].F = c.D.CreateFlowF_Zero()
                     else:
                         self.CalcFlowF_StegerWarming(self.FacesX[i + 1][j][k], c, cs[i + 1][j][k])
 
@@ -423,7 +441,7 @@ class Grid:
                     if bs[BorderD] == BorderSoft:
                         self.FacesY[i][j][k].G = c.D.CreateFlowG()
                     elif bs[BorderD] == BorderHard:
-                        raise Exception('hard border is not implemented')
+                        self.FacesY[i][j][k].G = c.D.CreateFlowG_Zero()
                     else:
                         pass
 
@@ -431,7 +449,7 @@ class Grid:
                     if bs[BorderU] == BorderSoft:
                         self.FacesY[i][j + 1][k].G = c.D.CreateFlowG()
                     elif bs[BorderU] == BorderHard:
-                        raise Exception('hard border is not implemented')
+                        self.FacesY[i][j + 1][k].G = c.D.CreateFlowG_Zero()
                     else:
                         self.CalcFlowG_StegerWarming(self.FacesY[i][j + 1][k], c, cs[i][j + 1][k])
 
@@ -439,7 +457,7 @@ class Grid:
                     if bs[BorderB] == BorderSoft:
                         self.FacesZ[i][j][k].H = c.D.CreateFlowH()
                     elif bs[BorderB] == BorderHard:
-                        raise Exception('hard border is not implemented')
+                        self.FacesZ[i][j][k].H = c.D.CreateFlowH_Zero()
                     else:
                         pass
 
@@ -447,7 +465,7 @@ class Grid:
                     if bs[BorderF] == BorderSoft:
                         self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH()
                     elif bs[BorderF] == BorderHard:
-                        raise Exception('hard border is not implemented')
+                        self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH_Zero()
                     else:
                         self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k + 1], c, cs[i][j][k + 1])
 
@@ -458,8 +476,6 @@ class Grid:
             for j in range(self.CellsY):
                 for k in range(self.CellsZ):
                     c = self.Cells[i][j][k]
-                    if c.IsGhost:
-                        continue
                     u = c.U
                     nu = u \
                          - (dt / self.dx) * (self.FacesX[i + 1][j][k].F - self.FacesX[i][j][k].F) \
@@ -526,7 +542,7 @@ class Grid:
 
     def Draw(self, fun):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
-                        pic_size = (500, 500))
+                        pic_size = (1500, 1500))
         (mn, mx) = self.FunInterval(fun)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
@@ -536,6 +552,44 @@ class Grid:
                 d.Rect((i * self.dx, j * self.dy), ((i + 1) * self.dx, (j + 1) * self.dy),
                        aggdraw.Pen(color, 1.0), aggdraw.Brush(color))
             d.Rect((0.0, 0.0), (self.SizeX, self.SizeY), aggdraw.Pen('blue', 1.0))
+
+        # Draw ellipse and cells.
+        d.Ellipse((0.3, 0.2), (0.9, 0.8))
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                x1, x2 = i * g.dx, (i + 1) * g.dx
+                y1, y2 = j * g.dy, (j + 1) * g.dy
+                if cell.Type == TypeInner:
+                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('orange', 2.0))
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                x1, x2 = i * g.dx, (i + 1) * g.dx
+                y1, y2 = j * g.dy, (j + 1) * g.dy
+                if cell.Type == TypeGhost:
+                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('red', 2.0))
+                    d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
+                            pen = aggdraw.Pen('red', 2.0))
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                x1, x2 = i * g.dx, (i + 1) * g.dx
+                y1, y2 = j * g.dy, (j + 1) * g.dy
+                if cell.Type == TypePhantom:
+                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('blue', 2.0))
+                    d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
+                            pen = aggdraw.Pen('blue', 2.0))
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                x1, x2 = i * g.dx, (i + 1) * g.dx
+                y1, y2 = j * g.dy, (j + 1) * g.dy
+                if cell.Type == TypeBorder:
+                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('green', 2.0))
+                    d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
+                            pen = aggdraw.Pen('green', 2.0))
+
         d.FSS()
 
 #---------------------------------------------------------------------------------------------------
@@ -557,45 +611,89 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 30, 30, 1)
-    elif case == Case_1D_SodMod:
-        g = Grid(1.0, 1.0, 1.0, 100, 1, 1)
+        g = Grid(1.0, 1.0, 1.0, 40, 40, 1)
     else:
         raise Exception('unknown case number')
 
     for i in range(g.CellsX):
         for j in range(g.CellsY):
             for k in range(g.CellsZ):
-                cell = g.Cells[i][j][k]
+                c = g.Cells[i][j][k]
                 x, y, z = (i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz
 
                 if case == Case_1D_X:
                     if x < 0.5:
-                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
-                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                        c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                    if i == g.CellsX - 1:
+                        c.Borders[BorderR] = BorderHard
                 elif case == Case_1D_Y:
                     if y < 0.5:
-                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
-                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                        c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 elif case == Case_1D_Z:
                     if z < 0.5:
-                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
-                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
+                        c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 elif case == Case_2D_XY:
-                    if x * x + y * y < 0.64:
-                        cell.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                    if x < 0.1:
+                        c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
-                        cell.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
-                elif case == Case_1D_SodMod:
-                    if x < 0.5:
-                        cell.D = DataD(1.0, 0.75, 0.0, 0.0, 1.0)
-                    else:
-                        cell.D = DataD(0.125, 0.0, 0.0, 0.0, 0.1)
+                        c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 else:
                     raise Exception('unknown case number')
+
+    if case == Case_2D_XY:
+        # Ellipse equation.
+        # (x - 0.6)^2 + (y - 0.5)^2 - 0.3^2 = 0
+        elfun = lambda x, y: (x - 0.6) ** 2 + (y - 0.5) ** 2 - 0.3 ** 2
+        for i in range(g.CellsX):
+            for j in range(g.CellsY):
+                cell = g.Cells[i][j][0]
+                x1, x2 = i * g.dx, (i + 1) * g.dx
+                y1, y2 = j * g.dy, (j + 1) * g.dy
+                f11, f12, f21, f22 = elfun(x1, y1), elfun(x1, y2), elfun(x2, y1), elfun(x2, y2)
+                if abs(f11) < 0.001:
+                    f11 = 0.0
+                if abs(f12) < 0.001:
+                    f12 = 0.0
+                if abs(f21) < 0.001:
+                    f21 = 0.0
+                if abs(f22) < 0.001:
+                    f22 = 0.0
+                s11, s12, s21, s22 = mth.sign(f11), mth.sign(f12), mth.sign(f21), mth.sign(f22)
+                ss = int(s11 + s12 + s21 + s22)
+                if ss == -4:
+                    cell.Type = TypeInner
+                elif ss == 4:
+                    cell.Type = TypeCommon
+                else:
+                    # Ghost or border.
+                    xc, yc = (i + 0.5) * g.dx, (j + 0.5) * g.dy
+                    if elfun(xc, yc) < 0.0:
+                        cell.Type = TypeGhost
+                    else:
+                        cell.Type = TypeBorder
+        for i in range(g.CellsX):
+            for j in range(g.CellsY):
+                for k in range(g.CellsZ):
+                    cell = g.Cells[i][j][k]
+                    if cell.Type == TypeBorder:
+                        if g.Cells[i - 1][j][k].Type == TypeInner:
+                            g.Cells[i - 1][j][k].Type = TypePhantom
+                        if g.Cells[i + 1][j][k].Type == TypeInner:
+                            g.Cells[i + 1][j][k].Type = TypePhantom
+                        if g.Cells[i][j - 1][k].Type == TypeInner:
+                            g.Cells[i][j - 1][k].Type = TypePhantom
+                        if g.Cells[i][j + 1][k].Type == TypeInner:
+                            g.Cells[i][j + 1][k].Type = TypePhantom
+                        #if g.Cells[i][j][k - 1].Type == TypeInner:
+                        #    g.Cells[i][j][k - 1].Type = TypePhantom
+                        #if g.Cells[i][j][k + 1].Type == TypeInner:
+                        #    g.Cells[i][j][k + 1].Type = TypePhantom
 
     return g
 
@@ -605,14 +703,14 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 10, 10, 0.005
+    pics, n, dt = 10, 10, 0.001
     fun = lambda cell: cell.D.p
 
     ts = time.time()
     for _ in range(pics):
         g.Steps(n, dt)
         g.Draw(fun)
-        #vis.simple_graphic_ys(g.XValues(fun))
+        #vis.simple_graphic_ys(g.ZValues(fun))
     tf = time.time()
     print('total time : %f' % (tf - ts))
 
