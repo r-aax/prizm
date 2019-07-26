@@ -101,6 +101,24 @@ class Matrix:
 
 #---------------------------------------------------------------------------------------------------
 
+    def Set(self, li):
+        """
+        Set matrix elements.
+
+        Arguments:
+            li -- list.
+        """
+
+        row, col = 0, 0
+        for el in li:
+            self[row][col] = el
+            col += 1
+            if col == self.Cols:
+                row += 1
+                col = 0
+
+#---------------------------------------------------------------------------------------------------
+
     def Elements(self):
         """
         Elements count.

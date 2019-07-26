@@ -9,9 +9,10 @@ import draw
 import aggdraw
 import mth
 import math
-import vis
+#import vis
 import time
 import geom
+import lst
 
 #---------------------------------------------------------------------------------------------------
 # Constants.
@@ -272,6 +273,7 @@ class Cell:
         self.U = DataU()
         self.Type = TypeCommon
         self.Borders = [BorderNone] * 6
+        self.Center = None
         self.BorderPoint = None
         self.BorderNormal = None
 
@@ -284,9 +286,9 @@ class Face:
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self):
-        F = None
-        G = None
-        H = None
+        self.F = None
+        self.G = None
+        self.H = None
 
 #---------------------------------------------------------------------------------------------------
 # Class Grid.
@@ -413,6 +415,112 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
+    def FindNeighbourhoodForApprox(self, i, j, k):
+        #c = self.Cells[i][j][k]
+        is_good = lambda cell: (cell.Type == TypeBorder) or (cell.Type == TypeCommon)
+
+        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i][j + 1][k]):
+            return (self.Cells[i + 1][j][k], self.Cells[i][j + 1][k])
+        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i][j - 1][k]):
+            return (self.Cells[i + 1][j][k], self.Cells[i][j - 1][k])
+        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i][j + 1][k]):
+            return (self.Cells[i - 1][j][k], self.Cells[i][j + 1][k])
+        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i][j - 1][k]):
+            return (self.Cells[i - 1][j][k], self.Cells[i][j - 1][k])
+
+        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i + 1][j + 1][k]):
+            return (self.Cells[i + 1][j][k], self.Cells[i + 1][j + 1][k])
+        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i + 1][j - 1][k]):
+            return (self.Cells[i + 1][j][k], self.Cells[i + 1][j - 1][k])
+
+        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i - 1][j + 1][k]):
+            return (self.Cells[i - 1][j][k], self.Cells[i - 1][j + 1][k])
+        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i - 1][j - 1][k]):
+            return (self.Cells[i - 1][j][k], self.Cells[i - 1][j - 1][k])
+
+        if is_good(self.Cells[i][j + 1][k]) and is_good(self.Cells[i + 1][j + 1][k]):
+            return (self.Cells[i][j + 1][k], self.Cells[i + 1][j + 1][k])
+        if is_good(self.Cells[i][j + 1][k]) and is_good(self.Cells[i - 1][j + 1][k]):
+            return (self.Cells[i][j + 1][k], self.Cells[i - 1][j + 1][k])
+
+        if is_good(self.Cells[i][j - 1][k]) and is_good(self.Cells[i + 1][j - 1][k]):
+            return (self.Cells[i][j - 1][k], self.Cells[i + 1][j - 1][k])
+        if is_good(self.Cells[i][j - 1][k]) and is_good(self.Cells[i - 1][j - 1][k]):
+            return (self.Cells[i][j - 1][k], self.Cells[i - 1][j - 1][k])
+
+        raise Exception('bad approximate pattern')
+
+#---------------------------------------------------------------------------------------------------
+
+    def Approximate(self, c, c1, c2):
+
+        # Coords.
+        x0, y0 = c.BorderPoint.X, c.BorderPoint.Y
+        x1, y1 = c1.Center.X, c1.Center.Y
+        x2, y2 = c2.Center.X, c2.Center.Y
+        xg, yg = c.Center.X, c.Center.Y
+        cos0, sin0 =  c.BorderNormal.X, c.BorderNormal.Y
+
+        # U
+        u1, v1, u2, v2 = c1.D.u, c1.D.v, c2.D.u, c2.D.v
+
+        # Velocity.
+        matrix_b = mth.Matrix(3, 3)
+        matrix_b.Set([1.0, x1, y1, 1.0, x2, y2, 1.0, xg, yg])
+        matrix_b_inv = matrix_b.Inverted()
+        [b1, b2, bg] = [1.0, x0, y0] * matrix_b_inv
+        #
+        matrix_d = mth.Matrix(3, 3)
+        matrix_d.Set([1.0, x1, y1, 1.0, x2, y2, 0.0, cos0, sin0])
+        matrix_d_inv = matrix_d.Inverted()
+        [d1, d2, d0] = [1, xg, yg] * matrix_d_inv
+        #
+        r1 = -(b1 / bg) * (u1 * cos0 + v1 * cos0) - (b2 / bg) * (u2 * cos0 + v2 * cos0)
+        r2 = d1 * (u1 * sin0 - v1 * cos0) + d2 * (u2 * sin0 - v2 * cos0)
+        #
+        u, v = r1 * cos0 + r2 * sin0, r1 * sin0 - r2 * cos0
+
+        # Dencity.
+        rho1, rho2 = c1.D.r, c2.D.r
+        rho = lst.dot([1, xg, yg] * matrix_d_inv, [rho1, rho2, 0.0])
+
+        #Pressure.
+        p1, p2 = c1.D.p, c2.D.p
+        u0_tau = lst.dot([1.0, x0, y0] * matrix_d_inv,
+                         [u1 * sin0 - v1 * cos0, u2 * sin0 - v2 * cos0, 0.0])
+        rho0 = lst.dot([1.0, x0, y0] * matrix_d_inv,
+                       [rho1, rho2, 0.0])
+        R = 0.3
+        pg = lst.dot([1.0, xg, yg] * matrix_d_inv,
+                     [p1, p2, rho0 * u0_tau * u0_tau / R])
+
+        #print(rho1, u1, v1, p1, rho2, u2, v2, p2, rho, u, v, pg)
+
+        assert rho >= 0.0
+        assert pg >= 0.0
+
+        dd = c.D
+        dd.r = rho
+        dd.u = u
+        dd.v = v
+        dd.p = pg
+        dd.CalculateDerivedVariables()
+
+#---------------------------------------------------------------------------------------------------
+
+    def ApproxGhostAndPhantom(self):
+
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+                    c = self.Cells[i][j][k]
+                    if not ((c.Type == TypeGhost) or (c.Type == TypePhantom)):
+                        continue
+                    (c1, c2) = self.FindNeighbourhoodForApprox(i, j, k)
+                    self.Approximate(c, c1, c2)
+
+#---------------------------------------------------------------------------------------------------
+
     def CalcFlowsStegerWarming(self):
 
         cs = self.Cells
@@ -500,6 +608,7 @@ class Grid:
 #---------------------------------------------------------------------------------------------------
 
     def Step(self, dt):
+        self.ApproxGhostAndPhantom()
         self.DtoU()
         self.CalcFlowsStegerWarming()
         self.Renew(dt)
@@ -635,9 +744,15 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 40, 40, 1)
+        g = Grid(1.0, 1.0, 1.0, 60, 60, 1)
     else:
         raise Exception('unknown case number')
+
+    for i in range(g.CellsX):
+        for j in range(g.CellsY):
+            for k in range(g.CellsZ):
+                c = g.Cells[i][j][k]
+                c.Center = geom.Vector((i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz)
 
     for i in range(g.CellsX):
         for j in range(g.CellsY):
@@ -664,7 +779,7 @@ def create_and_init_grid(case):
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 elif case == Case_2D_XY:
                     if x < 0.1:
-                        c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
+                        c.D = DataD(100.0, 5.0, 0.0, 0.0, 100.0)
                     else:
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 else:
@@ -736,7 +851,7 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 1, 10, 0.001
+    pics, n, dt = 30, 10, 0.001
     fun = lambda cell: cell.D.p
 
     ts = time.time()
