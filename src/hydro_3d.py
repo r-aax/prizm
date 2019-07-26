@@ -423,6 +423,8 @@ class Grid:
                 for k in range(self.CellsZ):
 
                     c = cs[i][j][k]
+                    if c.Type == TypeInner:
+                        continue
                     bs = c.Borders
 
                     # L
@@ -439,7 +441,9 @@ class Grid:
                     elif bs[BorderR] == BorderHard:
                         self.FacesX[i + 1][j][k].F = c.D.CreateFlowF_Zero()
                     else:
-                        self.CalcFlowF_StegerWarming(self.FacesX[i + 1][j][k], c, cs[i + 1][j][k])
+                        #if cs[i + 1][j][k].Type != TypeInner:
+                        self.CalcFlowF_StegerWarming(self.FacesX[i + 1][j][k],
+                                                     c, cs[i + 1][j][k])
 
                     # D
                     if bs[BorderD] == BorderSoft:
@@ -455,7 +459,9 @@ class Grid:
                     elif bs[BorderU] == BorderHard:
                         self.FacesY[i][j + 1][k].G = c.D.CreateFlowG_Zero()
                     else:
-                        self.CalcFlowG_StegerWarming(self.FacesY[i][j + 1][k], c, cs[i][j + 1][k])
+                        #if cs[i][j + 1][k].Type != TypeInner:
+                        self.CalcFlowG_StegerWarming(self.FacesY[i][j + 1][k],
+                                                     c, cs[i][j + 1][k])
 
                     # B
                     if bs[BorderB] == BorderSoft:
@@ -471,7 +477,9 @@ class Grid:
                     elif bs[BorderF] == BorderHard:
                         self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH_Zero()
                     else:
-                        self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k + 1], c, cs[i][j][k + 1])
+                        #if cs[i][j][k + 1].Type != TypeInner:
+                        self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k + 1],
+                                                     c, cs[i][j][k + 1])
 
 #---------------------------------------------------------------------------------------------------
 
@@ -480,6 +488,8 @@ class Grid:
             for j in range(self.CellsY):
                 for k in range(self.CellsZ):
                     c = self.Cells[i][j][k]
+                    if (c.Type == TypeInner) or (c.Type == TypeGhost) or (c.Type == TypePhantom):
+                        continue
                     u = c.U
                     nu = u \
                          - (dt / self.dx) * (self.FacesX[i + 1][j][k].F - self.FacesX[i][j][k].F) \
