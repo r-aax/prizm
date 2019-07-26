@@ -11,12 +11,14 @@ import mth
 import math
 import vis
 import time
+import geom
 
 #---------------------------------------------------------------------------------------------------
 # Constants.
 #---------------------------------------------------------------------------------------------------
 
 Gamma = 1.4
+Sph = geom.Sphere(geom.Vector(0.6, 0.5, 0.0), 0.3)
 
 #---------------------------------------------------------------------------------------------------
 # Utilitiees.
@@ -542,7 +544,7 @@ class Grid:
 
     def Draw(self, fun):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
-                        pic_size = (1500, 1500))
+                        pic_size = (800, 800))
         (mn, mx) = self.FunInterval(fun)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
@@ -554,7 +556,7 @@ class Grid:
             d.Rect((0.0, 0.0), (self.SizeX, self.SizeY), aggdraw.Pen('blue', 1.0))
 
         # Draw ellipse and cells.
-        d.Ellipse((0.3, 0.2), (0.9, 0.8))
+        d.Ellipse(Sph.LoPoint().Tuple(2), Sph.HiPoint().Tuple(2), pen = aggdraw.Pen('black', 2.0))
         for i in range(self.CellsX):
             for j in range(self.CellsY):
                 cell = self.Cells[i][j][0]
@@ -649,7 +651,7 @@ def create_and_init_grid(case):
     if case == Case_2D_XY:
         # Ellipse equation.
         # (x - 0.6)^2 + (y - 0.5)^2 - 0.3^2 = 0
-        elfun = lambda x, y: (x - 0.6) ** 2 + (y - 0.5) ** 2 - 0.3 ** 2
+        elfun = lambda x, y: (x - Sph.C.X) ** 2 + (y - Sph.C.Y) ** 2 - Sph.R ** 2
         for i in range(g.CellsX):
             for j in range(g.CellsY):
                 cell = g.Cells[i][j][0]
@@ -703,7 +705,7 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 10, 10, 0.001
+    pics, n, dt = 1, 10, 0.001
     fun = lambda cell: cell.D.p
 
     ts = time.time()
