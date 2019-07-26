@@ -390,7 +390,23 @@ class Triangle:
         v2 = self.Points[2] - self.Points[0]
         v = v1.VectorProduct(v2)
 
-        return 0.5 * v.Mod()
+        return abs(0.5 * v.Mod())
+
+#---------------------------------------------------------------------------------------------------
+
+    def R(self):
+        """
+        Outer circle radius.
+
+        Result:
+            Outer circle radius.
+        """
+
+        s1 = self.Points[0].DistTo(self.Points[1])
+        s2 = self.Points[0].DistTo(self.Points[2])
+        s3 = self.Points[1].DistTo(self.Points[2])
+
+        return (s1 * s2 * s3) / (4.0 * self.Area())
 
 #---------------------------------------------------------------------------------------------------
 # Sphere.

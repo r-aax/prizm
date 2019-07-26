@@ -9,7 +9,7 @@ import draw
 import aggdraw
 import mth
 import math
-#import vis
+import vis
 import time
 import geom
 import lst
@@ -276,6 +276,8 @@ class Cell:
         self.Center = None
         self.BorderPoint = None
         self.BorderNormal = None
+        self.App1 = None
+        self.App2 = None
 
 #---------------------------------------------------------------------------------------------------
 # Class Face.
@@ -415,6 +417,30 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
+    def FindNeighbourhoodForApprox2(self, i, j, k):
+        c = self.Cells[i][j][k]
+        is_good = lambda cell: (cell.Type == TypeBorder) or (cell.Type == TypeCommon)
+        cs = self.Cells
+        li = [(cs[i + 1][j][k], cs[i][j + 1][k]),
+              (cs[i + 1][j][k], cs[i][j - 1][k]),
+              (cs[i - 1][j][k], cs[i][j + 1][k]),
+              (cs[i - 1][j][k], cs[i][j - 1][k]),
+              (cs[i + 1][j][k], cs[i + 1][j + 1][k]),
+              (cs[i + 1][j][k], cs[i + 1][j - 1][k]),
+              (cs[i - 1][j][k], cs[i - 1][j + 1][k]),
+              (cs[i - 1][j][k], cs[i - 1][j - 1][k]),
+              (cs[i][j + 1][k], cs[i + 1][j + 1][k]),
+              (cs[i][j + 1][k], cs[i - 1][j + 1][k]),
+              (cs[i][j - 1][k], cs[i + 1][j - 1][k]),
+              (cs[i][j - 1][k], cs[i - 1][j - 1][k])]
+        li2 = [(c1, c2) for (c1, c2) in li if is_good(c1) and is_good(c2)]
+        li3 = [(c.BorderPoint, c1.Center, c2.Center) for (c1, c2) in li2]
+        li4 = [geom.Triangle(ca, cb, cc).R() for (ca, cb, cc) in li3]
+        (_, ind) = mth.min_with_index(li4)
+        return li2[ind]
+
+#---------------------------------------------------------------------------------------------------
+
     def FindNeighbourhoodForApprox(self, i, j, k):
         #c = self.Cells[i][j][k]
         is_good = lambda cell: (cell.Type == TypeBorder) or (cell.Type == TypeCommon)
@@ -494,10 +520,9 @@ class Grid:
         pg = lst.dot([1.0, xg, yg] * matrix_d_inv,
                      [p1, p2, rho0 * u0_tau * u0_tau / R])
 
-        #print(rho1, u1, v1, p1, rho2, u2, v2, p2, rho, u, v, pg)
-
-        assert rho >= 0.0
-        assert pg >= 0.0
+        if (rho < 0.0) or (pg < 0.0):
+            print(rho1, u1, v1, p1, rho2, u2, v2, p2, rho, u, v, pg)
+            raise Exception('negative rho or p')
 
         dd = c.D
         dd.r = rho
@@ -516,7 +541,9 @@ class Grid:
                     c = self.Cells[i][j][k]
                     if not ((c.Type == TypeGhost) or (c.Type == TypePhantom)):
                         continue
-                    (c1, c2) = self.FindNeighbourhoodForApprox(i, j, k)
+                    (c1, c2) = self.FindNeighbourhoodForApprox2(i, j, k)
+                    c.App1 = c1.Center
+                    c.App2 = c2.Center
                     self.Approximate(c, c1, c2)
 
 #---------------------------------------------------------------------------------------------------
@@ -549,9 +576,9 @@ class Grid:
                     elif bs[BorderR] == BorderHard:
                         self.FacesX[i + 1][j][k].F = c.D.CreateFlowF_Zero()
                     else:
-                        #if cs[i + 1][j][k].Type != TypeInner:
-                        self.CalcFlowF_StegerWarming(self.FacesX[i + 1][j][k],
-                                                     c, cs[i + 1][j][k])
+                        if cs[i + 1][j][k].Type != TypeInner:
+                            self.CalcFlowF_StegerWarming(self.FacesX[i + 1][j][k],
+                                                         c, cs[i + 1][j][k])
 
                     # D
                     if bs[BorderD] == BorderSoft:
@@ -567,9 +594,9 @@ class Grid:
                     elif bs[BorderU] == BorderHard:
                         self.FacesY[i][j + 1][k].G = c.D.CreateFlowG_Zero()
                     else:
-                        #if cs[i][j + 1][k].Type != TypeInner:
-                        self.CalcFlowG_StegerWarming(self.FacesY[i][j + 1][k],
-                                                     c, cs[i][j + 1][k])
+                        if cs[i][j + 1][k].Type != TypeInner:
+                            self.CalcFlowG_StegerWarming(self.FacesY[i][j + 1][k],
+                                                         c, cs[i][j + 1][k])
 
                     # B
                     if bs[BorderB] == BorderSoft:
@@ -585,9 +612,9 @@ class Grid:
                     elif bs[BorderF] == BorderHard:
                         self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH_Zero()
                     else:
-                        #if cs[i][j][k + 1].Type != TypeInner:
-                        self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k + 1],
-                                                     c, cs[i][j][k + 1])
+                        if cs[i][j][k + 1].Type != TypeInner:
+                            self.CalcFlowH_StegerWarming(self.FacesZ[i][j][k + 1],
+                                                         c, cs[i][j][k + 1])
 
 #---------------------------------------------------------------------------------------------------
 
@@ -722,6 +749,17 @@ class Grid:
                     d.Line(cell.BorderPoint.Tuple(2),
                            (cell.BorderPoint + 0.05 * cell.BorderNormal).Tuple(2),
                            pen = aggdraw.Pen('black', 1.0))
+        # Draw approximate patterns.
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                if (cell.App1 != None) and (cell.App2 != None):
+                    d.Line(cell.BorderPoint.Tuple(2), cell.App1.Tuple(2),
+                           pen = aggdraw.Pen('pink', 2.0))
+                    d.Line(cell.BorderPoint.Tuple(2), cell.App2.Tuple(2),
+                           pen = aggdraw.Pen('pink', 2.0))
+                    d.Line(cell.App1.Tuple(2), cell.App2.Tuple(2),
+                           pen = aggdraw.Pen('pink', 2.0))
 
         d.FSS()
 
@@ -744,7 +782,7 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 60, 60, 1)
+        g = Grid(1.0, 1.0, 1.0, 40, 40, 1)
     else:
         raise Exception('unknown case number')
 
@@ -779,7 +817,7 @@ def create_and_init_grid(case):
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 elif case == Case_2D_XY:
                     if x < 0.1:
-                        c.D = DataD(100.0, 5.0, 0.0, 0.0, 100.0)
+                        c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 else:
@@ -851,14 +889,14 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 30, 10, 0.001
+    pics, n, dt = 50, 10, 0.001
     fun = lambda cell: cell.D.p
 
     ts = time.time()
     for _ in range(pics):
         g.Steps(n, dt)
         g.Draw(fun)
-        #vis.simple_graphic_ys(g.ZValues(fun))
+        #vis.simple_graphic_ys(g.XValues(fun))
     tf = time.time()
     print('total time : %f' % (tf - ts))
 
