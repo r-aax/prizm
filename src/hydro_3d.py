@@ -272,6 +272,8 @@ class Cell:
         self.U = DataU()
         self.Type = TypeCommon
         self.Borders = [BorderNone] * 6
+        self.BorderPoint = None
+        self.BorderNormal = None
 
 #---------------------------------------------------------------------------------------------------
 # Class Face.
@@ -592,6 +594,16 @@ class Grid:
                     d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
                             pen = aggdraw.Pen('green', 2.0))
 
+        # Draw shpere nearest points.
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                cell = self.Cells[i][j][0]
+                if cell.BorderPoint != None:
+                    d.Point(cell.BorderPoint.Tuple(2), 1.0, pen = aggdraw.Pen('black', 2.0))
+                    d.Line(cell.BorderPoint.Tuple(2),
+                           (cell.BorderPoint + 0.05 * cell.BorderNormal).Tuple(2),
+                           pen = aggdraw.Pen('black', 1.0))
+
         d.FSS()
 
 #---------------------------------------------------------------------------------------------------
@@ -696,6 +708,15 @@ def create_and_init_grid(case):
                         #    g.Cells[i][j][k - 1].Type = TypePhantom
                         #if g.Cells[i][j][k + 1].Type == TypeInner:
                         #    g.Cells[i][j][k + 1].Type = TypePhantom
+        for i in range(g.CellsX):
+            for j in range(g.CellsY):
+                for k in range(g.CellsZ):
+                    cell = g.Cells[i][j][k]
+                    if (cell.Type == TypeGhost) or (cell.Type == TypePhantom):
+                        cell.BorderPoint = geom.Vector((i + 0.5) * g.dx,
+                                                       (j + 0.5) * g.dy,
+                                                       0.0).NearestPoint(Sph)
+                        cell.BorderNormal = (cell.BorderPoint - Sph.C).Normalized()
 
     return g
 

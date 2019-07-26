@@ -103,6 +103,36 @@ class Vector:
 
 #---------------------------------------------------------------------------------------------------
 
+    def __mul__(self, k):
+        """
+        Overload '*'.
+
+        Arguments:
+            k -- coefficient.
+
+        Result:
+            New vector.
+        """
+
+        return Vector(k * self.X, k * self.Y, k * self.Z)
+
+#---------------------------------------------------------------------------------------------------
+
+    def __rmul__(self, k):
+        """
+        Overload '*'.
+
+        Arguments:
+            k -- coefficient.
+
+        Result:
+            New vector.
+        """
+
+        return self * k
+
+#---------------------------------------------------------------------------------------------------
+
     def Copy(self):
         """
         Get copy.
