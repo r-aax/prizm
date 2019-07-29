@@ -265,19 +265,47 @@ TypePhantom = 3
 TypeInner = 4
 
 class Cell:
+    """
+    Cell.
+    """
 
 #---------------------------------------------------------------------------------------------------
 
     def __init__(self):
+        """
+        Constructor.
+        """
+
         self.D = DataD()
         self.U = DataU()
         self.Type = TypeCommon
         self.Borders = [BorderNone] * 6
-        self.Center = None
         self.BorderPoint = None
         self.BorderNormal = None
         self.App1 = None
         self.App2 = None
+
+        # Additional data.
+        self.Center = None
+        self.LoCorner = None
+        self.HiCorner = None
+
+#---------------------------------------------------------------------------------------------------
+
+    def SetAdditionalData(self, g, idxs):
+        """
+        Set additional data.
+
+        Arguments:
+            g -- grid,
+            idxs -- indexes.
+        """
+
+        (i, j, k) = idxs
+
+        self.Center = geom.Vector((i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz)
+        self.LoCorner = geom.Vector(i * g.dx, j * g.dy, k * g.dz)
+        self.HiCorner = geom.Vector((i + 1) * g.dx, (j + 1) * g.dy, (k + 1) * g.dz)
 
 #---------------------------------------------------------------------------------------------------
 # Class Face.
@@ -314,7 +342,9 @@ class Grid:
         for i in range(cells_x):
             for j in range(cells_y):
                 for k in range(cells_z):
-                    self.Cells[i][j][k] = Cell()
+                    c = Cell()
+                    c.SetAdditionalData(self, (i, j, k))
+                    self.Cells[i][j][k] = c
 
         # Faces.
         self.FacesX = array_3d(cells_x + 1, cells_y, cells_z)
@@ -417,7 +447,7 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def FindNeighbourhoodForApprox2(self, i, j, k):
+    def FindNeighbourhoodForApprox(self, i, j, k):
         c = self.Cells[i][j][k]
         is_good = lambda cell: (cell.Type == TypeBorder) or (cell.Type == TypeCommon)
         cs = self.Cells
@@ -438,43 +468,6 @@ class Grid:
         li4 = [geom.Triangle(ca, cb, cc).R() for (ca, cb, cc) in li3]
         (_, ind) = mth.min_with_index(li4)
         return li2[ind]
-
-#---------------------------------------------------------------------------------------------------
-
-    def FindNeighbourhoodForApprox(self, i, j, k):
-        #c = self.Cells[i][j][k]
-        is_good = lambda cell: (cell.Type == TypeBorder) or (cell.Type == TypeCommon)
-
-        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i][j + 1][k]):
-            return (self.Cells[i + 1][j][k], self.Cells[i][j + 1][k])
-        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i][j - 1][k]):
-            return (self.Cells[i + 1][j][k], self.Cells[i][j - 1][k])
-        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i][j + 1][k]):
-            return (self.Cells[i - 1][j][k], self.Cells[i][j + 1][k])
-        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i][j - 1][k]):
-            return (self.Cells[i - 1][j][k], self.Cells[i][j - 1][k])
-
-        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i + 1][j + 1][k]):
-            return (self.Cells[i + 1][j][k], self.Cells[i + 1][j + 1][k])
-        if is_good(self.Cells[i + 1][j][k]) and is_good(self.Cells[i + 1][j - 1][k]):
-            return (self.Cells[i + 1][j][k], self.Cells[i + 1][j - 1][k])
-
-        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i - 1][j + 1][k]):
-            return (self.Cells[i - 1][j][k], self.Cells[i - 1][j + 1][k])
-        if is_good(self.Cells[i - 1][j][k]) and is_good(self.Cells[i - 1][j - 1][k]):
-            return (self.Cells[i - 1][j][k], self.Cells[i - 1][j - 1][k])
-
-        if is_good(self.Cells[i][j + 1][k]) and is_good(self.Cells[i + 1][j + 1][k]):
-            return (self.Cells[i][j + 1][k], self.Cells[i + 1][j + 1][k])
-        if is_good(self.Cells[i][j + 1][k]) and is_good(self.Cells[i - 1][j + 1][k]):
-            return (self.Cells[i][j + 1][k], self.Cells[i - 1][j + 1][k])
-
-        if is_good(self.Cells[i][j - 1][k]) and is_good(self.Cells[i + 1][j - 1][k]):
-            return (self.Cells[i][j - 1][k], self.Cells[i + 1][j - 1][k])
-        if is_good(self.Cells[i][j - 1][k]) and is_good(self.Cells[i - 1][j - 1][k]):
-            return (self.Cells[i][j - 1][k], self.Cells[i - 1][j - 1][k])
-
-        raise Exception('bad approximate pattern')
 
 #---------------------------------------------------------------------------------------------------
 
@@ -541,7 +534,7 @@ class Grid:
                     c = self.Cells[i][j][k]
                     if not ((c.Type == TypeGhost) or (c.Type == TypePhantom)):
                         continue
-                    (c1, c2) = self.FindNeighbourhoodForApprox2(i, j, k)
+                    (c1, c2) = self.FindNeighbourhoodForApprox(i, j, k)
                     c.App1 = c1.Center
                     c.App2 = c2.Center
                     self.Approximate(c, c1, c2)
@@ -693,72 +686,82 @@ class Grid:
     def Draw(self, fun):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
                         pic_size = (800, 800))
-        (mn, mx) = self.FunInterval(fun)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                factor = 255 - int((fun(cell) - mn) / (mx - mn) * 255)
-                color = (factor, factor, factor)
-                d.Rect((i * self.dx, j * self.dy), ((i + 1) * self.dx, (j + 1) * self.dy),
-                       aggdraw.Pen(color, 1.0), aggdraw.Brush(color))
-            d.Rect((0.0, 0.0), (self.SizeX, self.SizeY), aggdraw.Pen('blue', 1.0))
+        """
+        Draw picture.
 
-        # Draw ellipse and cells.
+        Arguments:
+            d -- drawer,
+            pic_size -- picture size.
+        """
+
+        (mn, mx) = self.FunInterval(fun)
+
+        # Coloring.
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                c = self.Cells[i][j][0]
+                factor = 255 - int((fun(c) - mn) / (mx - mn) * 255)
+                color = (factor, factor, factor)
+                d.Rect(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2),
+                       aggdraw.Pen(color, 1.0), aggdraw.Brush(color))
+
+        d.Rect((0.0, 0.0), (self.SizeX, self.SizeY), aggdraw.Pen('blue', 1.0))
+
+        # Draw ellipse.
         d.Ellipse(Sph.LoPoint().Tuple(2), Sph.HiPoint().Tuple(2), pen = aggdraw.Pen('black', 2.0))
+
+        # Inner.
+        pen = aggdraw.Pen('orange', 2.0)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                x1, x2 = i * g.dx, (i + 1) * g.dx
-                y1, y2 = j * g.dy, (j + 1) * g.dy
-                if cell.Type == TypeInner:
-                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('orange', 2.0))
+                c = self.Cells[i][j][0]
+                if c.Type == TypeInner:
+                    d.Rect(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), pen)
+
+        # Ghost.
+        pen = aggdraw.Pen('red', 2.0)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                x1, x2 = i * g.dx, (i + 1) * g.dx
-                y1, y2 = j * g.dy, (j + 1) * g.dy
-                if cell.Type == TypeGhost:
-                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('red', 2.0))
-                    d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
-                            pen = aggdraw.Pen('red', 2.0))
+                c = self.Cells[i][j][0]
+                if c.Type == TypeGhost:
+                    d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
+
+        # Phantom.
+        pen = aggdraw.Pen('blue', 2.0)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                x1, x2 = i * g.dx, (i + 1) * g.dx
-                y1, y2 = j * g.dy, (j + 1) * g.dy
-                if cell.Type == TypePhantom:
-                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('blue', 2.0))
-                    d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
-                            pen = aggdraw.Pen('blue', 2.0))
+                c = self.Cells[i][j][0]
+                if c.Type == TypePhantom:
+                    d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
+
+        # Border.
+        pen = aggdraw.Pen('green', 2.0)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                x1, x2 = i * g.dx, (i + 1) * g.dx
-                y1, y2 = j * g.dy, (j + 1) * g.dy
-                if cell.Type == TypeBorder:
-                    d.Rect((x1, y1), (x2, y2), pen = aggdraw.Pen('green', 2.0))
-                    d.Point((x1 + 0.5 * self.dx, y1 + 0.5 * self.dy), 1.0,
-                            pen = aggdraw.Pen('green', 2.0))
+                c = self.Cells[i][j][0]
+                if c.Type == TypeBorder:
+                    d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
 
         # Draw shpere nearest points.
+        pen = aggdraw.Pen('black', 2.0)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                if cell.BorderPoint != None:
-                    d.Point(cell.BorderPoint.Tuple(2), 1.0, pen = aggdraw.Pen('black', 2.0))
-                    d.Line(cell.BorderPoint.Tuple(2),
-                           (cell.BorderPoint + 0.05 * cell.BorderNormal).Tuple(2),
-                           pen = aggdraw.Pen('black', 1.0))
+                c = self.Cells[i][j][0]
+                if c.BorderPoint != None:
+                    d.Point(c.BorderPoint.Tuple(2), 1.0, pen)
+                    d.Line(c.BorderPoint.Tuple(2),
+                           (c.BorderPoint + 0.05 * c.BorderNormal).Tuple(2),
+                           pen)
 
         # Draw approximate patterns.
+        pen = aggdraw.Pen('pink', 2.0)
         for i in range(self.CellsX):
             for j in range(self.CellsY):
-                cell = self.Cells[i][j][0]
-                if (cell.App1 != None) and (cell.App2 != None):
-                    d.FullGraph([cell.BorderPoint.Tuple(2),
-                                 cell.App1.Tuple(2),
-                                 cell.App2.Tuple(2)],
-                                pen = aggdraw.Pen('pink', 2.0))
+                c = self.Cells[i][j][0]
+                if (c.App1 != None) and (c.App2 != None):
+                    d.FullGraph([c.BorderPoint.Tuple(2),
+                                 c.App1.Tuple(2),
+                                 c.App2.Tuple(2)], pen)
 
         d.FSS()
 
@@ -789,33 +792,26 @@ def create_and_init_grid(case):
         for j in range(g.CellsY):
             for k in range(g.CellsZ):
                 c = g.Cells[i][j][k]
-                c.Center = geom.Vector((i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz)
-
-    for i in range(g.CellsX):
-        for j in range(g.CellsY):
-            for k in range(g.CellsZ):
-                c = g.Cells[i][j][k]
-                x, y, z = (i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz
 
                 if case == Case_1D_X:
-                    if x < 0.5:
+                    if c.Center.X < 0.5:
                         c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                     if i == g.CellsX - 1:
                         c.Borders[BorderR] = BorderHard
                 elif case == Case_1D_Y:
-                    if y < 0.5:
+                    if c.Center.Y < 0.5:
                         c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 elif case == Case_1D_Z:
-                    if z < 0.5:
+                    if c.Center.Z < 0.5:
                         c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
                 elif case == Case_2D_XY:
-                    if x < 0.1:
+                    if c.Center.X < 0.1:
                         c.D = DataD(10.0, 0.0, 0.0, 0.0, 10.0)
                     else:
                         c.D = DataD(1.0, 0.0, 0.0, 0.0, 1.0)
@@ -888,7 +884,7 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 50, 10, 0.001
+    pics, n, dt = 1, 10, 0.001
     fun = lambda cell: cell.D.p
 
     ts = time.time()

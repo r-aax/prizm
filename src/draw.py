@@ -296,6 +296,26 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
+    def RectWithCenterPoint(self, p1, p2, r, pen = BlackPen, brush = None):
+        """
+        Rectangle with point in its center.
+
+        Argements:
+            p1 -- first point,
+            p2 -- second point,
+            r -- point radius,
+            pen -- pen,
+            brush -- brush.
+        """
+
+        (p1x, p1y) = p1
+        (p2x, p2y) = p2
+
+        self.Rect(p1, p2, pen, brush)
+        self.Point((0.5 * (p1x + p2x), 0.5 * (p1y + p2y)), r, pen, brush)
+
+#---------------------------------------------------------------------------------------------------
+
     def FullGraph(self, ps, pen = BlackPen):
         """
         Draw full graph.
