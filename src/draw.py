@@ -11,6 +11,12 @@ import aggdraw
 from PIL import Image, ImageDraw, ImageFont
 
 #---------------------------------------------------------------------------------------------------
+# Variables.
+#---------------------------------------------------------------------------------------------------
+
+BlackPen = aggdraw.Pen('black', 1.0)
+
+#---------------------------------------------------------------------------------------------------
 # Class drawer.
 #---------------------------------------------------------------------------------------------------
 
@@ -138,8 +144,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Line(self, p1, p2,
-             pen = aggdraw.Pen('black', 1.0)):
+    def Line(self, p1, p2, pen = BlackPen):
         """
         Line.
 
@@ -153,8 +158,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def FixLine(self, p, dp,
-                pen = aggdraw.Pen('black', 1.0)):
+    def FixLine(self, p, dp, BlackPen):
         """
         Fix line.
 
@@ -170,9 +174,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Ellipse(self, p1, p2,
-                pen = aggdraw.Pen('black', 1.0),
-                brush = None):
+    def Ellipse(self, p1, p2, pen = BlackPen, brush = None):
         """
         Ellipse.
 
@@ -191,9 +193,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Point(self, p, r,
-              pen = aggdraw.Pen('black', 1.0),
-              brush = None):
+    def Point(self, p, r, pen = BlackPen, brush = None):
         """
         Point.
 
@@ -278,9 +278,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Rect(self, p1, p2,
-             pen = aggdraw.Pen('black', 1.0),
-             brush = None):
+    def Rect(self, p1, p2, pen = BlackPen, brush = None):
         """
         Rectangle.
 
@@ -295,6 +293,22 @@ class Drawer:
             self.Canvas.rectangle(self.To(p1) + self.To(p2), pen)
         else:
             self.Canvas.rectangle(self.To(p1) + self.To(p2), pen, brush)
+
+#---------------------------------------------------------------------------------------------------
+
+    def FullGraph(self, ps, pen = BlackPen):
+        """
+        Draw full graph.
+
+        Arguments:
+            ps -- point list,
+            pen -- pen.
+        """
+
+        n = len(ps)
+        for i in range(n):
+            for j in range(i + 1, n):
+                self.Line(ps[i], ps[j], pen)
 
 #---------------------------------------------------------------------------------------------------
 # Other functions.

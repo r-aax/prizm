@@ -749,17 +749,16 @@ class Grid:
                     d.Line(cell.BorderPoint.Tuple(2),
                            (cell.BorderPoint + 0.05 * cell.BorderNormal).Tuple(2),
                            pen = aggdraw.Pen('black', 1.0))
+
         # Draw approximate patterns.
         for i in range(self.CellsX):
             for j in range(self.CellsY):
                 cell = self.Cells[i][j][0]
                 if (cell.App1 != None) and (cell.App2 != None):
-                    d.Line(cell.BorderPoint.Tuple(2), cell.App1.Tuple(2),
-                           pen = aggdraw.Pen('pink', 2.0))
-                    d.Line(cell.BorderPoint.Tuple(2), cell.App2.Tuple(2),
-                           pen = aggdraw.Pen('pink', 2.0))
-                    d.Line(cell.App1.Tuple(2), cell.App2.Tuple(2),
-                           pen = aggdraw.Pen('pink', 2.0))
+                    d.FullGraph([cell.BorderPoint.Tuple(2),
+                                 cell.App1.Tuple(2),
+                                 cell.App2.Tuple(2)],
+                                pen = aggdraw.Pen('pink', 2.0))
 
         d.FSS()
 
