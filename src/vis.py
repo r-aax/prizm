@@ -38,6 +38,7 @@ def simple_graphic(xs, ys, title = 'title'):
         ys -- array of Y coordinates,
         title -- title.
     """
+    # num = 1, if we want to print all graphics on single figure
     plt.figure(figsize=(10, 6))
     plt.title(title, size=14)
     plt.xlabel('x_label', size=14)

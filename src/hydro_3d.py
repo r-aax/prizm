@@ -35,16 +35,6 @@ def array_3d(x, y, z):
 
 #---------------------------------------------------------------------------------------------------
 
-def convert_data_d_to_data_u(cell):
-    cell.U = cell.D.CreateDataU()
-
-#---------------------------------------------------------------------------------------------------
-
-def convert_data_u_to_data_d(cell):
-    cell.D = cell.U.CreateDataD()
-
-#---------------------------------------------------------------------------------------------------
-
 def lp(l):
     return 0.5 * (l + abs(l))
 
@@ -286,6 +276,7 @@ class Cell:
         self.App2 = None
 
         # Additional data.
+        self.Idxs = None
         self.Center = None
         self.LoCorner = None
         self.HiCorner = None
@@ -303,9 +294,28 @@ class Cell:
 
         (i, j, k) = idxs
 
+        self.Idxs = idxs
         self.Center = geom.Vector((i + 0.5) * g.dx, (j + 0.5) * g.dy, (k + 0.5) * g.dz)
         self.LoCorner = geom.Vector(i * g.dx, j * g.dy, k * g.dz)
         self.HiCorner = geom.Vector((i + 1) * g.dx, (j + 1) * g.dy, (k + 1) * g.dz)
+
+#---------------------------------------------------------------------------------------------------
+
+    def DtoU(self):
+        """
+        Convert D data to U data.
+        """
+
+        self.U = self.D.CreateDataU()
+
+#---------------------------------------------------------------------------------------------------
+
+    def UtoD(self):
+        """
+        Convert U data to D data.
+        """
+
+        self.D = self.U.CreateDataD()
 
 #---------------------------------------------------------------------------------------------------
 # Class Face.
@@ -399,12 +409,12 @@ class Grid:
 #---------------------------------------------------------------------------------------------------
 
     def DtoU(self):
-        self.Apply(convert_data_d_to_data_u)
+        self.Apply(lambda c: c.DtoU())
 
 #---------------------------------------------------------------------------------------------------
 
     def UtoD(self):
-        self.Apply(convert_data_u_to_data_d)
+        self.Apply(lambda c: c.UtoD())
 
 #---------------------------------------------------------------------------------------------------
 
@@ -855,12 +865,16 @@ def create_and_init_grid(case):
                     cell = g.Cells[i][j][k]
                     if cell.Type == TypeBorder:
                         if g.Cells[i - 1][j][k].Type == TypeInner:
+                            print(i - 1, j, k)
                             g.Cells[i - 1][j][k].Type = TypePhantom
                         if g.Cells[i + 1][j][k].Type == TypeInner:
+                            print(i + 1, j, k)
                             g.Cells[i + 1][j][k].Type = TypePhantom
                         if g.Cells[i][j - 1][k].Type == TypeInner:
+                            print(i, j - 1, k)
                             g.Cells[i][j - 1][k].Type = TypePhantom
                         if g.Cells[i][j + 1][k].Type == TypeInner:
+                            print(i, j + 1, k)
                             g.Cells[i][j + 1][k].Type = TypePhantom
                         #if g.Cells[i][j][k - 1].Type == TypeInner:
                         #    g.Cells[i][j][k - 1].Type = TypePhantom
@@ -884,7 +898,7 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 1, 10, 0.001
+    pics, n, dt = 50, 10, 0.001
     fun = lambda cell: cell.D.p
 
     ts = time.time()
