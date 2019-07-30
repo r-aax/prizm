@@ -251,8 +251,7 @@ BorderHard = 2
 TypeCommon = 0
 TypeBorder = 1
 TypeGhost = 2
-TypePhantom = 3
-TypeInner = 4
+TypeInner = 3
 
 class Cell:
     """
@@ -572,7 +571,7 @@ class Grid:
             for j in range(self.CellsY):
                 for k in range(self.CellsZ):
                     c = self.Cells[i][j][k]
-                    if not ((c.Type == TypeGhost) or (c.Type == TypePhantom)):
+                    if c.Type != TypeGhost:
                         continue
                     (c1, c2) = self.FindNeighbourhoodForApprox(i, j, k)
                     c.App1 = c1.Center
@@ -656,7 +655,7 @@ class Grid:
             for j in range(self.CellsY):
                 for k in range(self.CellsZ):
                     c = self.Cells[i][j][k]
-                    if (c.Type == TypeInner) or (c.Type == TypeGhost) or (c.Type == TypePhantom):
+                    if (c.Type == TypeInner) or (c.Type == TypeGhost):
                         continue
                     u = c.U
                     nu = u \
@@ -681,7 +680,6 @@ class Grid:
             self.Step(dt)
 
 #---------------------------------------------------------------------------------------------------
-
 
     def Print(self):
         print('Grid : %d cells, %d faces' % (self.CellsCount(), self.FacesCount()))
@@ -766,14 +764,6 @@ class Grid:
                 if c.Type == TypeGhost:
                     d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
 
-        # Phantom.
-        pen = aggdraw.Pen('blue', 2.0)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                if c.Type == TypePhantom:
-                    d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
-
         # Border.
         pen = aggdraw.Pen('green', 2.0)
         for i in range(self.CellsX):
@@ -824,7 +814,7 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
+        g = Grid(1.0, 1.0, 1.0, 20, 20, 1)
     else:
         raise Exception('unknown case number')
 
@@ -895,13 +885,13 @@ def create_and_init_grid(case):
                     cell = g.Cells[i][j][k]
                     if cell.Type == TypeBorder:
                         if g.Cells[i - 1][j][k].Type == TypeInner:
-                            g.Cells[i - 1][j][k].Type = TypePhantom
+                            g.Cells[i - 1][j][k].Type = TypeGhost
                         if g.Cells[i + 1][j][k].Type == TypeInner:
-                            g.Cells[i + 1][j][k].Type = TypePhantom
+                            g.Cells[i + 1][j][k].Type = TypeGhost
                         if g.Cells[i][j - 1][k].Type == TypeInner:
-                            g.Cells[i][j - 1][k].Type = TypePhantom
+                            g.Cells[i][j - 1][k].Type = TypeGhost
                         if g.Cells[i][j + 1][k].Type == TypeInner:
-                            g.Cells[i][j + 1][k].Type = TypePhantom
+                            g.Cells[i][j + 1][k].Type = TypeGhost
         for i in range(g.CellsX):
             for j in range(g.CellsY):
                 for k in range(g.CellsZ):
@@ -920,7 +910,7 @@ def create_and_init_grid(case):
             for j in range(g.CellsY):
                 for k in range(g.CellsZ):
                     cell = g.Cells[i][j][k]
-                    if (cell.Type == TypeGhost) or (cell.Type == TypePhantom):
+                    if cell.Type == TypeGhost:
                         cell.BorderPoint = geom.Vector((i + 0.5) * g.dx,
                                                        (j + 0.5) * g.dy,
                                                        0.0).NearestPoint(Sph)
