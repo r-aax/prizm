@@ -283,6 +283,18 @@ class Cell:
 
 #---------------------------------------------------------------------------------------------------
 
+    def __repr__(self):
+        """
+        String representation.
+
+        Result:
+            String.
+        """
+
+        return str(self.Idxs)
+
+#---------------------------------------------------------------------------------------------------
+
     def SetAdditionalData(self, g, idxs):
         """
         Set additional data.
@@ -458,9 +470,23 @@ class Grid:
 #---------------------------------------------------------------------------------------------------
 
     def FindNeighbourhoodForApprox(self, i, j, k):
+        """
+        Find the best approximation template for cell.
+
+        Arguments:
+            i -- index i,
+            j -- index j,
+            k -- index k.
+
+        Result:
+            Best template.
+        """
+
         c = self.Cells[i][j][k]
         is_good = lambda cell: (cell.Type == TypeBorder) or (cell.Type == TypeCommon)
         cs = self.Cells
+
+        # Base list of cases.
         li = [(cs[i + 1][j][k], cs[i][j + 1][k]),
               (cs[i + 1][j][k], cs[i][j - 1][k]),
               (cs[i - 1][j][k], cs[i][j + 1][k]),
@@ -473,11 +499,15 @@ class Grid:
               (cs[i][j + 1][k], cs[i - 1][j + 1][k]),
               (cs[i][j - 1][k], cs[i + 1][j - 1][k]),
               (cs[i][j - 1][k], cs[i - 1][j - 1][k])]
-        li2 = [(c1, c2) for (c1, c2) in li if is_good(c1) and is_good(c2)]
-        li3 = [(c.BorderPoint, c1.Center, c2.Center) for (c1, c2) in li2]
+
+        # Leave only good cells.
+        li_good = [(c1, c2) for (c1, c2) in li if (is_good(c1) and is_good(c2))]
+
+        li3 = [(c.BorderPoint, c1.Center, c2.Center) for (c1, c2) in li_good]
         li4 = [geom.Triangle(ca, cb, cc).R() for (ca, cb, cc) in li3]
         (_, ind) = mth.min_with_index(li4)
-        return li2[ind]
+
+        return li_good[ind]
 
 #---------------------------------------------------------------------------------------------------
 
@@ -794,7 +824,7 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 40, 40, 1)
+        g = Grid(1.0, 1.0, 1.0, 100, 100, 1)
     else:
         raise Exception('unknown case number')
 
@@ -865,21 +895,27 @@ def create_and_init_grid(case):
                     cell = g.Cells[i][j][k]
                     if cell.Type == TypeBorder:
                         if g.Cells[i - 1][j][k].Type == TypeInner:
-                            print(i - 1, j, k)
                             g.Cells[i - 1][j][k].Type = TypePhantom
                         if g.Cells[i + 1][j][k].Type == TypeInner:
-                            print(i + 1, j, k)
                             g.Cells[i + 1][j][k].Type = TypePhantom
                         if g.Cells[i][j - 1][k].Type == TypeInner:
-                            print(i, j - 1, k)
                             g.Cells[i][j - 1][k].Type = TypePhantom
                         if g.Cells[i][j + 1][k].Type == TypeInner:
-                            print(i, j + 1, k)
                             g.Cells[i][j + 1][k].Type = TypePhantom
-                        #if g.Cells[i][j][k - 1].Type == TypeInner:
-                        #    g.Cells[i][j][k - 1].Type = TypePhantom
-                        #if g.Cells[i][j][k + 1].Type == TypeInner:
-                        #    g.Cells[i][j][k + 1].Type = TypePhantom
+        for i in range(g.CellsX):
+            for j in range(g.CellsY):
+                for k in range(g.CellsZ):
+                    cell = g.Cells[i][j][k]
+                    if cell.Type == TypeGhost:
+                        if g.Cells[i - 1][j][k].Type == TypeBorder:
+                            continue
+                        if g.Cells[i + 1][j][k].Type == TypeBorder:
+                            continue
+                        if g.Cells[i][j - 1][k].Type == TypeBorder:
+                            continue
+                        if g.Cells[i][j + 1][k].Type == TypeBorder:
+                            continue
+                        cell.Type = TypeInner
         for i in range(g.CellsX):
             for j in range(g.CellsY):
                 for k in range(g.CellsZ):
