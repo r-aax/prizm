@@ -329,6 +329,19 @@ class Cell:
         self.D = self.U.CreateDataD()
 
 #---------------------------------------------------------------------------------------------------
+
+    def IsTypeCalc(self):
+        """
+        Check if calculation type.
+
+        Result:
+            True -- if calculation type,
+            False -- otherwise.
+        """
+
+        return (self.Type == TypeCommon) or (self.Type == TypeBorder)
+
+#---------------------------------------------------------------------------------------------------
 # Class Face.
 #---------------------------------------------------------------------------------------------------
 
@@ -840,7 +853,7 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 40, 40, 1)
+        g = Grid(1.0, 1.0, 1.0, 30, 30, 1)
     else:
         raise Exception('unknown case number')
 
@@ -884,13 +897,13 @@ def create_and_init_grid(case):
                 x1, x2 = i * g.dx, (i + 1) * g.dx
                 y1, y2 = j * g.dy, (j + 1) * g.dy
                 f11, f12, f21, f22 = elfun(x1, y1), elfun(x1, y2), elfun(x2, y1), elfun(x2, y2)
-                if abs(f11) < 0.001:
+                if abs(f11) < 1.0e-6:
                     f11 = 0.0
-                if abs(f12) < 0.001:
+                if abs(f12) < 1.0e-6:
                     f12 = 0.0
-                if abs(f21) < 0.001:
+                if abs(f21) < 1.0e-6:
                     f21 = 0.0
-                if abs(f22) < 0.001:
+                if abs(f22) < 1.0e-6:
                     f22 = 0.0
                 s11, s12, s21, s22 = mth.sign(f11), mth.sign(f12), mth.sign(f21), mth.sign(f22)
                 ss = int(s11 + s12 + s21 + s22)
@@ -923,13 +936,13 @@ def create_and_init_grid(case):
                 for k in range(g.CellsZ):
                     cell = g.Cells[i][j][k]
                     if cell.Type == TypeGhost:
-                        if g.Cells[i - 1][j][k].Type == TypeBorder:
+                        if g.Cells[i - 1][j][k].IsTypeCalc():
                             continue
-                        if g.Cells[i + 1][j][k].Type == TypeBorder:
+                        if g.Cells[i + 1][j][k].IsTypeCalc():
                             continue
-                        if g.Cells[i][j - 1][k].Type == TypeBorder:
+                        if g.Cells[i][j - 1][k].IsTypeCalc():
                             continue
-                        if g.Cells[i][j + 1][k].Type == TypeBorder:
+                        if g.Cells[i][j + 1][k].IsTypeCalc():
                             continue
                         cell.Type = TypeInner
         for i in range(g.CellsX):
@@ -954,6 +967,11 @@ if __name__ == '__main__':
     fun = lambda cell: cell.D.p
 
     ts = time.time()
+    g.Draw(fun,
+           is_draw_color_field = False,
+           is_draw_cells = True,
+           is_draw_patterns = False,
+           is_draw_velocity_field = True)
     for _ in range(pics):
         g.Steps(n, dt)
         g.Draw(fun,
