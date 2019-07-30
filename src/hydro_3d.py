@@ -410,7 +410,7 @@ class Grid:
 
     def DtoU(self):
         self.Apply(lambda c: c.DtoU())
-
+ 
 #---------------------------------------------------------------------------------------------------
 
     def UtoD(self):
@@ -481,14 +481,14 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Approximate(self, c, c1, c2):
+    def Approximate(self, cg, c1, c2):
 
         # Coords.
-        x0, y0 = c.BorderPoint.X, c.BorderPoint.Y
         x1, y1 = c1.Center.X, c1.Center.Y
         x2, y2 = c2.Center.X, c2.Center.Y
-        xg, yg = c.Center.X, c.Center.Y
-        cos0, sin0 =  c.BorderNormal.X, c.BorderNormal.Y
+        xg, yg = cg.Center.X, cg.Center.Y
+        x0, y0 = cg.BorderPoint.X, cg.BorderPoint.Y
+        cos0, sin0 =  cg.BorderNormal.X, cg.BorderNormal.Y
 
         # U
         u1, v1, u2, v2 = c1.D.u, c1.D.v, c2.D.u, c2.D.v
@@ -504,7 +504,7 @@ class Grid:
         matrix_d_inv = matrix_d.Inverted()
         [d1, d2, d0] = [1, xg, yg] * matrix_d_inv
         #
-        r1 = -(b1 / bg) * (u1 * cos0 + v1 * cos0) - (b2 / bg) * (u2 * cos0 + v2 * cos0)
+        r1 = -(b1 / bg) * (u1 * cos0 + v1 * sin0) - (b2 / bg) * (u2 * cos0 + v2 * sin0)
         r2 = d1 * (u1 * sin0 - v1 * cos0) + d2 * (u2 * sin0 - v2 * cos0)
         #
         u, v = r1 * cos0 + r2 * sin0, r1 * sin0 - r2 * cos0
@@ -527,7 +527,7 @@ class Grid:
             print(rho1, u1, v1, p1, rho2, u2, v2, p2, rho, u, v, pg)
             raise Exception('negative rho or p')
 
-        dd = c.D
+        dd = cg.D
         dd.r = rho
         dd.u = u
         dd.v = v
