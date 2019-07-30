@@ -721,7 +721,11 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
-    def Draw(self, fun):
+    def Draw(self, fun,
+             is_draw_color_field = True,
+             is_draw_cells = True,
+             is_draw_patterns = True,
+             is_draw_velocity_field = True):
         d = draw.Drawer(draw_area = (0.0, 0.0, self.SizeX, self.SizeY),
                         pic_size = (800, 800))
         """
@@ -734,64 +738,86 @@ class Grid:
 
         (mn, mx) = self.FunInterval(fun)
 
-        # Coloring.
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                factor = 255 - int((fun(c) - mn) / (mx - mn) * 255)
-                color = (factor, factor, factor)
-                d.Rect(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2),
-                       aggdraw.Pen(color, 1.0), aggdraw.Brush(color))
+        if is_draw_color_field:
+
+            # Coloring.
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    factor = 255 - int((fun(c) - mn) / (mx - mn) * 255)
+                    color = (factor, factor, factor)
+                    d.Rect(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2),
+                           aggdraw.Pen(color, 1.0), aggdraw.Brush(color))
 
         d.Rect((0.0, 0.0), (self.SizeX, self.SizeY), aggdraw.Pen('blue', 1.0))
 
         # Draw ellipse.
         d.Ellipse(Sph.LoPoint().Tuple(2), Sph.HiPoint().Tuple(2), pen = aggdraw.Pen('black', 2.0))
 
-        # Inner.
-        pen = aggdraw.Pen('orange', 2.0)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                if c.Type == TypeInner:
-                    d.Rect(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), pen)
+        if is_draw_cells:
 
-        # Ghost.
-        pen = aggdraw.Pen('red', 2.0)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                if c.Type == TypeGhost:
-                    d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
+            # Inner.
+            pen = aggdraw.Pen('orange', 2.0)
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    if c.Type == TypeInner:
+                        d.Rect(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), pen)
 
-        # Border.
-        pen = aggdraw.Pen('green', 2.0)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                if c.Type == TypeBorder:
-                    d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
+            # Ghost.
+            pen = aggdraw.Pen('red', 2.0)
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    if c.Type == TypeGhost:
+                        d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
 
-        # Draw shpere nearest points.
-        pen = aggdraw.Pen('black', 2.0)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                if c.BorderPoint != None:
-                    d.Point(c.BorderPoint.Tuple(2), 1.0, pen)
-                    d.Line(c.BorderPoint.Tuple(2),
-                           (c.BorderPoint + 0.05 * c.BorderNormal).Tuple(2),
-                           pen)
+            # Border.
+            pen = aggdraw.Pen('green', 2.0)
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    if c.Type == TypeBorder:
+                        d.RectWithCenterPoint(c.LoCorner.Tuple(2), c.HiCorner.Tuple(2), 1, pen)
 
-        # Draw approximate patterns.
-        pen = aggdraw.Pen('pink', 2.0)
-        for i in range(self.CellsX):
-            for j in range(self.CellsY):
-                c = self.Cells[i][j][0]
-                if (c.App1 != None) and (c.App2 != None):
-                    d.FullGraph([c.BorderPoint.Tuple(2),
-                                 c.App1.Tuple(2),
-                                 c.App2.Tuple(2)], pen)
+        if is_draw_patterns:
+
+            # Draw shpere nearest points.
+            pen = aggdraw.Pen('black', 2.0)
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    if c.BorderPoint != None:
+                        d.Point(c.BorderPoint.Tuple(2), 1.0, pen)
+                        d.Line(c.BorderPoint.Tuple(2),
+                               (c.BorderPoint + 0.05 * c.BorderNormal).Tuple(2),
+                               pen)
+
+            # Draw approximate patterns.
+            pen = aggdraw.Pen('pink', 2.0)
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    if (c.App1 != None) and (c.App2 != None):
+                        d.FullGraph([c.BorderPoint.Tuple(2),
+                                     c.App1.Tuple(2),
+                                     c.App2.Tuple(2)], pen)
+
+        if is_draw_velocity_field:
+
+            # Draw velocity speed.
+            pen = aggdraw.Pen('steelblue', 1.0)
+            for i in range(self.CellsX):
+                for j in range(self.CellsY):
+                    c = self.Cells[i][j][0]
+                    if (c.Type == TypeCommon) or (c.Type == TypeBorder) or (c.Type == TypeGhost):
+                        v = geom.Vector(c.D.u, c.D.v, 0.0)
+                        if v.Mod() < 0.001:
+                            d.Point(c.Center.Tuple(2), 1, pen)
+                        else:
+                            v.Normalize()
+                            v.Scale(0.4 * self.dx)
+                            d.Line((c.Center - v).Tuple(2), (c.Center + v).Tuple(2), pen)
 
         d.FSS()
 
@@ -814,7 +840,7 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 20, 20, 1)
+        g = Grid(1.0, 1.0, 1.0, 40, 40, 1)
     else:
         raise Exception('unknown case number')
 
@@ -930,7 +956,11 @@ if __name__ == '__main__':
     ts = time.time()
     for _ in range(pics):
         g.Steps(n, dt)
-        g.Draw(fun)
+        g.Draw(fun,
+               is_draw_color_field = False,
+               is_draw_cells = False,
+               is_draw_patterns = False,
+               is_draw_velocity_field = True)
         #vis.simple_graphic_ys(g.XValues(fun))
     tf = time.time()
     print('total time : %f' % (tf - ts))
