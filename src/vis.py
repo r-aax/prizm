@@ -39,13 +39,13 @@ def simple_graphic(xs, ys, title = 'title'):
         title -- title.
     """
     # num = 1, if we want to print all graphics on single figure
-    plt.figure(figsize=(10, 6))
+    plt.figure(num = 1, figsize=(12, 8))
     plt.title(title, size=14)
     plt.xlabel('x_label', size=14)
     plt.ylabel('y_label', size=14)
 
     # Draw.
-    plt.plot(xs, ys, color='r', linestyle='-', label='graphic')
+    plt.plot(xs, ys, color='r', linestyle='-', linewidth='3.0', label='graphic')
 
     # Legend.
     plt.legend(loc='lower left')
@@ -124,7 +124,7 @@ def ice_grow_test(rect, trap):
 
 if __name__ == "__main__":
 
-    test_number = 3
+    test_number = 0
 
     if test_number == 1:
         # Test 1.
