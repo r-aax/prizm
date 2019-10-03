@@ -26,7 +26,7 @@ def cpu_Intel_Xeon_E5450():
     t.Set('freq', 3.0)
     t.Set('tfs', 0.048)
 
-    return t;
+    return t
 
 #---------------------------------------------------------------------------------------------------
 
@@ -111,7 +111,24 @@ def cpu_Intel_Xeon_E5_2697Av4():
     t.Set('freq', 2.6)
     t.Set('tfs', 0.6656)
 
-    return t;
+    return t
+
+#---------------------------------------------------------------------------------------------------
+
+def cpu_Intel_Xeon_Gold_6154():
+    """
+    Skylake microprocessor (Intel Xeon Gold 6154).
+
+    Result:
+        Skylake microprocessor.
+    """
+
+    t = Tree('cpu', 'sl', 'Intel Xeon Gold 6154')
+    t.Set('cores_count', 18)
+    t.Set('freq', 3.0)
+    t.Set('tfs', 1.728)
+
+    return t
 
 #---------------------------------------------------------------------------------------------------
 
@@ -196,32 +213,37 @@ def center_jscc():
     t = Tree('center', 'jscc', 'Joint Supercomputer Center');
 
     # Init.
+
+    # 100K.
     with t.AddChildTN('segment', '100k', 'MVS-100K') as s:
-        s.Set('watt', 36.0)
+        s.Set('watt', 31.0)
         s.Set('pue', 2.0)
         s.Set('interconnect', 56.0)
         with s.AddChildTN('node', '100k') as n:
-            n.Pred.Set('count', 110)
+            n.Pred.Set('count', 62)
             with n.AddChildTN('cpus', 'ht') as cs:
                 cs.Set('ram', 8.0)
                 with cs.AddChild(cpu_Intel_Xeon_E5450()) as c:
                     c.Pred.Set('count', 2)
-    with t.AddChildTN('segment', 'ps', 'Petastream') as s:
-        s.Set('watt', 15.0)
-        s.Set('pue', 1.25)
-        s.Set('interconnect', 56.0)
-        with s.AddChildTN('node', 'ps') as n:
-            n.Pred.Set('count', 8)
-            with n.AddChildTN('cpus', 'ib') as cs:
-                cs.Set('ram', 8.0)
-                with cs.AddChild(cpu_Intel_Xeon_E5_2667()) as c:
-                    c.Pred.Set('count', 1)
-            with n.AddChildTN('cpus', 'knc') as cs:
-                cs.Set('ram', 16.0)
-                with cs.AddChild(cpu_Intel_Xeon_Phi_7120D()) as c:
-                    c.Pred.Set('count', 8)
+
+#    with t.AddChildTN('segment', 'ps', 'Petastream') as s:
+#        s.Set('watt', 15.0)
+#        s.Set('pue', 1.25)
+#        s.Set('interconnect', 56.0)
+#        with s.AddChildTN('node', 'ps') as n:
+#            n.Pred.Set('count', 8)
+#            with n.AddChildTN('cpus', 'ib') as cs:
+#                cs.Set('ram', 8.0)
+#                with cs.AddChild(cpu_Intel_Xeon_E5_2667()) as c:
+#                    c.Pred.Set('count', 1)
+#            with n.AddChildTN('cpus', 'knc') as cs:
+#                cs.Set('ram', 16.0)
+#                with cs.AddChild(cpu_Intel_Xeon_Phi_7120D()) as c:
+#                    c.Pred.Set('count', 8)
+
+    # Tornado.
     with t.AddChildTN('segment', 'tr', 'Tornado') as s:
-        s.Set('watt', 223.0)
+        s.Set('watt', 103.5)
         s.Set('pue', 1.25)
         s.Set('interconnect', 56.0)
         with s.AddChildTN('node', 'tr') as n:
@@ -234,8 +256,10 @@ def center_jscc():
                 cs.Set('ram', 16.0)
                 with cs.AddChild(cpu_Intel_Xeon_Phi_7110X()) as c:
                     c.Pred.Set('count', 2)
+
+    # Haswell.
     with t.AddChildTN('segment', 'hw', 'Haswell') as s:
-        s.Set('watt', 28.0)
+        s.Set('watt', 21.0)
         s.Set('pue', 1.06)
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'hw') as n:
@@ -244,8 +268,10 @@ def center_jscc():
                 cs.Set('ram', 128.0)
                 with cs.AddChild(cpu_Intel_Xeon_E5_2697v3()) as c:
                     c.Pred.Set('count', 2)
+
+    # Broadwell.
     with t.AddChildTN('segment', 'bw', 'Broadwell') as s:
-        s.Set('watt', 91.0)
+        s.Set('watt', 68.0)
         s.Set('pue', 1.06)
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'bw') as n:
@@ -254,30 +280,46 @@ def center_jscc():
                 cs.Set('ram', 128.0)
                 with cs.AddChild(cpu_Intel_Xeon_E5_2697Av4()) as c:
                     c.Pred.Set('count', 2)
+
+    # KNL.
     with t.AddChildTN('segment', 'knl', 'Knights Landing') as s:
-        s.Set('watt', 29.0)
+        s.Set('watt', 11.0)
         s.Set('pue', 1.06)
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'knl') as n:
-            n.Pred.Set('count', 38)
+            n.Pred.Set('count', 22)
             with n.AddChildTN('cpus', 'knl') as cs:
                 cs.Set('ram', 96.0)
                 with cs.AddChild(cpu_Intel_Xeon_Phi_7290()) as c:
                     c.Pred.Set('count', 1)
-    with t.AddChildTN('segment', 'nv', 'NVIDIA') as s:
-        s.Set('watt', 19.0)
-        s.Set('pue', 2.0)
-        s.Set('interconnect', 56.0)
-        with s.AddChildTN('node', 'nv') as n:
-            n.Pred.Set('count', 6)
-            with n.AddChildTN('cpus', 'wm') as cs:
-                cs.Set('ram', 192.0)
-                with cs.AddChild(cpu_Intel_Xeon_X5675()) as c:
+
+    # NVIDIA.
+#    with t.AddChildTN('segment', 'nv', 'NVIDIA') as s:
+#        s.Set('watt', 19.0)
+#        s.Set('pue', 2.0)
+#        s.Set('interconnect', 56.0)
+#        with s.AddChildTN('node', 'nv') as n:
+#            n.Pred.Set('count', 6)
+#            with n.AddChildTN('cpus', 'wm') as cs:
+#                cs.Set('ram', 192.0)
+#                with cs.AddChild(cpu_Intel_Xeon_X5675()) as c:
+#                    c.Pred.Set('count', 2)
+#            with n.AddChildTN('cpus', 'nv') as cs:
+#                cs.Set('ram', 48.0)
+#                with cs.AddChild(cpu_NVIDIA_Tesla_M2090()) as c:
+#                    c.Pred.Set('count', 8)
+
+    # Skylake.
+    with t.AddChildTN('segment', 'sl', 'Skylake') as s:
+        s.Set('watt', 102.5)
+        s.Set('pue', 1.06)
+        s.Set('interconnect', 100.0)
+        with s.AddChildTN('node', 'sl') as n:
+            n.Pred.Set('count', 105)
+            with n.AddChildTN('cpus', 'sl') as cs:
+                cs.Set('ram', 192)
+                with cs.AddChild(cpu_Intel_Xeon_Gold_6154()) as c:
                     c.Pred.Set('count', 2)
-            with n.AddChildTN('cpus', 'nv') as cs:
-                cs.Set('ram', 48.0)
-                with cs.AddChild(cpu_NVIDIA_Tesla_M2090()) as c:
-                    c.Pred.Set('count', 8)
 
     return t;
 
