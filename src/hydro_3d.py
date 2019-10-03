@@ -593,6 +593,76 @@ class Grid:
 
 #---------------------------------------------------------------------------------------------------
 
+    def CalcFlows(self):
+
+        cs = self.Cells
+
+        # Cells.
+        for i in range(self.CellsX):
+            for j in range(self.CellsY):
+                for k in range(self.CellsZ):
+
+                    c = cs[i][j][k]
+                    if c.Type == TypeInner:
+                        continue
+                    bs = c.Borders
+
+                    # L
+                    if bs[BorderL] == BorderSoft:
+                        self.FacesX[i][j][k].F = c.D.CreateFlowF()
+                    elif bs[BorderL] == BorderHard:
+                        self.FacesX[i][j][k].F = c.D.CreateFlowF_Zero()
+                    else:
+                        pass
+
+                    # R
+                    if bs[BorderR] == BorderSoft:
+                        self.FacesX[i + 1][j][k].F = c.D.CreateFlowF()
+                    elif bs[BorderR] == BorderHard:
+                        self.FacesX[i + 1][j][k].F = c.D.CreateFlowF_Zero()
+                    else:
+                        if cs[i + 1][j][k].Type != TypeInner:
+                            mid_d = (0.5 * (c.D + cs[i + 1][j][k].D))
+                            self.FacesX[i + 1][j][k].F = mid_d.CreateFlowF();
+
+                    # D
+                    if bs[BorderD] == BorderSoft:
+                        self.FacesY[i][j][k].G = c.D.CreateFlowG()
+                    elif bs[BorderD] == BorderHard:
+                        self.FacesY[i][j][k].G = c.D.CreateFlowG_Zero()
+                    else:
+                        pass
+
+                    # U
+                    if bs[BorderU] == BorderSoft:
+                        self.FacesY[i][j + 1][k].G = c.D.CreateFlowG()
+                    elif bs[BorderU] == BorderHard:
+                        self.FacesY[i][j + 1][k].G = c.D.CreateFlowG_Zero()
+                    else:
+                        if cs[i][j + 1][k].Type != TypeInner:
+                            mid_d = (0.5 * (c.D + cs[i][j + 1][k].D))
+                            self.FacesY[i][j + 1][k].G = mid_d.CreateFlowG();
+
+                    # B
+                    if bs[BorderB] == BorderSoft:
+                        self.FacesZ[i][j][k].H = c.D.CreateFlowH()
+                    elif bs[BorderB] == BorderHard:
+                        self.FacesZ[i][j][k].H = c.D.CreateFlowH_Zero()
+                    else:
+                        pass
+
+                    # F
+                    if bs[BorderF] == BorderSoft:
+                        self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH()
+                    elif bs[BorderF] == BorderHard:
+                        self.FacesZ[i][j][k + 1].H = c.D.CreateFlowH_Zero()
+                    else:
+                        if cs[i][j][k + 1].Type != TypeInner:
+                            mid_d = (0.5 * (c.D + cs[i][j][k + 1].D))
+                            self.FacesZ[i][j][k + 1].H = mid_d.CreateFlowH();
+
+#---------------------------------------------------------------------------------------------------
+
     def CalcFlowsStegerWarming(self):
 
         cs = self.Cells
@@ -680,9 +750,10 @@ class Grid:
 #---------------------------------------------------------------------------------------------------
 
     def Step(self, dt):
-        self.ApproxGhostAndPhantom()
+        #self.ApproxGhostAndPhantom()
         self.DtoU()
-        self.CalcFlowsStegerWarming()
+        #self.CalcFlowsStegerWarming()
+        self.CalcFlows()
         self.Renew(dt)
         self.UtoD()
 
@@ -853,7 +924,7 @@ def create_and_init_grid(case):
     elif case == Case_1D_Z:
         g = Grid(1.0, 1.0, 1.0, 1, 1, 100)
     elif case == Case_2D_XY:
-        g = Grid(1.0, 1.0, 1.0, 30, 30, 1)
+        g = Grid(1.0, 1.0, 1.0, 70, 70, 1)
     else:
         raise Exception('unknown case number')
 
@@ -963,19 +1034,19 @@ if __name__ == '__main__':
     print('HYDRO_3D')
     g = create_and_init_grid(case = Case_2D_XY)
 
-    pics, n, dt = 50, 10, 0.001
+    pics, n, dt = 5, 100, 0.0001
     fun = lambda cell: cell.D.p
 
     ts = time.time()
     g.Draw(fun,
-           is_draw_color_field = False,
+           is_draw_color_field = True,
            is_draw_cells = True,
-           is_draw_patterns = False,
+           is_draw_patterns = True,
            is_draw_velocity_field = True)
     for _ in range(pics):
         g.Steps(n, dt)
         g.Draw(fun,
-               is_draw_color_field = False,
+               is_draw_color_field = True,
                is_draw_cells = False,
                is_draw_patterns = False,
                is_draw_velocity_field = True)
