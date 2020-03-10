@@ -132,6 +132,23 @@ def cpu_Intel_Xeon_Gold_6154():
 
 #---------------------------------------------------------------------------------------------------
 
+def cpu_Intel_Xeon_Platinum_8268():
+    """
+    Cascade Lake microprocessor (Intel Xeon Platinum 8268).
+
+    Result:
+        Cascade Lake microprocessor.
+    """
+
+    t = Tree('cpu', 'cl', 'Intel Xeon Platinum 8268')
+    t.Set('cores_count', 24)
+    t.Set('freq', 2.9)
+    t.Set('tfs', 2.227)
+
+    return t;
+
+#---------------------------------------------------------------------------------------------------
+
 def cpu_Intel_Xeon_Phi_7120D():
     """
     Knights Corner microprocessor in Petastream (Intel Xeon Phi 7120D).
@@ -218,9 +235,10 @@ def center_jscc():
     with t.AddChildTN('segment', '100k', 'MVS-100K') as s:
         s.Set('watt', 31.0)
         s.Set('pue', 2.0)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
         s.Set('interconnect', 56.0)
         with s.AddChildTN('node', '100k') as n:
-            n.Pred.Set('count', 62)
+            n.Pred.Set('count', 110)
             with n.AddChildTN('cpus', 'ht') as cs:
                 cs.Set('ram', 8.0)
                 with cs.AddChild(cpu_Intel_Xeon_E5450()) as c:
@@ -245,6 +263,7 @@ def center_jscc():
     with t.AddChildTN('segment', 'tr', 'Tornado') as s:
         s.Set('watt', 103.5)
         s.Set('pue', 1.25)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
         s.Set('interconnect', 56.0)
         with s.AddChildTN('node', 'tr') as n:
             n.Pred.Set('count', 207)
@@ -261,6 +280,7 @@ def center_jscc():
     with t.AddChildTN('segment', 'hw', 'Haswell') as s:
         s.Set('watt', 21.0)
         s.Set('pue', 1.06)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'hw') as n:
             n.Pred.Set('count', 42)
@@ -273,6 +293,7 @@ def center_jscc():
     with t.AddChildTN('segment', 'bw', 'Broadwell') as s:
         s.Set('watt', 68.0)
         s.Set('pue', 1.06)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'bw') as n:
             n.Pred.Set('count', 136)
@@ -285,6 +306,7 @@ def center_jscc():
     with t.AddChildTN('segment', 'knl', 'Knights Landing') as s:
         s.Set('watt', 11.0)
         s.Set('pue', 1.06)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'knl') as n:
             n.Pred.Set('count', 22)
@@ -297,6 +319,7 @@ def center_jscc():
 #    with t.AddChildTN('segment', 'nv', 'NVIDIA') as s:
 #        s.Set('watt', 19.0)
 #        s.Set('pue', 2.0)
+#        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
 #        s.Set('interconnect', 56.0)
 #        with s.AddChildTN('node', 'nv') as n:
 #            n.Pred.Set('count', 6)
@@ -313,12 +336,26 @@ def center_jscc():
     with t.AddChildTN('segment', 'sl', 'Skylake') as s:
         s.Set('watt', 102.5)
         s.Set('pue', 1.06)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
         s.Set('interconnect', 100.0)
         with s.AddChildTN('node', 'sl') as n:
-            n.Pred.Set('count', 105)
+            n.Pred.Set('count', 58)
             with n.AddChildTN('cpus', 'sl') as cs:
-                cs.Set('ram', 192)
+                cs.Set('ram', 192.0)
                 with cs.AddChild(cpu_Intel_Xeon_Gold_6154()) as c:
+                    c.Pred.Set('count', 2)
+
+    # Cascade Lake.
+    with t.AddChildTN('segment', 'cl', 'Cascade Lake') as s:
+        s.Set('watt', 100.0)
+        s.Set('pue', 1.06)
+        s.Set('full_watt', s.Get('watt') * s.Get('pue'))
+        s.Set('interconnect', 100.0)
+        with s.AddChildTN('node', 'cl') as n:
+            n.Pred.Set('count', 51)
+            with n.AddChildTN('cpus', 'cl') as cs:
+                cs.Set('ram', 192.0)
+                with cs.AddChild(cpu_Intel_Xeon_Platinum_8268()) as c:
                     c.Pred.Set('count', 2)
 
     return t;
@@ -330,6 +367,9 @@ def center_jscc():
 if __name__ == '__main__':
     jscc = center_jscc()
     jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount('tfs'))
+    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount('ram'))
+    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount('watt'))
+    jscc.ApplyUpward(lambda t: t.GatherTacticSumWithCount('full_watt'))
     jscc.PrintTree()
 
 #---------------------------------------------------------------------------------------------------

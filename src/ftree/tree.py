@@ -721,7 +721,7 @@ class Tree:
         self.Apply(apply_fun, filter_fun, True)
 
 #---------------------------------------------------------------------------------------------------
-# Gather tactics.
+# Tactics.
 #---------------------------------------------------------------------------------------------------
 
     def GatherTacticSumWithCount(self, prop):
@@ -735,10 +735,13 @@ class Tree:
 
         if not self.Has(prop):
 
-            vs = [succ.Child.Get(prop) * succ.GetWithAlternate('count', 1.0)
+            vs = [succ.Child.GetWithAlternate(prop, 0.0) * succ.GetWithAlternate('count', 1.0)
                   for succ in self.Succs]
 
-            self.Set(prop, sum(vs))
+            val = round(sum(vs), 10)
+
+            if val != 0.0:
+                self.Set(prop, val)
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
