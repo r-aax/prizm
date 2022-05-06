@@ -505,9 +505,18 @@ class Graph:
 
 if __name__ == '__main__':
 
-    grid_file = 'air_inlet_ecg.dat'
     g = Graph()
+
+    # 2d regular mesh.
+    # g.init_ecg_for_2d_rect_mesh(4, 3)
+
+    # 3d regular mesh.
+    # g.init_ecg_for_3d_rect_mesh(4, 3, 2)
+
+    # Make colorings for bunny.
+    grid_file = 'bunny_ecg.dat'
     g.load(grid_file)
+
     g.coloring_greedy()
     g.save('greedy.dat')
     g.coloring_greedy2()
