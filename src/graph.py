@@ -2,6 +2,13 @@
 Graph realization.
 """
 
+import itertools
+import geom
+
+# ==================================================================================================
+
+EPS = 0.001
+
 # ==================================================================================================
 
 
@@ -11,12 +18,12 @@ class Vertex:
 
     # ----------------------------------------------------------------------------------------------
 
-    def __init__(self, p=(0.0, 0.0, 0.0), color=0):
+    def __init__(self, p, color=0):
         """Constructor.
 
         Parameters
         ----------
-        p : (float, float, float)
+        p : geom.Vector
             Coordinates.
         color : int
             Color.
@@ -34,11 +41,49 @@ class Vertex:
 
         Returns
         -------
-        basestring
+        str
             Representation.
         """
 
         return f'V {self.P}, {self.Color}'
+
+    # ----------------------------------------------------------------------------------------------
+
+    def neighbour(self, e):
+        """Get neighbour.
+
+        Parameters
+        ----------
+        e : Edge
+            Edge to find neighbour.
+
+        Returns
+        -------
+        Vertex
+            Neighbour.
+        """
+
+        v0, v1 = e.Vertices[0], e.Vertices[1]
+
+        if self == v0:
+            return v1
+        elif self == v1:
+            return v0
+        else:
+            raise Exception('Vertex.neighbour : internal error')
+
+    # ----------------------------------------------------------------------------------------------
+
+    def neighbours_colors(self):
+        """Get list of neighbours colors.
+
+        Returns
+        -------
+        list(int)
+            List of neighbours colors.
+        """
+
+        return [self.neighbour(e).Color for e in self.Edges]
 
 # ==================================================================================================
 
@@ -69,7 +114,7 @@ class Edge:
 
         Returns
         -------
-        basestring
+        str
             Representation.
         """
 
@@ -93,12 +138,12 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def new_vertex(self, p=(0.0, 0.0, 0.0), color=0):
+    def new_vertex(self, p, color=0):
         """Create new vertex.
 
         Parameters
         ----------
-        p : (float, float, float)
+        p : geom.Vector
             Coordinates.
         color : int
             Color.
@@ -111,6 +156,49 @@ class Graph:
 
         v = Vertex(p=p, color=color)
         self.Vertices.append(v)
+
+        return v
+
+    # ----------------------------------------------------------------------------------------------
+
+    def find_vertex(self, p):
+        """Find vertex.
+
+        Parameters
+        ----------
+        p : geom.Vector
+            Point to find.
+
+        Returns
+        -------
+            Found vertex or None.
+        """
+
+        for v in self.Vertices:
+            if p.dist_to(v.P) < EPS:
+                return v
+
+        return None
+
+    # ----------------------------------------------------------------------------------------------
+
+    def find_or_new_vertex(self, p):
+        """Find or new vertex.
+
+        Parameters
+        ----------
+        p : geom.Vector
+            Point.
+
+        Returns
+        -------
+            Found or new vertex.
+        """
+
+        v = self.find_vertex(p)
+
+        if v is None:
+            v = self.new_vertex(p=p)
 
         return v
 
@@ -167,6 +255,15 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
+    def clear(self):
+        """Clear graph.
+        """
+
+        self.Vertices.clear()
+        self.Edges.clear()
+
+    # ----------------------------------------------------------------------------------------------
+
     def set_vertices_ids(self):
         """Set vertices identifiers.
         """
@@ -188,12 +285,122 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
+    def init_ecg_for_2d_rect_mesh(self, cells_x, cells_y):
+        """Init edges conflict graph for 2d rectangular mesh.
+
+        Parameters
+        ----------
+        cells_x : int
+            Cells count along OX axis.
+        cells_y : int
+            Cells count along OY axis.
+        """
+
+        self.clear()
+
+        for xi in range(cells_x):
+            for yi in range(cells_y):
+
+                # Process one cell (xi, xi + 1) * (yi, yi + 1)
+                # First create vertices in centers.
+                l = self.find_or_new_vertex(geom.Vector(xi, yi + 0.5, 0.0))
+                r = self.find_or_new_vertex(geom.Vector(xi + 1.0, yi + 0.5, 0.0))
+                d = self.find_or_new_vertex(geom.Vector(xi + 0.5, yi, 0.0))
+                u = self.find_or_new_vertex(geom.Vector(xi + 0.5, yi + 1.0, 0.0))
+
+                # Now add conflicts.
+                for (v0, v1) in itertools.combinations([l, r, d, u], 2):
+                    self.new_edge(v0, v1)
+
+    # ----------------------------------------------------------------------------------------------
+
+    def init_ecg_for_3d_rect_mesh(self, cells_x, cells_y, cells_z):
+        """Init edges conflict graph for 3d rectangular mesh.
+
+        Parameters
+        ----------
+        cells_x : int
+            Cells count along OX axis.
+        cells_y : int
+            Cells count along OY axis.
+        cells_z : int
+            Cells count along OZ axis.
+        """
+
+        self.clear()
+
+        for xi in range(cells_x):
+            for yi in range(cells_y):
+                for zi in range(cells_z):
+
+                    # Process one cell (xi, xi + 1) * (yi, yi + 1) * (zi, zi + 1)
+                    # First create vertices in centers.
+                    l = self.find_or_new_vertex(geom.Vector(xi, yi + 0.5, zi + 0.5))
+                    r = self.find_or_new_vertex(geom.Vector(xi + 1.0, yi + 0.5, zi + 0.5))
+                    d = self.find_or_new_vertex(geom.Vector(xi + 0.5, yi, zi + 0.5))
+                    u = self.find_or_new_vertex(geom.Vector(xi + 0.5, yi + 1.0, zi + 0.5))
+                    f = self.find_or_new_vertex(geom.Vector(xi + 0.5, yi + 0.5, zi))
+                    b = self.find_or_new_vertex(geom.Vector(xi + 0.5, yi + 0.5, zi + 1.0))
+
+                    # Now add conflicts.
+                    for (v0, v1) in itertools.combinations([l, r, d, u, f, b], 2):
+                        self.new_edge(v0, v1)
+
+    # ----------------------------------------------------------------------------------------------
+
+    def load(self, filename):
+        """Load graph.
+
+        Parameters
+        ----------
+        filename : str
+            Name of file.
+        """
+
+        self.clear()
+
+        with open(filename, 'r') as f:
+
+            # Read head.
+            f.readline()  # comment
+            f.readline()  # title
+            f.readline()  # variables
+            f.readline()  # zone
+            ns = int(f.readline().split('=')[-1])
+            es = int(f.readline().split('=')[-1])
+            f.readline()  # datapacking
+            f.readline()  # zonetype
+
+            # Create vertices.
+            for _ in range(ns):
+                self.new_vertex(geom.Vector())
+
+            # Set coordinates and colors.
+            xs = [float(xi) for xi in f.readline().split()]
+            ys = [float(xi) for xi in f.readline().split()]
+            zs = [float(xi) for xi in f.readline().split()]
+            cs = [int(xi) for xi in f.readline().split()]
+            for i in range(ns):
+                v = self.Vertices[i]
+                v.P.X, v.P.Y, v.P.Z, v.C = xs[i], ys[i], zs[i], cs[i]
+
+            # Load data for edges.
+            for _ in range(es):
+                ds = [int(i) for i in f.readline().split()]
+                self.new_edge(self.Vertices[ds[0] - 1], self.Vertices[ds[1] - 1])
+
+            f.close()
+
+        self.set_vertices_ids()
+
+    # ----------------------------------------------------------------------------------------------
+
     def save(self, filename):
         """Save graph.
 
         Parameters
         ----------
-        filename : basestring
+        filename : str
             Name of file.
         """
 
@@ -212,9 +419,9 @@ class Graph:
             f.write('ZONETYPE=FETRIANGLE\n')
 
             # Vertices.
-            f.write(' '.join([str(v.P[0]) for v in self.Vertices]) + '\n')
-            f.write(' '.join([str(v.P[1]) for v in self.Vertices]) + '\n')
-            f.write(' '.join([str(v.P[2]) for v in self.Vertices]) + '\n')
+            f.write(' '.join([str(v.P.X) for v in self.Vertices]) + '\n')
+            f.write(' '.join([str(v.P.Y) for v in self.Vertices]) + '\n')
+            f.write(' '.join([str(v.P.Z) for v in self.Vertices]) + '\n')
             f.write(' '.join([str(v.Color) for v in self.Vertices]) + '\n')
 
             # Edges.
@@ -224,19 +431,86 @@ class Graph:
 
             f.close()
 
+    # ----------------------------------------------------------------------------------------------
+
+    def decolor(self):
+        """Reset colors.
+        """
+
+        for v in self.Vertices:
+            v.Color = 0
+
+    # ----------------------------------------------------------------------------------------------
+
+    def coloring_greedy(self):
+        """Greedy coloring algorithm.
+
+        Trying to color vertex by vertex in greedy manner.
+
+        Returns
+        -------
+        int
+            Colors count.
+        """
+
+        self.decolor()
+        max_c = 0
+
+        for v in self.Vertices:
+            cs = v.neighbours_colors()
+            c = 1
+            while c in cs:
+                c += 1
+            max_c = max(max_c, c)
+            v.Color = c
+
+        print(f'Graph.coloring_greedy : {max_c} colors')
+
+        return max_c
+
+# ----------------------------------------------------------------------------------------------
+
+    def coloring_greedy2(self):
+        """Greedy coloring algorithm.
+
+        First try to color maxinum number of vertices with color 1, 2, and so on..
+
+        Returns
+        -------
+        int
+            Colors count.
+        """
+
+        self.decolor()
+        max_c = 0
+
+        # Put all vertices to new array.
+        a = [v for v in self.Vertices]
+
+        # Try to color all possible vertices with new color.
+        while len(a) > 0:
+            max_c += 1
+            for v in a:
+                cs = v.neighbours_colors()
+                if not (max_c in cs):
+                    v.Color = max_c
+            a = [v for v in a if v.Color == 0]
+
+        print(f'Graph.coloring_greedy2 : {max_c} colors')
+
+        return max_c
+
 # ==================================================================================================
 
 
 if __name__ == '__main__':
 
+    grid_file = 'air_inlet_ecg.dat'
     g = Graph()
-    v0 = g.new_vertex(p=(0.0, 0.0, 0.0), color=0)
-    v1 = g.new_vertex(p=(1.0, 0.0, 0.0), color=1)
-    v2 = g.new_vertex(p=(0.0, 1.0, 0.0), color=2)
-    e0 = g.new_edge(v0, v1)
-    e1 = g.new_edge(v0, v2)
-    e2 = g.new_edge(v1, v2)
-    g.print()
-    g.save('test_graph.dat')
+    g.load(grid_file)
+    g.coloring_greedy()
+    g.save('greedy.dat')
+    g.coloring_greedy2()
+    g.save('greedy2.dat')
 
 # ==================================================================================================
