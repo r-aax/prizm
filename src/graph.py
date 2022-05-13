@@ -3,6 +3,7 @@ Graph realization.
 """
 
 import itertools
+import random
 import geom
 
 # ==================================================================================================
@@ -442,10 +443,66 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def coloring_greedy(self):
+    def vertices_of_color(self, color):
+        """Get list of vertices of a given color.
+
+        Parameters
+        ----------
+        color : int
+            Color.
+
+        Returns
+        -------
+        list
+            List of vertices.
+        """
+
+        return [v for v in self.Vertices if v.Color == color]
+
+    # ----------------------------------------------------------------------------------------------
+
+    def calculate_max_color(self):
+        """Calculate max color.
+
+        Returns
+        -------
+        int
+            Max color.
+
+        """
+
+        return max([v.Color for v in self.Vertices])
+
+    # ----------------------------------------------------------------------------------------------
+
+    def is_coloring_correct(self):
+        """Check coloring for correctness.
+
+        Returns
+        -------
+        bool
+            Is coloring is correct.
+        """
+
+        if len(self.vertices_of_color(0)) > 0:
+            return False
+
+        if len([e for e in self.Edges if e.Vertices[0].Color == e.Vertices[1].Color]) > 0:
+            return False
+
+        return True
+
+    # ----------------------------------------------------------------------------------------------
+
+    def coloring_greedy(self, verbose=True):
         """Greedy coloring algorithm.
 
         Trying to color vertex by vertex in greedy manner.
+
+        Parameters
+        ----------
+        verbose : bool
+            Verbose mode.
 
         Returns
         -------
@@ -464,16 +521,22 @@ class Graph:
             max_c = max(max_c, c)
             v.Color = c
 
-        print(f'Graph.coloring_greedy : {max_c} colors')
+        if verbose:
+            print(f'Graph.coloring_greedy : {max_c} colors')
 
         return max_c
 
 # ----------------------------------------------------------------------------------------------
 
-    def coloring_greedy2(self):
+    def coloring_greedy2(self, verbose=True):
         """Greedy coloring algorithm.
 
         First try to color maxinum number of vertices with color 1, 2, and so on..
+
+        Parameters
+        ----------
+        verbose : bool
+            Verbose mode.
 
         Returns
         -------
@@ -496,9 +559,70 @@ class Graph:
                     v.Color = max_c
             a = [v for v in a if v.Color == 0]
 
-        print(f'Graph.coloring_greedy2 : {max_c} colors')
+        if verbose:
+            print(f'Graph.coloring_greedy2 : {max_c} colors')
 
         return max_c
+
+# ----------------------------------------------------------------------------------------------
+
+    def coloring_recolor5(self, verbose=True):
+        """Coloring with trying to recolor vertices of color 5.
+
+        Parameters
+        ----------
+        verbose : bool
+            Verbose mode.
+
+        Returns
+        -------
+        int
+            Colors count.
+        """
+
+        c = self.coloring_greedy(verbose=False)
+
+        # This coloring doesn't work with more than 5 colors.
+        assert c <= 5
+
+        if c == 5:
+            vs = self.vertices_of_color(5)
+
+            # Try to recolor all color 5 vertices.
+            while len(vs) > 0:
+                v = vs[0]
+                neigh_cs = v.neighbours_colors()
+                is_recolored = False
+
+                # Try to recolor this vertex.
+                while not is_recolored:
+
+                    # Try to recolor in 1, 2, 3, 4.
+                    for new_c in range(1, 5):
+                        if new_c not in neigh_cs:
+                            v.Color = new_c
+                            # print(f'vertex {v.Id} is recolored')
+                            is_recolored = True
+                            break
+
+                    # Move to first direction.
+                    if not is_recolored:
+                        goto_v = v.neighbour(v.Edges[random.randint(0, 3)])
+                        v.Color, goto_v.Color = goto_v.Color, v.Color
+                        v = goto_v
+                        neigh_cs = v.neighbours_colors()
+
+                # Get color 5 vertices again.
+                vs = self.vertices_of_color(5)
+
+            # Recalc max color.
+            assert self.is_coloring_correct()
+            c = self.calculate_max_color()
+
+        if verbose:
+            print(f'Graph.coloring_recolor5 : {c} colors')
+
+        return c
 
 # ==================================================================================================
 
@@ -519,7 +643,9 @@ if __name__ == '__main__':
 
     g.coloring_greedy()
     g.save('greedy.dat')
-    g.coloring_greedy2()
-    g.save('greedy2.dat')
+    # g.coloring_greedy2()
+    # g.save('greedy2.dat')
+    g.coloring_recolor5()
+    g.save('recolor5.dat')
 
 # ==================================================================================================
