@@ -37,6 +37,7 @@ class Vertex:
         self.Color = color
         self.Edges = []
         self.Faces = []
+        self.Parent = None
 
     # ----------------------------------------------------------------------------------------------
 
@@ -67,12 +68,12 @@ class Vertex:
             Neighbour.
         """
 
-        v0, v1 = e.Vertices[0], e.Vertices[1]
+        a, b = e.A, e.B
 
-        if self == v0:
-            return v1
-        elif self == v1:
-            return v0
+        if self == a:
+            return b
+        elif self == b:
+            return a
         else:
             raise Exception('Vertex.neighbour : internal error')
 
@@ -122,8 +123,10 @@ class Edge:
             Second vertex.
         """
 
+        self.Color = 0
         self.Vertices = [v0, v1]
         self.Faces = []
+        self.Parent = None
 
     # ----------------------------------------------------------------------------------------------
 
@@ -166,6 +169,59 @@ class Edge:
 
         return self.Vertices[1]
 
+    # ----------------------------------------------------------------------------------------------
+
+    def is_adjacent(self, e):
+        """Check if edge adjacent to another edge.
+
+        Parameters
+        ----------
+        a : Edge
+            Edge.
+
+        Returns
+        -------
+        bool
+            True - if adjacent, False - otherwise.
+        """
+
+        a, b = self.A, self.B
+
+        return (a == e.A) or (a == e.B) or (b == e.A) or (b == e.B)
+
+    # ----------------------------------------------------------------------------------------------
+
+    def split(self):
+        """Split edge into 2 edges.
+
+        Returns
+        -------
+        Vertex
+            New vertex.
+        """
+
+        old_b = self.B
+        new_v = self.Parent.new_vertex(p=0.5 * (self.A.P + self.B.P))
+
+        # Replace second vertex of current edge with new_vertex.
+        self.Vertices[1] = new_v
+        new_v.Edges.append(self)
+
+        # Remove link from old_b to this edges.
+        old_b.Edges.remove(self)
+
+        # Add new edge.
+        new_e = self.Parent.new_edge(new_v, old_b)
+
+        # Link faces with new objects.
+        for f in self.Faces:
+            f.append_vertex_between(new_v, self.A, old_b)
+            f.append_edge(new_e)
+            new_v.Faces.append(f)
+            new_e.Faces.append(f)
+
+        return new_v
+
 # ==================================================================================================
 
 
@@ -186,6 +242,101 @@ class Face:
 
         self.Vertices = vs
         self.Edges = []
+        self.Parent = None
+
+    # ----------------------------------------------------------------------------------------------
+
+    def is_even(self):
+        """Check if face even.
+
+        Returns
+        -------
+        bool
+            True - if face is even, False - otherwise.
+        """
+
+        return len(self.Edges) % 2 == 0
+
+    # ----------------------------------------------------------------------------------------------
+
+    def is_odd(self):
+        """Check if face odd.
+
+        Returns
+        -------
+            True - if face is odd, False - otherwise.
+        """
+
+        return not self.is_even()
+
+    # ----------------------------------------------------------------------------------------------
+
+    def neighbour(self, e):
+        """Get neighbour.
+
+        Parameters
+        ----------
+        e : Edge
+            Edge to find neighbour.
+
+        Returns
+        -------
+        Face
+            Neighbour or None.
+        """
+
+        if len(e.Faces) == 1:
+            return None
+
+        f1, f2 = e.Faces[0], e.Faces[1]
+
+        if self == f1:
+            return f2
+        elif self == f2:
+            return f1
+        else:
+            raise Exception('Face.neighbour : internal error')
+
+    # ----------------------------------------------------------------------------------------------
+
+    def append_vertex_between(self, new_v, a, b):
+        """Append vertex between two that already in face.
+
+        Parameters
+        ----------
+        new_v : Vertex
+            New vertex.
+        a : Vertex
+            First vertex.
+        b : Vertex
+            Second vertex.
+        """
+
+        i = max(self.Vertices.index(a), self.Vertices.index(b))
+        self.Vertices.insert(i, new_v)
+
+    # ----------------------------------------------------------------------------------------------
+
+    def append_edge(self, e):
+        """Append edge while keeping order of traversal edges.
+
+        Parameters
+        ----------
+        e : Edge
+            Edge to append.
+        """
+
+        if e.is_adjacent(self.Edges[0]) and e.is_adjacent(self.Edges[-1]):
+            # Our edge is between first and last, so we can just append it.
+            self.Edges.append(e)
+            return
+        else:
+            for i in range(1, len(self.Edges)):
+                if e.is_adjacent(self.Edges[i - 1]) and e.is_adjacent(self.Edges[i]):
+                    self.Edges.insert(i, e)
+                    return
+
+        raise Exception('internal error')
 
 # ==================================================================================================
 
@@ -223,6 +374,7 @@ class Graph:
         """
 
         v = Vertex(p=p, color=color)
+        v.Parent = self
         self.Vertices.append(v)
 
         return v
@@ -293,6 +445,7 @@ class Graph:
         e = Edge(a, b)
         a.Edges.append(e)
         b.Edges.append(e)
+        e.Parent = self
         self.Edges.append(e)
 
         return e
@@ -363,6 +516,8 @@ class Graph:
         """
 
         f = Face(vs)
+        f.Parent = self
+        self.Faces.append(f)
 
         # Add Vertex-Face links.
         for v in vs:
@@ -650,7 +805,43 @@ class Graph:
         for e in self.Edges:
             g.add_edge(e.A.Id, e.B.Id)
 
-        nx.draw(g, pos=positions)
+        vertex_colors = ['#000000', '#ffffff', '#555555', '#dddddd', '#999999']
+        vertex_shapes = ['o', 'h', '^', 'v', 's']
+
+        # Draw nodes.
+        # If no vertex coloring found then color it in neutral manner.
+        if self.min_vertex_color() == 0:
+            nx.draw_networkx_nodes(g, pos=positions, node_color='black', node_size=20)
+        else:
+            for c in range(self.max_vertex_color()):
+                c = c + 1
+                vertices = filter(lambda v: v.Color == c, self.Vertices)
+                idxs = [v.Id for v in vertices]
+                node_color = vertex_colors[(c - 1) % len(vertex_colors)]
+                node_shape = vertex_shapes[(c - 1) % len(vertex_shapes)]
+                nx.draw_networkx_nodes(g,
+                                       pos=positions,
+                                       nodelist=idxs,
+                                       node_color=node_color,
+                                       node_shape=node_shape,
+                                       node_size=120, edgecolors='black')
+
+        # Draw edges.
+        # If no coloring color it in neutral color.
+        if self.min_edge_color() == 0:
+            nx.draw_networkx_edges(g, pos=positions, edge_color='silver', style=':', width=1)
+        else:
+            edges_colors = ['black']
+            edges_colors_map = [edges_colors[(e.Color - 1) % len(edges_colors)] for e in self.Edges]
+            edges_styles = ['-', '--', '-.', ':']
+            edges_styles_map = [edges_styles[(e.Color - 1) % len(edges_styles)] for e in self.Edges]
+            edges_widths = [3, 2, 1]
+            edges_widths_map = [edges_widths[(e.Color - 1) % len(edges_widths)] for e in self.Edges]
+            nx.draw_networkx_edges(g,
+                                   pos=positions,
+                                   edge_color=edges_colors_map,
+                                   style=edges_styles_map,
+                                   width=edges_widths_map)
 
     # ----------------------------------------------------------------------------------------------
 
@@ -681,17 +872,29 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def calculate_max_vertex_color(self):
+    def max_vertex_color(self):
         """Calculate max color.
 
         Returns
         -------
         int
             Max color.
-
         """
 
         return max([v.Color for v in self.Vertices])
+
+    # ----------------------------------------------------------------------------------------------
+
+    def min_vertex_color(self):
+        """Calculate min color.
+
+        Returns
+        -------
+        int
+            Min color.
+        """
+
+        return min([v.Color for v in self.Vertices])
 
     # ----------------------------------------------------------------------------------------------
 
@@ -711,6 +914,34 @@ class Graph:
             return False
 
         return True
+
+    # ----------------------------------------------------------------------------------------------
+
+    def vertex_coloring_random(self, n, verbose=True):
+        """Random coloring of vertices.
+
+        Parameters
+        ----------
+        n : int
+            Count of colors.
+        verbose : bool
+            Verbose mode.
+
+        Returns
+        -------
+        int
+            Colors count.
+        """
+
+        for v in self.Vertices:
+            v.Color = random.randint(1, n)
+
+        max_c = self.max_vertex_color()
+
+        if verbose:
+            print(f'Graph.vertex_coloring_random : {max_c} colors')
+
+        return max_c
 
     # ----------------------------------------------------------------------------------------------
 
@@ -742,7 +973,7 @@ class Graph:
             v.Color = c
 
         if verbose:
-            print(f'Graph.coloring_greedy : {max_c} colors')
+            print(f'Graph.vertex_coloring_greedy : {max_c} colors')
 
         return max_c
 
@@ -780,7 +1011,7 @@ class Graph:
             a = [v for v in a if v.Color == 0]
 
         if verbose:
-            print(f'Graph.coloring_greedy2 : {max_c} colors')
+            print(f'Graph.vertex_coloring_greedy2 : {max_c} colors')
 
         return max_c
 
@@ -837,12 +1068,95 @@ class Graph:
 
             # Recalc max color.
             assert self.is_vertex_coloring_correct()
-            c = self.calculate_max_color()
+            c = self.max_vertec_color()
 
         if verbose:
-            print(f'Graph.coloring_recolor5 : {c} colors')
+            print(f'Graph.vertex_coloring_recolor5 : {c} colors')
 
         return c
+
+    # ----------------------------------------------------------------------------------------------
+
+    def decolor_edges(self):
+        """Reset colors for edges.
+        """
+
+        for e in self.Edges:
+            e.Color = 0
+
+    # ----------------------------------------------------------------------------------------------
+
+    def max_edge_color(self):
+        """Calculate max edge color.
+
+        Returns
+        -------
+        int
+            Max edge color.
+        """
+
+        return max([e.Color for e in self.Edges])
+
+    # ----------------------------------------------------------------------------------------------
+
+    def min_edge_color(self):
+        """Calculate min edge color.
+
+        Returns
+        -------
+        int
+            Min edge color.
+        """
+
+        return min([e.Color for e in self.Edges])
+
+    # ----------------------------------------------------------------------------------------------
+
+    def edge_coloring_random(self, n, verbose=True):
+        """Random coloring.
+
+        Parameters
+        ----------
+        n : int
+            Count of colors.
+        verbose : bool
+            Verbose mode.
+
+        Returns
+        -------
+        int
+            Colors count.
+        """
+
+        for e in self.Edges:
+            e.Color = random.randint(1, n)
+
+        max_c = self.max_edge_color()
+
+        if verbose:
+            print(f'Graph.edge_coloring_random : {max_c} colors')
+
+        return max_c
+
+    # ----------------------------------------------------------------------------------------------
+
+    def add_edges_for_odd_faces_elimination(self):
+        """
+        Add new edges to eliminate add faces
+        """
+
+        # Hardcode.
+        a = [(0, 1), (4, 5), (1, 2), (3, 4), (4, 11), (3, 16), (4, 24), (5, 9)]
+        for i in range(len(a)):
+            ai, bi = a[i]
+            print(ai, bi, self.vertices_count())
+            va = self.Vertices[ai]
+            vb = self.Vertices[bi]
+            e = self.find_edge(va, vb)
+            print(va)
+            print(vb)
+            print(e)
+            e.split()
 
 # ==================================================================================================
 
@@ -857,7 +1171,50 @@ if __name__ == '__main__':
 
     # Load graph from dat file.
     g = Graph()
-    g.load_dat_mesh('../data/dat/meshes/wing_1.dat')
+    cs = \
+        [
+            [0.0, 10.0, 0.0],
+            [5.0, 5.0, 0.0],
+            [5.0, -5.0, 0.0],
+            [0.0, -10.0, 0.0],
+            [-5.0, -5.0, 0.0],
+            [-5.0, 5.0, 0.0],
+            [10.0, 10.0, 0.0],
+            [15.0, 0.0, 0.0],
+            [10.0, -10.0, 0.0],
+            [-10.0, 10.0, 0.0],
+            [-15.0, 0.0, 0.0],
+            [-10.0, -10.0, 0.0],
+            [0.0, 20.0, 0.0],
+            [15.0, 15.0, 0.0],
+            [20.0, 0.0, 0.0],
+            [15.0, -15.0, 0.0],
+            [0.0, -20.0, 0.0],
+            [-15.0, -15.0, 0.0],
+            [-20.0, 0.0, 0.0],
+            [-15.0, 15.0, 0.0]
+        ]
+    for c in cs:
+        g.new_vertex(geom.Vector(c[0], c[1], c[2]))
+    fs = \
+        [
+            [0, 1, 2, 3, 4, 5],
+            [1, 6, 7, 8, 2],
+            [5, 9, 10, 11, 4],
+            [12, 13, 6, 1, 0],
+            [13, 14, 7, 6],
+            [7, 14, 15, 8],
+            [15, 8, 2, 3, 16],
+            [16, 3, 4, 11, 17],
+            [17, 11, 10, 18],
+            [18, 10, 9, 19],
+            [19, 12, 0, 5, 9]
+        ]
+    for f in fs:
+        g.new_face([g.Vertices[i] for i in f])
+    g.add_edges_for_odd_faces_elimination()
+    # g.vertex_coloring_recolor5()
+    g.edge_coloring_random(3)
     g.construct_and_show_networkx_graph()
 
 # ==================================================================================================
