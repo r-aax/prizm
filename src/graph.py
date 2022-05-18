@@ -4,10 +4,13 @@ Graph realization.
 
 import itertools
 import random
+import plotly.graph_objects as go
+import networkx as nx
 import geom
 
 # ==================================================================================================
 
+# Small value.
 EPS = 0.001
 
 # ==================================================================================================
@@ -30,7 +33,6 @@ class Vertex:
             Color.
         """
 
-        self.Id = 0
         self.P = p
         self.Color = color
         self.Edges = []
@@ -75,6 +77,19 @@ class Vertex:
 
     # ----------------------------------------------------------------------------------------------
 
+    def neighbours(self):
+        """Get all neighbours.
+
+        Returns
+        -------
+        list(Vertex)
+            List of neighbours.
+        """
+
+        return [self.neighbour(e) for e in self.Edges]
+
+    # ----------------------------------------------------------------------------------------------
+
     def neighbours_colors(self):
         """Get list of neighbours colors.
 
@@ -84,7 +99,7 @@ class Vertex:
             List of neighbours colors.
         """
 
-        return [self.neighbour(e).Color for e in self.Edges]
+        return [n.Color for n in self.neighbours()]
 
 # ==================================================================================================
 
@@ -120,6 +135,35 @@ class Edge:
         """
 
         return f'{self.Vertices[0]} - {self.Vertices[1]}'
+
+
+    # ----------------------------------------------------------------------------------------------
+
+    @property
+    def A(self):
+        """A vertex.
+
+        Returns
+        -------
+        Vertex
+            First vertex.
+        """
+
+        return self.Vertices[0]
+
+    # ----------------------------------------------------------------------------------------------
+
+    @property
+    def B(self):
+        """B vertex.
+
+        Returns
+        -------
+        Vertex
+            Second vertex.
+        """
+
+        return self.Vertices[1]
 
 # ==================================================================================================
 
@@ -265,15 +309,6 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def set_vertices_ids(self):
-        """Set vertices identifiers.
-        """
-
-        for (i, v) in enumerate(self.Vertices):
-            v.Id = i
-
-    # ----------------------------------------------------------------------------------------------
-
     def print(self):
         """Print graph.
         """
@@ -349,8 +384,8 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def load(self, filename):
-        """Load graph.
+    def load_dat_ecg(self, filename):
+        """Load ECG graph from dat format.
 
         Parameters
         ----------
@@ -392,12 +427,10 @@ class Graph:
 
             f.close()
 
-        self.set_vertices_ids()
-
     # ----------------------------------------------------------------------------------------------
 
-    def save(self, filename):
-        """Save graph.
+    def save_dat_ecg(self, filename):
+        """Save ECG graph in dat format.
 
         Parameters
         ----------
@@ -405,7 +438,9 @@ class Graph:
             Name of file.
         """
 
-        self.set_vertices_ids()
+        # Aux index.
+        for (i, v) in enumerate(self.Vertices):
+            v.Id = i + 1
 
         with open(filename, 'w') as f:
 
@@ -427,14 +462,14 @@ class Graph:
 
             # Edges.
             for e in self.Edges:
-                id0, id1 = e.Vertices[0].Id + 1, e.Vertices[1].Id + 1
+                id0, id1 = e.Vertices[0].Id, e.Vertices[1].Id
                 f.write(f'{id0} {id1} {id1}\n')
 
             f.close()
 
     # ----------------------------------------------------------------------------------------------
 
-    def decolor(self):
+    def decolor_vertices(self):
         """Reset colors.
         """
 
@@ -457,11 +492,11 @@ class Graph:
             List of vertices.
         """
 
-        return [v for v in self.Vertices if v.Color == color]
+        return filter(lambda v: v.Color == color, self.Vertices)
 
     # ----------------------------------------------------------------------------------------------
 
-    def calculate_max_color(self):
+    def calculate_max_vertex_color(self):
         """Calculate max color.
 
         Returns
@@ -475,7 +510,7 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def is_coloring_correct(self):
+    def is_vertex_coloring_correct(self):
         """Check coloring for correctness.
 
         Returns
@@ -487,15 +522,15 @@ class Graph:
         if len(self.vertices_of_color(0)) > 0:
             return False
 
-        if len([e for e in self.Edges if e.Vertices[0].Color == e.Vertices[1].Color]) > 0:
+        if len(filter(lambda e: e.A.Color == e.B.Color, self.Edges)) > 0:
             return False
 
         return True
 
     # ----------------------------------------------------------------------------------------------
 
-    def coloring_greedy(self, verbose=True):
-        """Greedy coloring algorithm.
+    def vertex_coloring_greedy(self, verbose=True):
+        """Greedy vertex coloring algorithm.
 
         Trying to color vertex by vertex in greedy manner.
 
@@ -510,7 +545,7 @@ class Graph:
             Colors count.
         """
 
-        self.decolor()
+        self.decolor_vertices()
         max_c = 0
 
         for v in self.Vertices:
@@ -528,8 +563,8 @@ class Graph:
 
 # ----------------------------------------------------------------------------------------------
 
-    def coloring_greedy2(self, verbose=True):
-        """Greedy coloring algorithm.
+    def vertex_coloring_greedy2(self, verbose=True):
+        """Greedy vertex coloring algorithm.
 
         First try to color maxinum number of vertices with color 1, 2, and so on..
 
@@ -544,7 +579,7 @@ class Graph:
             Colors count.
         """
 
-        self.decolor()
+        self.decolor_vertices()
         max_c = 0
 
         # Put all vertices to new array.
@@ -566,8 +601,8 @@ class Graph:
 
 # ----------------------------------------------------------------------------------------------
 
-    def coloring_recolor5(self, verbose=True):
-        """Coloring with trying to recolor vertices of color 5.
+    def vertex_coloring_recolor5(self, verbose=True):
+        """Vertex coloring with trying to recolor vertices of color 5.
 
         Parameters
         ----------
@@ -580,7 +615,7 @@ class Graph:
             Colors count.
         """
 
-        c = self.coloring_greedy(verbose=False)
+        c = self.vertex_coloring_greedy(verbose=False)
 
         # This coloring doesn't work with more than 5 colors.
         assert c <= 5
@@ -616,7 +651,7 @@ class Graph:
                 vs = self.vertices_of_color(5)
 
             # Recalc max color.
-            assert self.is_coloring_correct()
+            assert self.is_vertex_coloring_correct()
             c = self.calculate_max_color()
 
         if verbose:
@@ -629,23 +664,12 @@ class Graph:
 
 if __name__ == '__main__':
 
-    g = Graph()
+    # Example for vertex coloring.
+    # G = Graph()
+    # G.load_dat_ecg('../data/dat/ecg/wing_1_ecg.dat')
+    # G.vertex_coloring_recolor5()
+    # G.save_dat_ecg('t.dat')
 
-    # 2d regular mesh.
-    # g.init_ecg_for_2d_rect_mesh(4, 3)
-
-    # 3d regular mesh.
-    # g.init_ecg_for_3d_rect_mesh(4, 3, 2)
-
-    # Make colorings for bunny.
-    grid_file = 'bunny_ecg.dat'
-    g.load(grid_file)
-
-    g.coloring_greedy()
-    g.save('greedy.dat')
-    # g.coloring_greedy2()
-    # g.save('greedy2.dat')
-    g.coloring_recolor5()
-    g.save('recolor5.dat')
+    pass
 
 # ==================================================================================================
