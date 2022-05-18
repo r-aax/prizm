@@ -36,6 +36,7 @@ class Vertex:
         self.P = p
         self.Color = color
         self.Edges = []
+        self.Faces = []
 
     # ----------------------------------------------------------------------------------------------
 
@@ -122,6 +123,7 @@ class Edge:
         """
 
         self.Vertices = [v0, v1]
+        self.Faces = []
 
     # ----------------------------------------------------------------------------------------------
 
@@ -135,7 +137,6 @@ class Edge:
         """
 
         return f'{self.Vertices[0]} - {self.Vertices[1]}'
-
 
     # ----------------------------------------------------------------------------------------------
 
@@ -168,6 +169,27 @@ class Edge:
 # ==================================================================================================
 
 
+class Face:
+    """Face class.
+    """
+
+    # ----------------------------------------------------------------------------------------------
+
+    def __init__(self, vs):
+        """Create new face.
+
+        Parameters
+        ----------
+        vs : list(Vertex)
+            List of vertices.
+        """
+
+        self.Vertices = vs
+        self.Edges = []
+
+# ==================================================================================================
+
+
 class Graph:
     """Graph class.
     """
@@ -180,6 +202,7 @@ class Graph:
 
         self.Vertices = []
         self.Edges = []
+        self.Faces = []
 
     # ----------------------------------------------------------------------------------------------
 
@@ -216,6 +239,7 @@ class Graph:
 
         Returns
         -------
+        Vertex | None
             Found vertex or None.
         """
 
@@ -237,6 +261,7 @@ class Graph:
 
         Returns
         -------
+        Vertex
             Found or new vertex.
         """
 
@@ -249,14 +274,14 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def new_edge(self, v0, v1):
+    def new_edge(self, a, b):
         """Create new edge.
 
         Parameters
         ----------
-        v0 : Vertex
+        a : Vertex
             First vertex.
-        v1 : Vertex
+        b : Vertex
             Second vertex.
 
         Returns
@@ -265,12 +290,90 @@ class Graph:
             New edge.
         """
 
-        e = Edge(v0, v1)
-        v0.Edges.append(e)
-        v1.Edges.append(e)
+        e = Edge(a, b)
+        a.Edges.append(e)
+        b.Edges.append(e)
         self.Edges.append(e)
 
         return e
+
+    # ----------------------------------------------------------------------------------------------
+
+    def find_edge(self, a, b):
+        """Find vertex.
+
+        Parameters
+        ----------
+        a : Vertex
+            First vertex.
+        b : Vertex
+            Second vertex.
+
+        Returns
+        -------
+        Edge | None
+            Found edge or None.
+        """
+
+        for e in a.Edges:
+            if a.neighbour(e) == b:
+                return e
+
+        return None
+
+    # ----------------------------------------------------------------------------------------------
+
+    def find_or_new_edge(self, a, b):
+        """Find or new edge.
+
+        Parameters
+        ----------
+        a : Vertex
+            First vertex.
+        b : Vertex
+            Second vertex.
+
+        Returns
+        -------
+        Edge
+            Found or new edge.
+        """
+
+        e = self.find_edge(a, b)
+
+        if e is None:
+            e = self.new_edge(a, b)
+
+        return e
+
+    # ----------------------------------------------------------------------------------------------
+
+    def new_face(self, vs):
+        """Add new face based on vertices list.
+
+        Parameters
+        ----------
+        vs : list(Vertex)
+            Vertices list.
+
+        Returns
+        -------
+        Face
+            New face.
+        """
+
+        f = Face(vs)
+
+        # Add Vertex-Face links.
+        for v in vs:
+            v.Faces.append(f)
+
+        # Add edges.
+        for i in range(len(vs)):
+            a, b = vs[i], vs[(i + 1) % len(vs)]
+            e = self.find_or_new_edge(a, b)
+            e.Faces.append(f)
+            f.Edges.append(e)
 
     # ----------------------------------------------------------------------------------------------
 
@@ -466,6 +569,88 @@ class Graph:
                 f.write(f'{id0} {id1} {id1}\n')
 
             f.close()
+
+    # ----------------------------------------------------------------------------------------------
+
+    def load_dat_mesh(self, filename):
+        """Load surface mesh from dat file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of file.
+        """
+
+        self.clear()
+
+        with open(filename, 'r') as f:
+
+            # Variables info.
+            vc = len(f.readline().split('=')[1].split())
+
+            # Zone. Ingore it - we work with one zone.
+            f.readline()
+
+            # Nodes.
+            nc = int(f.readline().split('=')[1])
+
+            # Elements.
+            ec = int(f.readline().split('=')[1])
+
+            # Datapacking, zonetype, varlocation. Ignore it.
+            f.readline()
+            f.readline()
+            f.readline()
+
+            # Read coordinates of nodes.
+            xs = [float(x) for x in f.readline().split()]
+            ys = [float(y) for y in f.readline().split()]
+            zs = [float(z) for z in f.readline().split()]
+            assert (len(xs) == nc) and (len(ys) == nc) and (len(zs) == nc)
+
+            # Add nodes.
+            for i in range(nc):
+                self.new_vertex(geom.Vector(xs[i], ys[i], zs[i]))
+
+            # Ignore extra variables.
+            for _ in range(vc - 3):
+                f.readline()
+
+            # Read links.
+            for _ in range(ec):
+                link = f.readline().split()
+                idxs = [int(link[i]) for i in range(3)]
+                self.new_face([self.Vertices[idx - 1] for idx in idxs])
+
+            f.close()
+
+    # ----------------------------------------------------------------------------------------------
+
+    def construct_and_show_networkx_graph(self):
+        """Construct NetworkX graph and show it.
+        """
+
+        # Aux index.
+        for (i, v) in enumerate(self.Vertices):
+            v.Id = i
+
+        # Create graph.
+        g = nx.Graph()
+
+        # We need to collect list of positions.
+        positions = []
+
+        # Add nodes.
+        for (i, v) in enumerate(self.Vertices):
+            pos = (v.P.X, v.P.Y)
+            positions.append(pos)
+            g.add_node(i, pos=pos)
+
+        # Add edges.
+        for e in self.Edges:
+            g.add_edge(e.A.Id, e.B.Id)
+
+        nx.draw(g, pos=positions)
 
     # ----------------------------------------------------------------------------------------------
 
@@ -665,11 +850,14 @@ class Graph:
 if __name__ == '__main__':
 
     # Example for vertex coloring.
-    # G = Graph()
-    # G.load_dat_ecg('../data/dat/ecg/wing_1_ecg.dat')
-    # G.vertex_coloring_recolor5()
-    # G.save_dat_ecg('t.dat')
+    # g = Graph()
+    # g.load_dat_ecg('../data/dat/ecg/wing_1_ecg.dat')
+    # g.vertex_coloring_recolor5()
+    # g.save_dat_ecg('t.dat')
 
-    pass
+    # Load graph from dat file.
+    g = Graph()
+    g.load_dat_mesh('../data/dat/meshes/wing_1.dat')
+    g.construct_and_show_networkx_graph()
 
 # ==================================================================================================
