@@ -312,8 +312,14 @@ class Face:
             Second vertex.
         """
 
-        i = max(self.Vertices.index(a), self.Vertices.index(b))
-        self.Vertices.insert(i, new_v)
+        ai = self.Vertices.index(a)
+        bi = self.Vertices.index(b)
+        min_i = min(ai, bi)
+        max_i = max(ai, bi)
+        if (min_i == 0) and (max_i == len(self.Vertices) - 1):
+            self.Vertices.append(new_v)
+        else:
+            self.Vertices.insert(max_i, new_v)
 
     # ----------------------------------------------------------------------------------------------
 
@@ -529,6 +535,8 @@ class Graph:
             e = self.find_or_new_edge(a, b)
             e.Faces.append(f)
             f.Edges.append(e)
+
+        return f
 
     # ----------------------------------------------------------------------------------------------
 
@@ -789,6 +797,9 @@ class Graph:
         for (i, v) in enumerate(self.Vertices):
             v.Id = i
 
+        # Sort edges.
+        self.Edges.sort(key=lambda e: 1000 * min(e.A.Id, e.B.Id) + max(e.A.Id, e.B.Id))
+
         # Create graph.
         g = nx.Graph()
 
@@ -835,7 +846,7 @@ class Graph:
             edges_colors_map = [edges_colors[(e.Color - 1) % len(edges_colors)] for e in self.Edges]
             edges_styles = ['-', '--', '-.', ':']
             edges_styles_map = [edges_styles[(e.Color - 1) % len(edges_styles)] for e in self.Edges]
-            edges_widths = [3, 2, 1]
+            edges_widths = [3, 2, 1, 1]
             edges_widths_map = [edges_widths[(e.Color - 1) % len(edges_widths)] for e in self.Edges]
             nx.draw_networkx_edges(g,
                                    pos=positions,
@@ -868,7 +879,7 @@ class Graph:
             List of vertices.
         """
 
-        return filter(lambda v: v.Color == color, self.Vertices)
+        return [v for v in self.Vertices if v.Color == color]
 
     # ----------------------------------------------------------------------------------------------
 
@@ -910,7 +921,7 @@ class Graph:
         if len(self.vertices_of_color(0)) > 0:
             return False
 
-        if len(filter(lambda e: e.A.Color == e.B.Color, self.Edges)) > 0:
+        if len([e for e in self.Edges if e.A.Color == e.B.Color]) > 0:
             return False
 
         return True
@@ -1068,7 +1079,7 @@ class Graph:
 
             # Recalc max color.
             assert self.is_vertex_coloring_correct()
-            c = self.max_vertec_color()
+            c = self.max_vertex_color()
 
         if verbose:
             print(f'Graph.vertex_coloring_recolor5 : {c} colors')
@@ -1140,81 +1151,201 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def add_edges_for_odd_faces_elimination(self):
+    def edge_coloring_even_loops_3colors(self, verbose=True):
+        """Coloring for graph with only even loops
+
+        Parameters
+        ----------
+        verbose : bool
+            Verbose mode.
+
+        Returns
+        -------
+        int
+            Colors count.
         """
-        Add new edges to eliminate add faces
+
+        self.decolor_edges()
+
+        for f in self.Faces:
+            assert f.is_even()
+
+        # Set colors for any loop.
+        for (i, e) in enumerate(self.Faces[0].Edges):
+            e.Color = (i % 2) + 1
+
+        def neighbours_without_color(v):
+            colors0 = [e.Color for e in v.Edges if e.Color == 0]
+            return len(colors0)
+
+        # Color while all edges are colored.
+        while self.min_edge_color() == 0:
+            start_vertices = [v for v in self.Vertices if neighbours_without_color(v) == 1]
+            start_vertex = start_vertices[0]
+            edge0 = [e for e in start_vertex.Edges if e.Color == 0][0]
+            edgen = [e for e in start_vertex.Edges if e.Color != 0][0]
+            new_color = 6 - sum([e.Color for e in start_vertex.Edges])
+            f_common = None
+            for f0 in edge0.Faces:
+                for fn in edgen.Faces:
+                    if f0 == fn:
+                        f_common = f0
+            idx = f_common.Edges.index(edgen)
+            for (i, e) in enumerate(f_common.Edges):
+                if (i - idx) % 2 == 0:
+                    e.Color = edgen.Color
+                else:
+                    e.Color = new_color
+
+        max_c = self.max_edge_color()
+
+        if verbose:
+            print(f'Graph.edge_coloring_even_loops_3colors : {max_c} colors')
+
+        return max_c
+
+    # ----------------------------------------------------------------------------------------------
+
+    def new_aux_edge(self, a, b):
+        """New aux edge.
+        """
+
+        # Find common face.
+        f_common = None
+        for fa in a.Faces:
+            for fb in b.Faces:
+                if fa == fb:
+                    f_common = fa
+
+        # Add new face.
+        f_new = self.new_face([])
+
+        # Find all vertices between a and b in common_face and put them into new face.
+        ai = f_common.Vertices.index(a)
+        bi = f_common.Vertices.index(b)
+        min_i = min(ai, bi)
+        max_i = max(ai, bi)
+        v_cnt_all = len(f_common.Vertices)
+        v_cnt_new = max_i - min_i + 1
+        v_cnt_com = v_cnt_all - v_cnt_new + 2
+        v_new = []
+        for i in range(v_cnt_new):
+            ind_of_new = min_i + i
+            v_new.append(f_common.Vertices[ind_of_new])
+        v_com = []
+        for i in range(v_cnt_com):
+            ind_of_com = (max_i + i) % v_cnt_all
+            v_com.append(f_common.Vertices[ind_of_com])
+
+        # a, b get links to f_new
+        a.Faces.append(f_new)
+        b.Faces.append(f_new)
+        # links of new vertices to new face
+        for v in v_new[1:-1]:
+            v.Faces.remove(f_common)
+            v.Faces.append(f_new)
+        f_common.Vertices = v_com
+        f_new.Vertices = v_new
+
+        # Correct links of edges.
+        for i in range(len(v_new) - 1):
+            e = self.find_edge(v_new[i], v_new[i + 1])
+            if e in f_common.Edges:
+                f_common.Edges.remove(e)
+            if f_common in e.Faces:
+                e.Faces.remove(f_common)
+            f_new.Edges.append(e)
+            e.Faces.append(f_new)
+
+        # Add new edge.
+        new_e = self.new_edge(a, b)
+        f_common.append_edge(new_e)
+        f_new.append_edge(new_e)
+        new_e.Faces = [f_common, f_new]
+
+    # ----------------------------------------------------------------------------------------------
+
+    def add_edges_for_odd_faces_elimination(self):
+        """Add new edges to eliminate add faces
         """
 
         # Hardcode.
-        a = [(0, 1), (4, 5), (1, 2), (3, 4), (4, 11), (3, 16), (4, 24), (5, 9)]
+        # a = [[(0, 1), (4, 5)], [(1, 2), (3, 4)], [(4, 11), (3, 16)]]
+        # a = [[(0, 1), (4, 5)], [(1, 2), (3, 4)], [(4, 11), (3, 16)], [(24, 11), (5, 9)]]
+        a = [[(2, 8), (3, 16)], [(2, 3), (20, 21)], [(4, 5), (0, 1)], [(0, 5), (24, 25)]]
         for i in range(len(a)):
-            ai, bi = a[i]
-            print(ai, bi, self.vertices_count())
-            va = self.Vertices[ai]
-            vb = self.Vertices[bi]
-            e = self.find_edge(va, vb)
-            print(va)
-            print(vb)
-            print(e)
-            e.split()
+            a0 = a[i][0]
+            a1 = a[i][1]
+            e1 = self.find_edge(self.Vertices[a0[0]], self.Vertices[a0[1]])
+            e2 = self.find_edge(self.Vertices[a1[0]], self.Vertices[a1[1]])
+            new_a = e1.split()
+            new_b = e2.split()
+            self.new_aux_edge(new_a, new_b)
 
 # ==================================================================================================
 
 
 if __name__ == '__main__':
 
-    # Example for vertex coloring.
-    # g = Graph()
-    # g.load_dat_ecg('../data/dat/ecg/wing_1_ecg.dat')
-    # g.vertex_coloring_recolor5()
-    # g.save_dat_ecg('t.dat')
+    test = 1
 
-    # Load graph from dat file.
-    g = Graph()
-    cs = \
-        [
-            [0.0, 10.0, 0.0],
-            [5.0, 5.0, 0.0],
-            [5.0, -5.0, 0.0],
-            [0.0, -10.0, 0.0],
-            [-5.0, -5.0, 0.0],
-            [-5.0, 5.0, 0.0],
-            [10.0, 10.0, 0.0],
-            [15.0, 0.0, 0.0],
-            [10.0, -10.0, 0.0],
-            [-10.0, 10.0, 0.0],
-            [-15.0, 0.0, 0.0],
-            [-10.0, -10.0, 0.0],
-            [0.0, 20.0, 0.0],
-            [15.0, 15.0, 0.0],
-            [20.0, 0.0, 0.0],
-            [15.0, -15.0, 0.0],
-            [0.0, -20.0, 0.0],
-            [-15.0, -15.0, 0.0],
-            [-20.0, 0.0, 0.0],
-            [-15.0, 15.0, 0.0]
-        ]
-    for c in cs:
-        g.new_vertex(geom.Vector(c[0], c[1], c[2]))
-    fs = \
-        [
-            [0, 1, 2, 3, 4, 5],
-            [1, 6, 7, 8, 2],
-            [5, 9, 10, 11, 4],
-            [12, 13, 6, 1, 0],
-            [13, 14, 7, 6],
-            [7, 14, 15, 8],
-            [15, 8, 2, 3, 16],
-            [16, 3, 4, 11, 17],
-            [17, 11, 10, 18],
-            [18, 10, 9, 19],
-            [19, 12, 0, 5, 9]
-        ]
-    for f in fs:
-        g.new_face([g.Vertices[i] for i in f])
-    g.add_edges_for_odd_faces_elimination()
-    # g.vertex_coloring_recolor5()
-    g.edge_coloring_random(3)
-    g.construct_and_show_networkx_graph()
+    if test == 1:
+
+        # Example for vertex coloring.
+        g = Graph()
+        g.load_dat_ecg('../data/dat/ecg/bunny_ecg.dat')
+        g.vertex_coloring_recolor5()
+        g.save_dat_ecg('t.dat')
+
+    elif test == 2:
+
+        # Load graph from dat file.
+        g = Graph()
+        cs = \
+            [
+                [0.0, 10.0, 0.0],
+                [5.0, 5.0, 0.0],
+                [5.0, -5.0, 0.0],
+                [0.0, -10.0, 0.0],
+                [-5.0, -5.0, 0.0],
+                [-5.0, 5.0, 0.0],
+                [10.0, 10.0, 0.0],
+                [15.0, 0.0, 0.0],
+                [10.0, -10.0, 0.0],
+                [-10.0, 10.0, 0.0],
+                [-15.0, 0.0, 0.0],
+                [-10.0, -10.0, 0.0],
+                [0.0, 20.0, 0.0],
+                [15.0, 15.0, 0.0],
+                [20.0, 0.0, 0.0],
+                [15.0, -15.0, 0.0],
+                [0.0, -20.0, 0.0],
+                [-15.0, -15.0, 0.0],
+                [-20.0, 0.0, 0.0],
+                [-15.0, 15.0, 0.0]
+            ]
+        for c in cs:
+            g.new_vertex(geom.Vector(c[0], c[1], c[2]))
+        fs = \
+            [
+                [0, 1, 2, 3, 4, 5],
+                [1, 6, 7, 8, 2],
+                [5, 9, 10, 11, 4],
+                [12, 13, 6, 1, 0],
+                [13, 14, 7, 6],
+                [7, 14, 15, 8],
+                [15, 8, 2, 3, 16],
+                [16, 3, 4, 11, 17],
+                [17, 11, 10, 18],
+                [18, 10, 9, 19],
+                [19, 12, 0, 5, 9],
+                [12, 13, 14, 15, 16, 17, 18, 19]
+            ]
+        for f in fs:
+            g.new_face([g.Vertices[i] for i in f])
+        g.add_edges_for_odd_faces_elimination()
+        # g.vertex_coloring_recolor5()
+        g.edge_coloring_even_loops_3colors()
+        g.construct_and_show_networkx_graph()
 
 # ==================================================================================================
