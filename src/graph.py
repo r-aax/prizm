@@ -6,6 +6,8 @@ import itertools
 import random
 import plotly.graph_objects as go
 import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import figure
 import geom
 
 # ==================================================================================================
@@ -507,6 +509,27 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
+    def remove_edge(self, e):
+        """Remove edge.
+
+        Parameters
+        ----------
+        e : Edge
+            Edge.
+        """
+
+        # Removing edge from graph with faces requires special corrections,
+        # so don't do it in a common manner.
+        assert self.Faces == []
+
+        self.Edges.remove(e)
+
+        for v in self.Vertices:
+            if e in v.Edges:
+                v.Edges.remove(e)
+
+    # ----------------------------------------------------------------------------------------------
+
     def new_face(self, vs):
         """Add new face based on vertices list.
 
@@ -793,6 +816,9 @@ class Graph:
         """Construct NetworkX graph and show it.
         """
 
+        figure(figsize=(8, 4))
+        plt.axes([0, 0, 1, 1])
+
         # Aux index.
         for (i, v) in enumerate(self.Vertices):
             v.Id = i
@@ -822,7 +848,7 @@ class Graph:
         # Draw nodes.
         # If no vertex coloring found then color it in neutral manner.
         if self.min_vertex_color() == 0:
-            nx.draw_networkx_nodes(g, pos=positions, node_color='black', node_size=20)
+            nx.draw_networkx_nodes(g, pos=positions, node_color='black', node_size=200)
         else:
             for c in range(self.max_vertex_color()):
                 c = c + 1
@@ -853,6 +879,11 @@ class Graph:
                                    edge_color=edges_colors_map,
                                    style=edges_styles_map,
                                    width=edges_widths_map)
+
+        # Draw vertices labels.
+        nx.draw_networkx_labels(g, pos=positions, font_color='white', font_size=11, font_weight='bold')
+
+        plt.axis('off')
 
     # ----------------------------------------------------------------------------------------------
 
@@ -1097,6 +1128,24 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
+    def edges_of_color(self, color):
+        """Get list of edges of a given color.
+
+        Parameters
+        ----------
+        color : int
+            Color.
+
+        Returns
+        -------
+        list
+            List of edges.
+        """
+
+        return [e for e in self.Edges if e.Color == color]
+
+    # ----------------------------------------------------------------------------------------------
+
     def max_edge_color(self):
         """Calculate max edge color.
 
@@ -1120,6 +1169,29 @@ class Graph:
         """
 
         return min([e.Color for e in self.Edges])
+
+    # ----------------------------------------------------------------------------------------------
+
+    def is_edge_coloring_correct(self):
+        """Check coloring for correctness.
+
+        Returns
+        -------
+        bool
+            Is coloring is correct.
+        """
+
+        if len(self.edges_of_color(0)) > 0:
+            return False
+
+        for v in self.Vertices:
+            for e1 in v.Edges:
+                for e2 in v.Edges:
+                    if e1 != e2:
+                        if e1.Color == e2.Color:
+                            return False
+
+        return True
 
     # ----------------------------------------------------------------------------------------------
 
@@ -1270,8 +1342,6 @@ class Graph:
         """
 
         # Hardcode.
-        # a = [[(0, 1), (4, 5)], [(1, 2), (3, 4)], [(4, 11), (3, 16)]]
-        # a = [[(0, 1), (4, 5)], [(1, 2), (3, 4)], [(4, 11), (3, 16)], [(24, 11), (5, 9)]]
         a = [[(2, 8), (3, 16)], [(2, 3), (20, 21)], [(4, 5), (0, 1)], [(0, 5), (24, 25)]]
         for i in range(len(a)):
             a0 = a[i][0]
@@ -1281,6 +1351,58 @@ class Graph:
             new_a = e1.split()
             new_b = e2.split()
             self.new_aux_edge(new_a, new_b)
+
+    # ----------------------------------------------------------------------------------------------
+
+    def delete_aux_edge(self, new_color_a, new_color_b):
+        """Delete aux edges.
+        """
+
+        # Delete faces - we don't need them.
+        self.Faces = []
+        for v in self.Vertices:
+            v.Faces = []
+        for e in self.Edges:
+            e.Faces = []
+
+        # Hardcode.
+        a, b = self.Vertices[-1], self.Vertices[-2]
+        ab_e = self.find_edge(a, b)
+        a_edges = [ae for ae in a.Edges if ae != ab_e]
+        b_edges = [be for be in b.Edges if be != ab_e]
+        a_nbs = [a.neighbour(ae) for ae in a_edges]
+        b_nbs = [b.neighbour(be) for be in b_edges]
+        # remove edges.
+        for e in [ab_e] + a_edges + b_edges:
+            self.remove_edge(e)
+        # remove vertices.
+        self.Vertices.remove(a)
+        self.Vertices.remove(b)
+        # add needed edges back.
+        a_new = self.new_edge(a_nbs[0], a_nbs[1])
+        a_new.Color = new_color_a
+        b_new = self.new_edge(b_nbs[0], b_nbs[1])
+        b_new.Color = new_color_b
+
+    # ----------------------------------------------------------------------------------------------
+
+    def rotate_colors(self, el):
+        """Rotate colors of edges.
+
+        Parameters
+        ----------
+        el : list(Edge)
+            List of edges.
+        """
+
+        edges = [g.find_edge(self.Vertices[ei[0]], self.Vertices[ei[1]]) for ei in el]
+        c0, c1 = edges[0].Color, edges[1].Color
+
+        for (i, e) in enumerate(edges):
+            if i % 2 == 1:
+                e.Color = c0
+            else:
+                e.Color = c1
 
 # ==================================================================================================
 
@@ -1343,9 +1465,31 @@ if __name__ == '__main__':
             ]
         for f in fs:
             g.new_face([g.Vertices[i] for i in f])
+        #
         g.add_edges_for_odd_faces_elimination()
-        # g.vertex_coloring_recolor5()
         g.edge_coloring_even_loops_3colors()
+        assert g.is_edge_coloring_correct()
+        #
+        g.rotate_colors([(5, 26), (26, 27), (24, 27), (5, 24)])
+        g.delete_aux_edge(3, 3)
+        g.rotate_colors([(5, 9), (9, 10), (10, 11), (11, 4), (4, 24)])
+        assert g.is_edge_coloring_correct()
+        #
+        g.rotate_colors([(0, 25), (25, 24), (24, 4), (4, 11), (11, 10), (10, 9), (9, 5), (5, 0)])
+        g.delete_aux_edge(1, 3)
+        g.rotate_colors([(0, 12), (12, 19), (19, 9), (9, 5)])
+        assert g.is_edge_coloring_correct()
+        #
+        g.rotate_colors([(2, 22), (22, 23), (23, 20), (20, 2)])
+        g.delete_aux_edge(3, 3)
+        g.rotate_colors([(2, 1), (1, 6), (6, 7), (7, 8), (8, 20)])
+        assert g.is_edge_coloring_correct()
+        #
+        g.rotate_colors([(20, 21), (21, 3), (3, 2), (2, 1), (1, 6), (6, 7), (7, 8), (8, 20)])
+        g.delete_aux_edge(3, 1)
+        g.rotate_colors([(16, 15), (15, 8)])
+        assert g.is_edge_coloring_correct()
+        #
         g.construct_and_show_networkx_graph()
 
 # ==================================================================================================
