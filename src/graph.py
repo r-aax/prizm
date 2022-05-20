@@ -610,6 +610,81 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
+    def init_2d_rect_mesh(self, xn, yn):
+        """Init 2 dimensional mesh graph.
+
+        Parameters
+        ----------
+        xn : int
+            Number of cells along x direction.
+        yn : int
+            Number of cells along y direction.
+        """
+
+        self.clear()
+
+        for xi in range(xn):
+            for yi in range(yn):
+                ul = self.find_or_new_vertex(geom.Vector(xi, yi, 0.0))
+                ur = self.find_or_new_vertex(geom.Vector(xi + 1.0, yi, 0.0))
+                dl = self.find_or_new_vertex(geom.Vector(xi, yi + 1.0, 0.0))
+                dr = self.find_or_new_vertex(geom.Vector(xi + 1.0, yi + 1.0, 0.0))
+                self.find_or_new_edge(ul, ur)
+                self.find_or_new_edge(ul, dl)
+                self.find_or_new_edge(ur, dr)
+                self.find_or_new_edge(dl, dr)
+
+    # ----------------------------------------------------------------------------------------------
+
+    def init_3d_rect_mesh(self, xn, yn, zn):
+        """Init 3 dimensional mesh graph.
+
+        Parameters
+        ----------
+        xn : int
+            Number of cells along x direction.
+        yn : int
+            Number of cells along y direction.
+        zn : int
+            Number of cells along z direction.
+        """
+
+        self.clear()
+
+        for xi in range(xn):
+            for yi in range(yn):
+                for zi in range(zn):
+                    ulf = self.find_or_new_vertex(geom.Vector(xi + 0.1 * zi,
+                                                              yi + 0.1 * zi, 0.0))
+                    urf = self.find_or_new_vertex(geom.Vector(xi + 1.0 + 0.1 * zi,
+                                                              yi + 0.1 * zi, 0.0))
+                    dlf = self.find_or_new_vertex(geom.Vector(xi + 0.1 * zi,
+                                                              yi + 1.0 + 0.1 * zi, 0.0))
+                    drf = self.find_or_new_vertex(geom.Vector(xi + 1.0 + 0.1 * zi,
+                                                              yi + 1.0 + 0.1 * zi, 0.0))
+                    ulb = self.find_or_new_vertex(geom.Vector(xi + 0.1 * (zi + 1),
+                                                              yi + 0.1 * (zi + 1), 0.0))
+                    urb = self.find_or_new_vertex(geom.Vector(xi + 1.0 + 0.1 * (zi + 1),
+                                                              yi + 0.1 * (zi + 1), 0.0))
+                    dlb = self.find_or_new_vertex(geom.Vector(xi + 0.1 * (zi + 1),
+                                                              yi + 1.0 + 0.1 * (zi + 1), 0.0))
+                    drb = self.find_or_new_vertex(geom.Vector(xi + 1.0 + 0.1 * (zi + 1),
+                                                              yi + 1.0 + 0.1 * (zi + 1), 0.0))
+                    self.find_or_new_edge(ulf, urf)
+                    self.find_or_new_edge(ulf, dlf)
+                    self.find_or_new_edge(urf, drf)
+                    self.find_or_new_edge(dlf, drf)
+                    self.find_or_new_edge(ulb, urb)
+                    self.find_or_new_edge(ulb, dlb)
+                    self.find_or_new_edge(urb, drb)
+                    self.find_or_new_edge(dlb, drb)
+                    self.find_or_new_edge(ulf, ulb)
+                    self.find_or_new_edge(urf, urb)
+                    self.find_or_new_edge(dlf, dlb)
+                    self.find_or_new_edge(drf, drb)
+
+    # ----------------------------------------------------------------------------------------------
+
     def init_ecg_for_2d_rect_mesh(self, cells_x, cells_y):
         """Init edges conflict graph for 2d rectangular mesh.
 
@@ -812,8 +887,13 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
-    def construct_and_show_networkx_graph(self):
+    def construct_and_show_networkx_graph(self, is_draw_labels=False):
         """Construct NetworkX graph and show it.
+
+        Parameters
+        ----------
+        is_draw_labels : bool
+            Is needed to draw labels.
         """
 
         figure(figsize=(8, 4))
@@ -848,7 +928,11 @@ class Graph:
         # Draw nodes.
         # If no vertex coloring found then color it in neutral manner.
         if self.min_vertex_color() == 0:
-            nx.draw_networkx_nodes(g, pos=positions, node_color='black', node_size=200)
+            if is_draw_labels:
+                node_size = 200
+            else:
+                node_size = 20
+            nx.draw_networkx_nodes(g, pos=positions, node_color='black', node_size=node_size)
         else:
             for c in range(self.max_vertex_color()):
                 c = c + 1
@@ -870,9 +954,9 @@ class Graph:
         else:
             edges_colors = ['black']
             edges_colors_map = [edges_colors[(e.Color - 1) % len(edges_colors)] for e in self.Edges]
-            edges_styles = ['-', '--', '-.', ':']
+            edges_styles = ['-', '--', '-.', ':', '-', '--']
             edges_styles_map = [edges_styles[(e.Color - 1) % len(edges_styles)] for e in self.Edges]
-            edges_widths = [3, 2, 1, 1]
+            edges_widths = [3, 2, 1, 3, 1, 1]
             edges_widths_map = [edges_widths[(e.Color - 1) % len(edges_widths)] for e in self.Edges]
             nx.draw_networkx_edges(g,
                                    pos=positions,
@@ -881,7 +965,9 @@ class Graph:
                                    width=edges_widths_map)
 
         # Draw vertices labels.
-        nx.draw_networkx_labels(g, pos=positions, font_color='white', font_size=11, font_weight='bold')
+        if is_draw_labels:
+            nx.draw_networkx_labels(g, pos=positions,
+                                    font_color='white', font_size=11, font_weight='bold')
 
         plt.axis('off')
 
@@ -1223,6 +1309,37 @@ class Graph:
 
     # ----------------------------------------------------------------------------------------------
 
+    def edge_coloring_greedy(self, verbose=True):
+        """Greedy edge coloring.
+
+        Returns
+        -------
+        int
+            Colors count.
+        """
+
+        self.decolor_edges()
+        max_c = 0
+
+        for e in self.Edges:
+            if e.Color == 0:
+                a, b = e.A, e.B
+                cs = [e.Color for e in a.Edges + b.Edges]
+                print(cs)
+                c = 1
+                while c in cs:
+                    c += 1
+                e.Color = c
+
+        max_c = self.max_edge_color()
+
+        if verbose:
+            print(f'Graph.edge_coloring_greedy : {max_c} colors')
+
+        return max_c
+
+    # ----------------------------------------------------------------------------------------------
+
     def edge_coloring_even_loops_3colors(self, verbose=True):
         """Coloring for graph with only even loops
 
@@ -1490,6 +1607,20 @@ if __name__ == '__main__':
         g.rotate_colors([(16, 15), (15, 8)])
         assert g.is_edge_coloring_correct()
         #
+        g.construct_and_show_networkx_graph()
+
+    elif test == 3:
+
+        g = Graph()
+        g.init_2d_rect_mesh(4, 3)
+        g.edge_coloring_greedy()
+        g.construct_and_show_networkx_graph()
+
+    elif test == 4:
+
+        g = Graph()
+        g.init_3d_rect_mesh(4, 3, 3)
+        g.edge_coloring_greedy()
         g.construct_and_show_networkx_graph()
 
 # ==================================================================================================
