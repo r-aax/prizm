@@ -346,6 +346,21 @@ class Face:
 
         raise Exception('internal error')
 
+    # ----------------------------------------------------------------------------------------------
+
+    def get_center_point(self):
+        """Get center point.
+
+        Returns
+        -------
+        Vector
+            Center point.
+        """
+
+        k = 1.0 / len(self.Vertices)
+
+        return sum([v.P for v in self.Vertices], start=geom.Vector()) * k
+
 # ==================================================================================================
 
 
@@ -884,6 +899,27 @@ class Graph:
                 self.new_face([self.Vertices[idx - 1] for idx in idxs])
 
             f.close()
+
+    # ----------------------------------------------------------------------------------------------
+
+    def create_dual_graph(self):
+        """Create dual graph from given graph with faces
+
+        Returns
+        -------
+        Graph
+            Dual graph
+        """
+
+        g = Graph()
+
+        for e in self.Edges:
+            cs = [f.get_center_point() for f in e.Faces]
+            vs = [g.find_or_new_vertex(p=p) for p in cs]
+            if len(vs) > 1:
+                g.find_or_new_edge(vs[0], vs[1])
+
+        return g
 
     # ----------------------------------------------------------------------------------------------
 
@@ -1622,5 +1658,12 @@ if __name__ == '__main__':
         g.init_3d_rect_mesh(4, 3, 3)
         g.edge_coloring_greedy()
         g.construct_and_show_networkx_graph()
+
+    elif test == 5:
+
+        g = Graph()
+        g.load_dat_mesh('../data/dat/meshes/bunny.dat')
+        d = g.create_dual_graph()
+        d.save_dat_ecg('tt.dat')
 
 # ==================================================================================================
