@@ -2,6 +2,8 @@
 Some functions for numbers theory.
 """
 
+import math
+
 
 def gcd(n, m):
     """
@@ -77,3 +79,8 @@ if __name__ == '__main__':
     assert factorization(10) == [2, 5]
     assert factorization(27) == [3, 3, 3]
     assert factorization(42) == [2, 3, 7]
+
+    #
+    print(factorization(1))
+    print(factorization(1742))
+    print(factorization(247115))

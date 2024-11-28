@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Drawing examples.
 
@@ -63,7 +62,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def FSS(self,
+    def fss(self,
             filename = 'test.png'):
         """
         Flush, Save, Show.
@@ -74,13 +73,14 @@ class Drawer:
 
         # Flush
         self.Canvas.flush()
-        if filename != None:
+        if not (filename is None):
             self.Img.save(filename)
         self.Img.show()
 
 #---------------------------------------------------------------------------------------------------
 
-    def TransformCoord(self, x, f, t, inv_k):
+    @staticmethod
+    def transform_coord(x, f, t, inv_k):
         """
         Transform coordinate.
 
@@ -108,7 +108,7 @@ class Drawer:
 
 #---------------------------------------------------------------------------------------------------
 
-    def To(self, p):
+    def to(self, p):
         """
         Transform point TO.
 
@@ -121,14 +121,14 @@ class Drawer:
 
         (px, py) = p
 
-        return (self.TransformCoord(px, self.FXI, self.TXI, self.InvKX),
-                self.TransformCoord(py, self.FYI, self.TYI, self.InvKY))
+        return (self.transform_coord(px, self.FXI, self.TXI, self.InvKX),
+                self.transform_coord(py, self.FYI, self.TYI, self.InvKY))
 
 #---------------------------------------------------------------------------------------------------
 
-    def From(self, p):
+    def fr(self, p):
         """
-        Transfrom point FROM.
+        Transform point FROM.
 
         Arguments:
             p -- point from picture area.
@@ -139,12 +139,12 @@ class Drawer:
 
         (px, py) = p
 
-        return (self.TransformCoord(px, self.TXI, self.FXI, self.InvKX),
-                self.TransformCoord(py, self.TYI, self.FYI, self.InvKY))
+        return (self.transform_coord(px, self.TXI, self.FXI, self.InvKX),
+                self.transform_coord(py, self.TYI, self.FYI, self.InvKY))
 
 #---------------------------------------------------------------------------------------------------
 
-    def Line(self, p1, p2, pen = BlackPen):
+    def line(self, p1, p2, pen = BlackPen):
         """
         Line.
 
@@ -154,11 +154,11 @@ class Drawer:
             pen -- pen.
         """
 
-        self.Canvas.line(self.To(p1) + self.To(p2), pen)
+        self.Canvas.line(self.to(p1) + self.to(p2), pen)
 
 #---------------------------------------------------------------------------------------------------
 
-    def FixLine(self, p, dp, BlackPen):
+    def fix_line(self, p, dp, pen=BlackPen):
         """
         Fix line.
 
@@ -167,14 +167,14 @@ class Drawer:
             dp -- fixed displacement.
         """
 
-        (cx, cy) = self.To(p)
+        (cx, cy) = self.to(p)
         (dpx, dpy) = dp
         c = (cx, cy, cx + dpx, cy + dpy)
         self.Canvas.line(c, pen)
 
 #---------------------------------------------------------------------------------------------------
 
-    def Ellipse(self, p1, p2, pen = BlackPen, brush = None):
+    def ellipse(self, p1, p2, pen = BlackPen, brush = None):
         """
         Ellipse.
 
@@ -185,15 +185,15 @@ class Drawer:
             brush -- brush.
         """
 
-        c = self.To(p1) + self.To(p2)
-        if brush == None:
+        c = self.to(p1) + self.to(p2)
+        if brush is None:
             self.Canvas.ellipse(c, pen)
         else:
             self.Canvas.ellipse(c, pen, brush)
 
 #---------------------------------------------------------------------------------------------------
 
-    def Point(self, p, r, pen = BlackPen, brush = None):
+    def point(self, p, r, pen = BlackPen, brush = None):
         """
         Point.
 
@@ -204,16 +204,16 @@ class Drawer:
             brush -- brush.
         """
 
-        (cx, cy) = self.To(p)
+        (cx, cy) = self.to(p)
         c = (cx - r, cy - r, cx + r, cy + r)
-        if brush == None:
+        if brush is None:
             self.Canvas.ellipse(c, pen)
         else:
             self.Canvas.ellipse(c, pen, brush)
 
 #---------------------------------------------------------------------------------------------------
 
-    def Axis(self,
+    def axis(self,
              h = 12, w = 4,
              pen = aggdraw.Pen('silver', 2.0)):
         """
@@ -229,19 +229,19 @@ class Drawer:
 
         # OX
         if (min_y <= 0) and (max_y >= 0):
-            self.Line((min_x, 0), (max_x, 0), pen = pen)
-            self.FixLine((max_x, 0), (-h * self.InvKX, w), pen = pen)
-            self.FixLine((max_x, 0), (-h * self.InvKX, -w), pen = pen)
+            self.line((min_x, 0), (max_x, 0), pen = pen)
+            self.fix_line((max_x, 0), (-h * self.InvKX, w), pen = pen)
+            self.fix_line((max_x, 0), (-h * self.InvKX, -w), pen = pen)
 
         # OY
         if (min_x <= 0) and (max_x >= 0):
-            self.Line((0, min_y), (0, max_y), pen = pen)
-            self.FixLine((0, max_y), (w, -h * self.InvKY), pen = pen)
-            self.FixLine((0, max_y), (-w, -h * self.InvKY), pen = pen)
+            self.line((0, min_y), (0, max_y), pen = pen)
+            self.fix_line((0, max_y), (w, -h * self.InvKY), pen = pen)
+            self.fix_line((0, max_y), (-w, -h * self.InvKY), pen = pen)
 
 #---------------------------------------------------------------------------------------------------
 
-    def Grid(self,
+    def grid(self,
              deltas,
              pen = aggdraw.Pen('silver', 1.0)):
         """
@@ -258,27 +258,27 @@ class Drawer:
         gx_cur = gx
         while gx_cur <= max_x:
             if gx_cur >= min_x:
-                self.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
+                self.line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
             gx_cur = gx_cur + gx
         gx_cur = -gx
         while gx_cur >= min_x:
             if gx_cur <= max_x:
-                self.Line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
+                self.line((gx_cur, min_y), (gx_cur, max_y), pen = pen)
             gx_cur = gx_cur - gx
         gy_cur = gy
         while gy_cur <= max_y:
             if gy_cur >= min_y:
-                self.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
+                self.line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
             gy_cur = gy_cur + gy
         gy_cur = -gy
         while gy_cur >= min_y:
             if gy_cur <= max_y:
-                self.Line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
+                self.line((min_x, gy_cur), (max_x, gy_cur), pen = pen)
             gy_cur = gy_cur - gy
 
 #---------------------------------------------------------------------------------------------------
 
-    def Rect(self, p1, p2, pen = BlackPen, brush = None):
+    def rect(self, p1, p2, pen = BlackPen, brush = None):
         """
         Rectangle.
 
@@ -289,18 +289,18 @@ class Drawer:
             brish -- brush.
         """
 
-        if brush == None:
-            self.Canvas.rectangle(self.To(p1) + self.To(p2), pen)
+        if brush is None:
+            self.Canvas.rectangle(self.to(p1) + self.to(p2), pen)
         else:
-            self.Canvas.rectangle(self.To(p1) + self.To(p2), pen, brush)
+            self.Canvas.rectangle(self.to(p1) + self.to(p2), pen, brush)
 
 #---------------------------------------------------------------------------------------------------
 
-    def RectWithCenterPoint(self, p1, p2, r, pen = BlackPen, brush = None):
+    def rect_with_center_point(self, p1, p2, r, pen = BlackPen, brush = None):
         """
         Rectangle with point in its center.
 
-        Argements:
+        Arguments:
             p1 -- first point,
             p2 -- second point,
             r -- point radius,
@@ -311,12 +311,12 @@ class Drawer:
         (p1x, p1y) = p1
         (p2x, p2y) = p2
 
-        self.Rect(p1, p2, pen, brush)
-        self.Point((0.5 * (p1x + p2x), 0.5 * (p1y + p2y)), r, pen, brush)
+        self.rect(p1, p2, pen, brush)
+        self.point((0.5 * (p1x + p2x), 0.5 * (p1y + p2y)), r, pen, brush)
 
 #---------------------------------------------------------------------------------------------------
 
-    def FullGraph(self, ps, pen = BlackPen):
+    def full_graph(self, ps, pen = BlackPen):
         """
         Draw full graph.
 
@@ -328,7 +328,7 @@ class Drawer:
         n = len(ps)
         for i in range(n):
             for j in range(i + 1, n):
-                self.Line(ps[i], ps[j], pen)
+                self.line(ps[i], ps[j], pen)
 
 #---------------------------------------------------------------------------------------------------
 # Other functions.
@@ -410,20 +410,20 @@ def test_drawer():
     Drawer test.
     """
 
-    D = Drawer()
-    D.Line((0, 0), (100, 100))
-    D.Ellipse((30, 30), (70, 70), pen = aggdraw.Pen('red', 1.5), brush = aggdraw.Brush('steelblue'))
-    D.Point((10, 80), 5)
-    D.Point((80, 10), 5)
-    D.FSS()
+    d = Drawer()
+    d.line((0, 0), (100, 100))
+    d.ellipse((30, 30), (70, 70), pen = aggdraw.Pen('red', 1.5), brush = aggdraw.Brush('steelblue'))
+    d.point((10, 80), 5)
+    d.point((80, 10), 5)
+    d.fss()
 
 #---------------------------------------------------------------------------------------------------
 # Tests.
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    #test_pil()
-    #test_aggdraw()
+    test_pil()
+    test_aggdraw()
     test_drawer()
 
 #---------------------------------------------------------------------------------------------------
